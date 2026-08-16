@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { ThemeProvider } from "../lib/theme";
 import { Toaster } from "../components/ui/sonner";
+import { initAnalytics } from "../lib/firebase";
 import { RrhhProvider } from "../store/rrhh";
 import { PortalProvider } from "../store/portal";
 import { OperacionesProvider } from "../store/operaciones";
