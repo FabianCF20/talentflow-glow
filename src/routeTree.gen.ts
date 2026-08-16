@@ -10,33 +10,335 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AsistenciaRouteImport } from './routes/asistencia'
+import { Route as AuditoriaRouteImport } from './routes/auditoria'
+import { Route as AusenciasRouteImport } from './routes/ausencias'
+import { Route as ConfiguracionRouteImport } from './routes/configuracion'
+import { Route as DisciplinarioRouteImport } from './routes/disciplinario'
+import { Route as DocumentosRouteImport } from './routes/documentos'
+import { Route as DotacionRouteImport } from './routes/dotacion'
+import { Route as EmpleadosRouteImport } from './routes/empleados'
+import { Route as EvaluacionesRouteImport } from './routes/evaluaciones'
+import { Route as FormulariosRouteImport } from './routes/formularios'
+import { Route as HorasExtrasRouteImport } from './routes/horas-extras'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as MaestrosRouteImport } from './routes/maestros'
+import { Route as NominaRouteImport } from './routes/nomina'
+import { Route as NovedadesRouteImport } from './routes/novedades'
+import { Route as OrganigramaRouteImport } from './routes/organigrama'
+import { Route as OrganizacionRouteImport } from './routes/organizacion'
+import { Route as PortalRouteImport } from './routes/portal'
+import { Route as ReportesRouteImport } from './routes/reportes'
+import { Route as SolicitudesRouteImport } from './routes/solicitudes'
+import { Route as SstRouteImport } from './routes/sst'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
+import { Route as EmpleadosIdRouteImport } from './routes/empleados.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AsistenciaRoute = AsistenciaRouteImport.update({
+  id: '/asistencia',
+  path: '/asistencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditoriaRoute = AuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AusenciasRoute = AusenciasRouteImport.update({
+  id: '/ausencias',
+  path: '/ausencias',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracionRoute = ConfiguracionRouteImport.update({
+  id: '/configuracion',
+  path: '/configuracion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DisciplinarioRoute = DisciplinarioRouteImport.update({
+  id: '/disciplinario',
+  path: '/disciplinario',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocumentosRoute = DocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotacionRoute = DotacionRouteImport.update({
+  id: '/dotacion',
+  path: '/dotacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpleadosRoute = EmpleadosRouteImport.update({
+  id: '/empleados',
+  path: '/empleados',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EvaluacionesRoute = EvaluacionesRouteImport.update({
+  id: '/evaluaciones',
+  path: '/evaluaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FormulariosRoute = FormulariosRouteImport.update({
+  id: '/formularios',
+  path: '/formularios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HorasExtrasRoute = HorasExtrasRouteImport.update({
+  id: '/horas-extras',
+  path: '/horas-extras',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaestrosRoute = MaestrosRouteImport.update({
+  id: '/maestros',
+  path: '/maestros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NominaRoute = NominaRouteImport.update({
+  id: '/nomina',
+  path: '/nomina',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NovedadesRoute = NovedadesRouteImport.update({
+  id: '/novedades',
+  path: '/novedades',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganigramaRoute = OrganigramaRouteImport.update({
+  id: '/organigrama',
+  path: '/organigrama',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizacionRoute = OrganizacionRouteImport.update({
+  id: '/organizacion',
+  path: '/organizacion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportesRoute = ReportesRouteImport.update({
+  id: '/reportes',
+  path: '/reportes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SolicitudesRoute = SolicitudesRouteImport.update({
+  id: '/solicitudes',
+  path: '/solicitudes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SstRoute = SstRouteImport.update({
+  id: '/sst',
+  path: '/sst',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmpleadosIdRoute = EmpleadosIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => EmpleadosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/asistencia': typeof AsistenciaRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/ausencias': typeof AusenciasRoute
+  '/configuracion': typeof ConfiguracionRoute
+  '/disciplinario': typeof DisciplinarioRoute
+  '/documentos': typeof DocumentosRoute
+  '/dotacion': typeof DotacionRoute
+  '/empleados': typeof EmpleadosRouteWithChildren
+  '/evaluaciones': typeof EvaluacionesRoute
+  '/formularios': typeof FormulariosRoute
+  '/horas-extras': typeof HorasExtrasRoute
+  '/login': typeof LoginRoute
+  '/maestros': typeof MaestrosRoute
+  '/nomina': typeof NominaRoute
+  '/novedades': typeof NovedadesRoute
+  '/organigrama': typeof OrganigramaRoute
+  '/organizacion': typeof OrganizacionRoute
+  '/portal': typeof PortalRoute
+  '/reportes': typeof ReportesRoute
+  '/solicitudes': typeof SolicitudesRoute
+  '/sst': typeof SstRoute
+  '/usuarios': typeof UsuariosRoute
+  '/empleados/$id': typeof EmpleadosIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/asistencia': typeof AsistenciaRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/ausencias': typeof AusenciasRoute
+  '/configuracion': typeof ConfiguracionRoute
+  '/disciplinario': typeof DisciplinarioRoute
+  '/documentos': typeof DocumentosRoute
+  '/dotacion': typeof DotacionRoute
+  '/empleados': typeof EmpleadosRouteWithChildren
+  '/evaluaciones': typeof EvaluacionesRoute
+  '/formularios': typeof FormulariosRoute
+  '/horas-extras': typeof HorasExtrasRoute
+  '/login': typeof LoginRoute
+  '/maestros': typeof MaestrosRoute
+  '/nomina': typeof NominaRoute
+  '/novedades': typeof NovedadesRoute
+  '/organigrama': typeof OrganigramaRoute
+  '/organizacion': typeof OrganizacionRoute
+  '/portal': typeof PortalRoute
+  '/reportes': typeof ReportesRoute
+  '/solicitudes': typeof SolicitudesRoute
+  '/sst': typeof SstRoute
+  '/usuarios': typeof UsuariosRoute
+  '/empleados/$id': typeof EmpleadosIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/asistencia': typeof AsistenciaRoute
+  '/auditoria': typeof AuditoriaRoute
+  '/ausencias': typeof AusenciasRoute
+  '/configuracion': typeof ConfiguracionRoute
+  '/disciplinario': typeof DisciplinarioRoute
+  '/documentos': typeof DocumentosRoute
+  '/dotacion': typeof DotacionRoute
+  '/empleados': typeof EmpleadosRouteWithChildren
+  '/evaluaciones': typeof EvaluacionesRoute
+  '/formularios': typeof FormulariosRoute
+  '/horas-extras': typeof HorasExtrasRoute
+  '/login': typeof LoginRoute
+  '/maestros': typeof MaestrosRoute
+  '/nomina': typeof NominaRoute
+  '/novedades': typeof NovedadesRoute
+  '/organigrama': typeof OrganigramaRoute
+  '/organizacion': typeof OrganizacionRoute
+  '/portal': typeof PortalRoute
+  '/reportes': typeof ReportesRoute
+  '/solicitudes': typeof SolicitudesRoute
+  '/sst': typeof SstRoute
+  '/usuarios': typeof UsuariosRoute
+  '/empleados/$id': typeof EmpleadosIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/asistencia'
+    | '/auditoria'
+    | '/ausencias'
+    | '/configuracion'
+    | '/disciplinario'
+    | '/documentos'
+    | '/dotacion'
+    | '/empleados'
+    | '/evaluaciones'
+    | '/formularios'
+    | '/horas-extras'
+    | '/login'
+    | '/maestros'
+    | '/nomina'
+    | '/novedades'
+    | '/organigrama'
+    | '/organizacion'
+    | '/portal'
+    | '/reportes'
+    | '/solicitudes'
+    | '/sst'
+    | '/usuarios'
+    | '/empleados/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/asistencia'
+    | '/auditoria'
+    | '/ausencias'
+    | '/configuracion'
+    | '/disciplinario'
+    | '/documentos'
+    | '/dotacion'
+    | '/empleados'
+    | '/evaluaciones'
+    | '/formularios'
+    | '/horas-extras'
+    | '/login'
+    | '/maestros'
+    | '/nomina'
+    | '/novedades'
+    | '/organigrama'
+    | '/organizacion'
+    | '/portal'
+    | '/reportes'
+    | '/solicitudes'
+    | '/sst'
+    | '/usuarios'
+    | '/empleados/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/asistencia'
+    | '/auditoria'
+    | '/ausencias'
+    | '/configuracion'
+    | '/disciplinario'
+    | '/documentos'
+    | '/dotacion'
+    | '/empleados'
+    | '/evaluaciones'
+    | '/formularios'
+    | '/horas-extras'
+    | '/login'
+    | '/maestros'
+    | '/nomina'
+    | '/novedades'
+    | '/organigrama'
+    | '/organizacion'
+    | '/portal'
+    | '/reportes'
+    | '/solicitudes'
+    | '/sst'
+    | '/usuarios'
+    | '/empleados/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AsistenciaRoute: typeof AsistenciaRoute
+  AuditoriaRoute: typeof AuditoriaRoute
+  AusenciasRoute: typeof AusenciasRoute
+  ConfiguracionRoute: typeof ConfiguracionRoute
+  DisciplinarioRoute: typeof DisciplinarioRoute
+  DocumentosRoute: typeof DocumentosRoute
+  DotacionRoute: typeof DotacionRoute
+  EmpleadosRoute: typeof EmpleadosRouteWithChildren
+  EvaluacionesRoute: typeof EvaluacionesRoute
+  FormulariosRoute: typeof FormulariosRoute
+  HorasExtrasRoute: typeof HorasExtrasRoute
+  LoginRoute: typeof LoginRoute
+  MaestrosRoute: typeof MaestrosRoute
+  NominaRoute: typeof NominaRoute
+  NovedadesRoute: typeof NovedadesRoute
+  OrganigramaRoute: typeof OrganigramaRoute
+  OrganizacionRoute: typeof OrganizacionRoute
+  PortalRoute: typeof PortalRoute
+  ReportesRoute: typeof ReportesRoute
+  SolicitudesRoute: typeof SolicitudesRoute
+  SstRoute: typeof SstRoute
+  UsuariosRoute: typeof UsuariosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +350,207 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/asistencia': {
+      id: '/asistencia'
+      path: '/asistencia'
+      fullPath: '/asistencia'
+      preLoaderRoute: typeof AsistenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auditoria': {
+      id: '/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuditoriaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ausencias': {
+      id: '/ausencias'
+      path: '/ausencias'
+      fullPath: '/ausencias'
+      preLoaderRoute: typeof AusenciasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/configuracion': {
+      id: '/configuracion'
+      path: '/configuracion'
+      fullPath: '/configuracion'
+      preLoaderRoute: typeof ConfiguracionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/disciplinario': {
+      id: '/disciplinario'
+      path: '/disciplinario'
+      fullPath: '/disciplinario'
+      preLoaderRoute: typeof DisciplinarioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/documentos': {
+      id: '/documentos'
+      path: '/documentos'
+      fullPath: '/documentos'
+      preLoaderRoute: typeof DocumentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dotacion': {
+      id: '/dotacion'
+      path: '/dotacion'
+      fullPath: '/dotacion'
+      preLoaderRoute: typeof DotacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/empleados': {
+      id: '/empleados'
+      path: '/empleados'
+      fullPath: '/empleados'
+      preLoaderRoute: typeof EmpleadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/evaluaciones': {
+      id: '/evaluaciones'
+      path: '/evaluaciones'
+      fullPath: '/evaluaciones'
+      preLoaderRoute: typeof EvaluacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/formularios': {
+      id: '/formularios'
+      path: '/formularios'
+      fullPath: '/formularios'
+      preLoaderRoute: typeof FormulariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/horas-extras': {
+      id: '/horas-extras'
+      path: '/horas-extras'
+      fullPath: '/horas-extras'
+      preLoaderRoute: typeof HorasExtrasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/maestros': {
+      id: '/maestros'
+      path: '/maestros'
+      fullPath: '/maestros'
+      preLoaderRoute: typeof MaestrosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/nomina': {
+      id: '/nomina'
+      path: '/nomina'
+      fullPath: '/nomina'
+      preLoaderRoute: typeof NominaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/novedades': {
+      id: '/novedades'
+      path: '/novedades'
+      fullPath: '/novedades'
+      preLoaderRoute: typeof NovedadesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organigrama': {
+      id: '/organigrama'
+      path: '/organigrama'
+      fullPath: '/organigrama'
+      preLoaderRoute: typeof OrganigramaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organizacion': {
+      id: '/organizacion'
+      path: '/organizacion'
+      fullPath: '/organizacion'
+      preLoaderRoute: typeof OrganizacionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reportes': {
+      id: '/reportes'
+      path: '/reportes'
+      fullPath: '/reportes'
+      preLoaderRoute: typeof ReportesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/solicitudes': {
+      id: '/solicitudes'
+      path: '/solicitudes'
+      fullPath: '/solicitudes'
+      preLoaderRoute: typeof SolicitudesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sst': {
+      id: '/sst'
+      path: '/sst'
+      fullPath: '/sst'
+      preLoaderRoute: typeof SstRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/empleados/$id': {
+      id: '/empleados/$id'
+      path: '/$id'
+      fullPath: '/empleados/$id'
+      preLoaderRoute: typeof EmpleadosIdRouteImport
+      parentRoute: typeof EmpleadosRoute
+    }
   }
 }
 
+interface EmpleadosRouteChildren {
+  EmpleadosIdRoute: typeof EmpleadosIdRoute
+}
+
+const EmpleadosRouteChildren: EmpleadosRouteChildren = {
+  EmpleadosIdRoute: EmpleadosIdRoute,
+}
+
+const EmpleadosRouteWithChildren = EmpleadosRoute._addFileChildren(
+  EmpleadosRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AsistenciaRoute: AsistenciaRoute,
+  AuditoriaRoute: AuditoriaRoute,
+  AusenciasRoute: AusenciasRoute,
+  ConfiguracionRoute: ConfiguracionRoute,
+  DisciplinarioRoute: DisciplinarioRoute,
+  DocumentosRoute: DocumentosRoute,
+  DotacionRoute: DotacionRoute,
+  EmpleadosRoute: EmpleadosRouteWithChildren,
+  EvaluacionesRoute: EvaluacionesRoute,
+  FormulariosRoute: FormulariosRoute,
+  HorasExtrasRoute: HorasExtrasRoute,
+  LoginRoute: LoginRoute,
+  MaestrosRoute: MaestrosRoute,
+  NominaRoute: NominaRoute,
+  NovedadesRoute: NovedadesRoute,
+  OrganigramaRoute: OrganigramaRoute,
+  OrganizacionRoute: OrganizacionRoute,
+  PortalRoute: PortalRoute,
+  ReportesRoute: ReportesRoute,
+  SolicitudesRoute: SolicitudesRoute,
+  SstRoute: SstRoute,
+  UsuariosRoute: UsuariosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
