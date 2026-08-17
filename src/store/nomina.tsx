@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useFirestoreState } from "@/lib/firestore";
 
 import {
   LIQUIDACIONES_INICIALES,
   PERIODOS_INICIALES,
   RECURRENTES_INICIALES,
-  VACACIONES_PENDIENTES_DEMO,
+  VACACIONES_PENDIENTES,
 } from "@/data/nomina";
 import { calcularDetalle, calcularLiquidacionFinal, hoyISO } from "@/lib/nomina";
 import { useOperaciones } from "@/store/operaciones";
@@ -47,9 +48,9 @@ const NominaContext = createContext<NominaContextValue | null>(null);
 export function NominaProvider({ children }: { children: ReactNode }) {
   const { empleados } = useRrhh();
   const { horasExtras } = useOperaciones();
-  const [periodos, setPeriodos] = useState<PeriodoNomina[]>(PERIODOS_INICIALES);
-  const [recurrentes, setRecurrentes] = useState<ConceptoRecurrente[]>(RECURRENTES_INICIALES);
-  const [liquidaciones, setLiquidaciones] = useState<LiquidacionFinal[]>(LIQUIDACIONES_INICIALES);
+  const [periodos, setPeriodos] = useFirestoreState<PeriodoNomina>("nomina_periodos");
+  const [recurrentes, setRecurrentes] = useFirestoreState<ConceptoRecurrente>("nomina_recurrentes");
+  const [liquidaciones, setLiquidaciones] = useFirestoreState<LiquidacionFinal>("nomina_liquidaciones");
 
   const liquidarPeriodo = useCallback(
     (periodoId: string, responsable: string) => {
@@ -119,7 +120,7 @@ export function NominaProvider({ children }: { children: ReactNode }) {
       periodos,
       recurrentes,
       liquidaciones,
-      vacacionesPendientes: VACACIONES_PENDIENTES_DEMO,
+      vacacionesPendientes: VACACIONES_PENDIENTES,
       liquidarPeriodo,
       marcarPagado,
       agregarRecurrente,

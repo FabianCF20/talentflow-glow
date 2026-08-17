@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useFirestoreState } from "@/lib/firestore";
 import { EMPLEADOS_RRHH, EVENTOS_HV } from "@/data/rrhh";
 import type { EmpleadoRRHH, EstadoLaboral, EventoHojaVida, InformacionLaboral } from "@/types/rrhh";
 import { eventoPorEstado, generarEventosPorCambio } from "@/lib/rrhh";
@@ -21,8 +22,8 @@ interface RrhhContextValue {
 const RrhhContext = createContext<RrhhContextValue | null>(null);
 
 export function RrhhProvider({ children }: { children: ReactNode }) {
-  const [empleados, setEmpleados] = useState<EmpleadoRRHH[]>(EMPLEADOS_RRHH);
-  const [eventos, setEventos] = useState<EventoHojaVida[]>(EVENTOS_HV);
+  const [empleados, setEmpleados] = useFirestoreState<EmpleadoRRHH>("empleados_rrhh");
+  const [eventos, setEventos] = useFirestoreState<EventoHojaVida>("eventos_hoja_vida");
   const [rolActivo, setRolActivo] = useState<RoleKey>("talento_humano");
   const [empleadoActuandoId, setEmpleadoActuandoId] = useState("e-004");
 
