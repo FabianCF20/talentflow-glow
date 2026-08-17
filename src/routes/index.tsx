@@ -42,7 +42,7 @@ function Dashboard() {
   const [logs] = useFirestoreState<AuditLog>("auditoria");
 
   const activos = empleados.filter((e) => e.estadoLaboral !== "retirado").length;
-  const pendientes = solicitudes.filter((s) => s.estado === "pendiente").length;
+  const pendientes = solicitudes.filter((s) => s.estado === "pendiente_jefe" || s.estado === "pendiente_rrhh").length;
   const porVencer = documentos.filter((d) => {
     const v = estadoVigencia(d);
     return v === "por_vencer" || v === "vencido";
