@@ -10,6 +10,7 @@ import { useRrhh } from "@/store/rrhh";
 import { useOperaciones } from "@/store/operaciones";
 import { usePortal } from "@/store/portal";
 import { useSst } from "@/store/sst";
+import { estadoVigencia } from "@/lib/documentos";
 import type { AuditLog } from "@/types/entities";
 import { Button } from "@/components/ui/button";
 
@@ -42,7 +43,10 @@ function Dashboard() {
 
   const activos = empleados.filter((e) => e.estadoLaboral !== "retirado").length;
   const pendientes = solicitudes.filter((s) => s.estado === "pendiente").length;
-  const porVencer = documentos.filter((d) => d.estado === "por_vencer" || d.estado === "vencido").length;
+  const porVencer = documentos.filter((d) => {
+    const v = estadoVigencia(d);
+    return v === "por_vencer" || v === "vencido";
+  }).length;
   const abiertos = accidentes.length;
 
   return (
