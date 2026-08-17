@@ -5,7 +5,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { AuditTrailTable } from "@/components/common/AuditTrailTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AUDIT_LOGS } from "@/data/mock";
+import { useFirestoreState } from "@/lib/firestore";
+import type { AuditLog } from "@/types/entities";
 
 export const Route = createFileRoute("/auditoria")({
   head: () => ({
@@ -43,7 +44,7 @@ function Auditoria() {
         <Input type="date" className="max-w-40" />
         <Input type="date" className="max-w-40" />
       </div>
-      <AuditTrailTable logs={AUDIT_LOGS} />
+      <AuditTrailTable logs={logs} />
     </AppShell>
   );
 }
