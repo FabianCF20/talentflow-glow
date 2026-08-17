@@ -122,7 +122,7 @@ export function SstProvider({ children }: { children: ReactNode }) {
   const [examenes, setExamenes] = useFirestoreState<ExamenMedico>("sst_examenes");
   const [accidentes, setAccidentes] = useFirestoreState<AccidenteLaboral>("sst_accidentes");
   const [capacitaciones, setCapacitaciones] = useFirestoreState<CapacitacionSST>("sst_capacitaciones");
-  const [tallas, setTallas] = useFirestoreState<FichaTallas>("sst_tallas");
+  const [tallas, setTallas] = useFirestoreState<FichaTallas>("sst_tallas", "empleadoId");
   const [entregas, setEntregas] = useFirestoreState<EntregaDotacion>("sst_entregas");
   const [formularios, setFormularios] = useFirestoreState<Formulario>("sst_formularios");
   const [respuestas, setRespuestas] = useFirestoreState<RespuestaFormulario>("sst_respuestas");
