@@ -23,9 +23,14 @@ export function limpiarUndefined<T>(valor: T): T {
   return valor;
 }
 
+const idDe = <T extends object>(item: T, campo: string) => String((item as Record<string, unknown>)[campo]);
+
 /** Crea o reemplaza un documento con id propio. */
-export async function guardarDoc<T extends { id: string }>(coleccion: string, item: T) {
-  await setDoc(doc(db, coleccion, item.id), limpiarUndefined(item) as Record<string, unknown>);
+export async function guardarDoc<T extends object>(coleccion: string, item: T, campoId = "id") {
+  await setDoc(
+    doc(db, coleccion, idDe(item, campoId)),
+    limpiarUndefined(item) as Record<string, unknown>,
+  );
 }
 
 /** Elimina un documento. */
@@ -34,19 +39,20 @@ export async function eliminarDoc(coleccion: string, id: string) {
 }
 
 /** Lee una colección completa una sola vez. */
-export async function leerColeccion<T extends { id: string }>(coleccion: string): Promise<T[]> {
+export async function leerColeccion<T extends object>(coleccion: string): Promise<T[]> {
   const snap = await getDocs(collection(db, coleccion));
   return snap.docs.map((d) => ({ ...(d.data() as T), id: d.id }));
 }
 
 /** Sincroniza en Firestore únicamente lo que cambió entre dos versiones del arreglo. */
-async function persistirDiff<T extends { id: string }>(
+async function persistirDiff<T extends object>(
   coleccion: string,
   previo: T[],
   siguiente: T[],
+  campoId: string,
 ) {
-  const antes = new Map(previo.map((i) => [i.id, JSON.stringify(i)]));
-  const ahora = new Map(siguiente.map((i) => [i.id, i]));
+  const antes = new Map(previo.map((i) => [idDe(i, campoId), JSON.stringify(i)]));
+  const ahora = new Map(siguiente.map((i) => [idDe(i, campoId), i]));
   const batch = writeBatch(db);
   let cambios = 0;
 
@@ -76,8 +82,9 @@ async function persistirDiff<T extends { id: string }>(
  * Reemplaza a `useState` en los stores: escucha cambios en tiempo real y
  * persiste automáticamente cada mutación local.
  */
-export function useFirestoreState<T extends { id: string }>(
+export function useFirestoreState<T extends object>(
   coleccion: string,
+  campoId = "id",
 ): [T[], (accion: SetStateAction<T[]>) => void] {
   const [items, setItems] = useState<T[]>([]);
   const ref = useRef<T[]>([]);
@@ -87,14 +94,14 @@ export function useFirestoreState<T extends { id: string }>(
     const unsub = onSnapshot(
       collection(db, coleccion),
       (snap) => {
-        const docs = snap.docs.map((d) => ({ ...(d.data() as T), id: d.id }));
+        const docs = snap.docs.map((d) => ({ ...(d.data() as T), [campoId]: d.id }) as T);
         ref.current = docs;
         setItems(docs);
       },
       (error) => console.error(`[firestore:${coleccion}] no se pudo leer`, error),
     );
     return unsub;
-  }, [coleccion]);
+  }, [coleccion, campoId]);
 
   const actualizar = useCallback(
     (accion: SetStateAction<T[]>) => {
@@ -103,9 +110,9 @@ export function useFirestoreState<T extends { id: string }>(
         typeof accion === "function" ? (accion as (p: T[]) => T[])(previo) : accion;
       ref.current = siguiente;
       setItems(siguiente);
-      void persistirDiff(coleccion, previo, siguiente);
+      void persistirDiff(coleccion, previo, siguiente, campoId);
     },
-    [coleccion],
+    [coleccion, campoId],
   );
 
   return [items, actualizar];

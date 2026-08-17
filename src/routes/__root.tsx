@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
+  useRouterState,
   Link,
   createRootRouteWithContext,
   useRouter,
@@ -20,6 +21,8 @@ import { OperacionesProvider } from "../store/operaciones";
 import { SstProvider } from "../store/sst";
 import { DisciplinarioProvider } from "../store/disciplinario";
 import { NominaProvider } from "../store/nomina";
+import { AuthProvider, useAuth } from "../lib/auth";
+import { DatosMaestrosProvider } from "../lib/datos-live";
 
 
 function NotFoundComponent() {
@@ -137,6 +140,30 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+/** Bloquea la aplicación hasta que exista una sesión real de Firebase Auth. */
+function SesionRequerida({ children }: { children: ReactNode }) {
+  const { usuario, cargando } = useAuth();
+  const navigate = useRouter().navigate;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const esLogin = pathname === "/login";
+
+  useEffect(() => {
+    if (!cargando && !usuario && !esLogin) void navigate({ to: "/login" });
+  }, [cargando, usuario, esLogin, navigate]);
+
+  if (esLogin) return <>{children}</>;
+
+  if (cargando || !usuario) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background">
+        <p className="text-sm text-muted-foreground">Verificando sesión…</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -149,6 +176,9 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <AuthProvider>
+        <SesionRequerida>
+        <DatosMaestrosProvider>
         <RrhhProvider>
           <PortalProvider>
             <OperacionesProvider>
@@ -163,6 +193,9 @@ function RootComponent() {
             </OperacionesProvider>
           </PortalProvider>
         </RrhhProvider>
+        </DatosMaestrosProvider>
+        </SesionRequerida>
+        </AuthProvider>
         <Toaster />
       </ThemeProvider>
     </QueryClientProvider>

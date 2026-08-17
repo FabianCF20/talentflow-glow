@@ -4,7 +4,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatCard } from "@/components/common/StatCard";
 import { AuditTrailTable } from "@/components/common/AuditTrailTable";
-import { AUDIT_LOGS, CURRENT_USER } from "@/data/mock";
+import { useAuth } from "@/lib/auth";
+import { useFirestoreState } from "@/lib/firestore";
+import { useRrhh } from "@/store/rrhh";
+import { useOperaciones } from "@/store/operaciones";
+import { usePortal } from "@/store/portal";
+import { useSst } from "@/store/sst";
+import { estadoVigencia } from "@/lib/documentos";
+import type { AuditLog } from "@/types/entities";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
@@ -27,11 +34,26 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  const { perfil } = useAuth();
+  const { empleados } = useRrhh();
+  const { solicitudes } = useOperaciones();
+  const { documentos } = usePortal();
+  const { accidentes } = useSst();
+  const [logs] = useFirestoreState<AuditLog>("auditoria");
+
+  const activos = empleados.filter((e) => e.estadoLaboral !== "retirado").length;
+  const pendientes = solicitudes.filter((s) => s.estado === "pendiente_jefe" || s.estado === "pendiente_rrhh").length;
+  const porVencer = documentos.filter((d) => {
+    const v = estadoVigencia(d);
+    return v === "por_vencer" || v === "vencido";
+  }).length;
+  const abiertos = accidentes.length;
+
   return (
     <AppShell>
       <PageHeader
         breadcrumb={["Inicio"]}
-        title={`Buen día, ${CURRENT_USER.nombres}`}
+        title={`Buen día${perfil ? `, ${perfil.nombres}` : ""}`}
         description="Resumen general de la operación de talento humano. El panel es configurable por rol."
         actions={
           <Button variant="outline" size="sm">
@@ -41,16 +63,15 @@ function Dashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Empleados activos" value="128" icon={Users} trend={{ value: "+4" }} hint="vs. mes anterior" />
-        <StatCard label="Solicitudes pendientes" value="17" icon={Inbox} hint="6 requieren su aprobación" />
+        <StatCard label="Empleados activos" value={String(activos)} icon={Users} hint="registrados en el sistema" />
+        <StatCard label="Solicitudes pendientes" value={String(pendientes)} icon={Inbox} hint="en espera de aprobación" />
         <StatCard
           label="Documentos por vencer"
-          value="23"
+          value={String(porVencer)}
           icon={FileWarning}
-          trend={{ value: "+9", positive: false }}
           hint="próximos 30 días"
         />
-        <StatCard label="Hallazgos SST abiertos" value="5" icon={ShieldAlert} hint="2 críticos" />
+        <StatCard label="Hallazgos SST abiertos" value={String(abiertos)} icon={ShieldAlert} hint="accidentes registrados" />
       </div>
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -105,7 +126,7 @@ function Dashboard() {
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold">Actividad reciente auditada</h2>
-        <AuditTrailTable logs={AUDIT_LOGS.slice(0, 4)} />
+        <AuditTrailTable logs={logs.slice(0, 4)} />
       </section>
     </AppShell>
   );

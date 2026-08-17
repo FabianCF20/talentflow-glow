@@ -10,31 +10,32 @@ export const NOTIFICACIONES: Notificacion[] = [];
 export const AUDIT_LOGS: AuditLog[] = [];
 
 export interface SearchEntry {
+  id: string;
   titulo: string;
-  descripcion: string;
-  modulo: string;
+  detalle: string;
+  categoria: string;
   to: string;
 }
 
 export const SEARCH_INDEX: SearchEntry[] = [
-  { titulo: "Empleados", descripcion: "Directorio y hojas de vida", modulo: "Talento Humano", to: "/empleados" },
-  { titulo: "Organización", descripcion: "Áreas, cargos y centros de costo", modulo: "Configuración", to: "/organizacion" },
-  { titulo: "Organigrama", descripcion: "Estructura jerárquica", modulo: "Configuración", to: "/organigrama" },
-  { titulo: "Usuarios", descripcion: "Cuentas y roles del sistema", modulo: "Seguridad", to: "/usuarios" },
-  { titulo: "Nómina", descripcion: "Periodos y liquidaciones", modulo: "Nómina", to: "/nomina" },
-  { titulo: "Solicitudes", descripcion: "Permisos, vacaciones y cambios", modulo: "Operación", to: "/solicitudes" },
-  { titulo: "Asistencia", descripcion: "Registro y control de jornada", modulo: "Operación", to: "/asistencia" },
-  { titulo: "Horas extras", descripcion: "Autorización y liquidación", modulo: "Operación", to: "/horas-extras" },
-  { titulo: "Ausencias", descripcion: "Incapacidades y licencias", modulo: "Operación", to: "/ausencias" },
-  { titulo: "Novedades", descripcion: "Novedades operativas", modulo: "Operación", to: "/novedades" },
-  { titulo: "SST", descripcion: "Exámenes, accidentes y capacitaciones", modulo: "SST", to: "/sst" },
-  { titulo: "Dotación", descripcion: "Tallas y entregas", modulo: "SST", to: "/dotacion" },
-  { titulo: "Formularios", descripcion: "Encuestas y autoreportes", modulo: "SST", to: "/formularios" },
-  { titulo: "Disciplinario", descripcion: "Incidencias y descargos", modulo: "Disciplinario", to: "/disciplinario" },
-  { titulo: "Evaluaciones", descripcion: "Desempeño y competencias", modulo: "Disciplinario", to: "/evaluaciones" },
-  { titulo: "Documentos", descripcion: "Expedientes digitales", modulo: "Talento Humano", to: "/documentos" },
-  { titulo: "Portal del empleado", descripcion: "Autogestión del colaborador", modulo: "Portal", to: "/portal" },
-  { titulo: "Reportes", descripcion: "Indicadores y exportaciones", modulo: "Reportes", to: "/reportes" },
-  { titulo: "Auditoría", descripcion: "Trazabilidad de cambios", modulo: "Seguridad", to: "/auditoria" },
-  { titulo: "Configuración", descripcion: "Parámetros del sistema", modulo: "Configuración", to: "/configuracion" },
+  { id: "nav-empleados", titulo: "Empleados", detalle: "Directorio y hojas de vida", categoria: "Talento Humano", to: "/empleados" },
+  { id: "nav-organizacion", titulo: "Organización", detalle: "Áreas, cargos y centros de costo", categoria: "Configuración", to: "/organizacion" },
+  { id: "nav-organigrama", titulo: "Organigrama", detalle: "Estructura jerárquica", categoria: "Configuración", to: "/organigrama" },
+  { id: "nav-usuarios", titulo: "Usuarios", detalle: "Cuentas y roles del sistema", categoria: "Seguridad", to: "/usuarios" },
+  { id: "nav-nomina", titulo: "Nómina", detalle: "Periodos y liquidaciones", categoria: "Nómina", to: "/nomina" },
+  { id: "nav-solicitudes", titulo: "Solicitudes", detalle: "Permisos, vacaciones y cambios", categoria: "Operación", to: "/solicitudes" },
+  { id: "nav-asistencia", titulo: "Asistencia", detalle: "Registro y control de jornada", categoria: "Operación", to: "/asistencia" },
+  { id: "nav-horas-extras", titulo: "Horas extras", detalle: "Autorización y liquidación", categoria: "Operación", to: "/horas-extras" },
+  { id: "nav-ausencias", titulo: "Ausencias", detalle: "Incapacidades y licencias", categoria: "Operación", to: "/ausencias" },
+  { id: "nav-novedades", titulo: "Novedades", detalle: "Novedades operativas", categoria: "Operación", to: "/novedades" },
+  { id: "nav-sst", titulo: "SST", detalle: "Exámenes, accidentes y capacitaciones", categoria: "SST", to: "/sst" },
+  { id: "nav-dotacion", titulo: "Dotación", detalle: "Tallas y entregas", categoria: "SST", to: "/dotacion" },
+  { id: "nav-formularios", titulo: "Formularios", detalle: "Encuestas y autoreportes", categoria: "SST", to: "/formularios" },
+  { id: "nav-disciplinario", titulo: "Disciplinario", detalle: "Incidencias y descargos", categoria: "Disciplinario", to: "/disciplinario" },
+  { id: "nav-evaluaciones", titulo: "Evaluaciones", detalle: "Desempeño y competencias", categoria: "Disciplinario", to: "/evaluaciones" },
+  { id: "nav-documentos", titulo: "Documentos", detalle: "Expedientes digitales", categoria: "Talento Humano", to: "/documentos" },
+  { id: "nav-portal", titulo: "Portal del empleado", detalle: "Autogestión del colaborador", categoria: "Portal", to: "/portal" },
+  { id: "nav-reportes", titulo: "Reportes", detalle: "Indicadores y exportaciones", categoria: "Reportes", to: "/reportes" },
+  { id: "nav-auditoria", titulo: "Auditoría", detalle: "Trazabilidad de cambios", categoria: "Seguridad", to: "/auditoria" },
+  { id: "nav-configuracion", titulo: "Configuración", detalle: "Parámetros del sistema", categoria: "Configuración", to: "/configuracion" },
 ];

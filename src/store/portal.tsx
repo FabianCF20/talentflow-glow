@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useFirestoreState } from "@/lib/firestore";
 import { DOCUMENTOS_INICIALES, SOLICITUDES_INICIALES } from "@/data/portal";
 import { EXPEDIENTES } from "@/data/rrhh";
 import { generarCodigo } from "@/lib/certificados";
@@ -73,15 +74,15 @@ const PortalContext = createContext<PortalContextValue | null>(null);
 const hoy = () => new Date().toISOString().slice(0, 10);
 
 export function PortalProvider({ children }: { children: ReactNode }) {
-  const [solicitudes, setSolicitudes] = useState<SolicitudCambio[]>(SOLICITUDES_INICIALES);
-  const [documentos, setDocumentos] = useState<DocumentoEmpleado[]>(DOCUMENTOS_INICIALES);
-  const [certificados, setCertificados] = useState<CertificadoEmitido[]>([]);
+  const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudCambio>("portal_solicitudes");
+  const [documentos, setDocumentos] = useFirestoreState<DocumentoEmpleado>("portal_documentos");
+  const [certificados, setCertificados] = useFirestoreState<CertificadoEmitido>("portal_certificados");
   const [aprobados, setAprobados] = useState<Record<string, Partial<CamposPersonalesEditables>>>({});
   const [familiaresExtra, setFamiliaresExtra] = useState<Record<string, Familiar[]>>({});
 
   const datosVigentes = useCallback(
     (empleadoId: string): DatosPersonales => ({
-      ...(EXPEDIENTES[empleadoId]!.personales),
+      ...((EXPEDIENTES[empleadoId]?.personales ?? {}) as DatosPersonales),
       ...(aprobados[empleadoId] ?? {}),
     }),
     [aprobados],

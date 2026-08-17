@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useFirestoreState } from "@/lib/firestore";
 import {
   EVALUACIONES_INICIALES,
   INCIDENCIAS_INICIALES,
@@ -90,12 +91,10 @@ let seq = 900;
 const nextId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
 export function DisciplinarioProvider({ children }: { children: ReactNode }) {
-  const [incidencias, setIncidencias] = useState<Incidencia[]>(INCIDENCIAS_INICIALES);
-  const [observaciones, setObservaciones] = useState<ObservacionInterna[]>(OBSERVACIONES_INICIALES);
-  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>(EVALUACIONES_INICIALES);
-  const [respuestas, setRespuestas] = useState<RespuestaEvaluacion[]>(
-    RESPUESTAS_EVALUACION_INICIALES,
-  );
+  const [incidencias, setIncidencias] = useFirestoreState<Incidencia>("disc_incidencias");
+  const [observaciones, setObservaciones] = useFirestoreState<ObservacionInterna>("disc_observaciones");
+  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>("disc_evaluaciones");
+  const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>("disc_respuestas");
 
   /* ---------------------------- Disciplinario ---------------------------- */
 

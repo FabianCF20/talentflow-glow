@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useFirestoreState } from "@/lib/firestore";
 import {
   ASISTENCIA_INICIAL,
   HORAS_EXTRAS_INICIALES,
@@ -99,11 +100,11 @@ let seq = 100;
 const nextId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
 export function OperacionesProvider({ children }: { children: ReactNode }) {
-  const [solicitudes, setSolicitudes] = useState<SolicitudOperativa[]>(SOLICITUDES_OP_INICIALES);
-  const [incapacidades, setIncapacidades] = useState<IncapacidadOperativa[]>(INCAPACIDADES_OP_INICIALES);
-  const [asistencia, setAsistencia] = useState<RegistroAsistencia[]>(ASISTENCIA_INICIAL);
-  const [horasExtras, setHorasExtras] = useState<HoraExtra[]>(HORAS_EXTRAS_INICIALES);
-  const [novedades, setNovedades] = useState<NovedadOperativa[]>(NOVEDADES_INICIALES);
+  const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudOperativa>("op_solicitudes");
+  const [incapacidades, setIncapacidades] = useFirestoreState<IncapacidadOperativa>("op_incapacidades");
+  const [asistencia, setAsistencia] = useFirestoreState<RegistroAsistencia>("op_asistencia");
+  const [horasExtras, setHorasExtras] = useFirestoreState<HoraExtra>("op_horas_extras");
+  const [novedades, setNovedades] = useFirestoreState<NovedadOperativa>("op_novedades");
 
   const registrarNovedad = useCallback(
     (n: Omit<NovedadOperativa, "id" | "fecha" | "hora">) => {

@@ -1,8 +1,7 @@
-import { useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { NOTIFICACIONES } from "@/data/mock";
-import type { NotificationLevel } from "@/types/entities";
+import { useFirestoreState } from "@/lib/firestore";
+import type { Notificacion, NotificationLevel } from "@/types/entities";
 import { cn } from "@/lib/utils";
 
 const LEVEL_DOT: Record<NotificationLevel, string> = {
@@ -13,7 +12,7 @@ const LEVEL_DOT: Record<NotificationLevel, string> = {
 };
 
 export function NotificationsMenu() {
-  const [items, setItems] = useState(NOTIFICACIONES);
+  const [items, setItems] = useFirestoreState<Notificacion>("notificaciones");
   const unread = items.filter((n) => !n.leida).length;
 
   return (
@@ -42,6 +41,11 @@ export function NotificationsMenu() {
           </button>
         </div>
         <ul className="max-h-90 overflow-y-auto">
+          {items.length === 0 && (
+            <li className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No hay notificaciones.
+            </li>
+          )}
           {items.map((n) => (
             <li
               key={n.id}
