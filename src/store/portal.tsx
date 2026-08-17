@@ -82,7 +82,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
 
   const datosVigentes = useCallback(
     (empleadoId: string): DatosPersonales => ({
-      ...(EXPEDIENTES[empleadoId]!.personales),
+      ...((EXPEDIENTES[empleadoId]?.personales ?? {}) as DatosPersonales),
       ...(aprobados[empleadoId] ?? {}),
     }),
     [aprobados],
