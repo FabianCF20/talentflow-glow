@@ -27,6 +27,8 @@ export const Route = createFileRoute("/auditoria")({
 });
 
 function Auditoria() {
+  const [logs] = useFirestoreState<AuditLog>("auditoria");
+
   return (
     <AppShell>
       <PageHeader
