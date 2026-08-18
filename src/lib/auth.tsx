@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsuario(u);
       if (u) {
         try {
-          const snap = await getDoc(doc(db, COLECCION, u.uid));
+          const snap = await conLimite(getDoc(doc(db, COLECCION, u.uid)));
           setPerfil(snap.exists() ? ({ ...(snap.data() as PerfilUsuario), id: u.uid }) : null);
         } catch (error) {
           console.error("[auth] no se pudo leer el perfil", error);
@@ -114,7 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       estado: "activo",
       creadoEn: new Date().toISOString(),
     };
-    await setDoc(doc(db, COLECCION, cred.user.uid), nuevo);
+    try {
+      await conLimite(setDoc(doc(db, COLECCION, cred.user.uid), nuevo));
+    } catch (error) {
+      console.error("[auth] no se pudo guardar el perfil", error);
+      throw new FirestoreNoDisponible();
+    }
     setPerfil(nuevo);
   }, []);
 
@@ -168,6 +173,8 @@ export function mensajeAuth(error: unknown): string {
     "auth/network-request-failed": "Sin conexión con el servidor.",
     "auth/operation-not-allowed":
       "Habilite el método Correo/Contraseña en Firebase Authentication.",
+    "firestore/unavailable":
+      "No hay base de datos Firestore activa en el proyecto indunilo. Créela en Firebase Console (Firestore Database > Crear base de datos) y vuelva a intentar.",
   };
   return mapa[code] ?? "No fue posible completar la operación.";
 }
