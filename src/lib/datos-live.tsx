@@ -47,6 +47,19 @@ export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
       ),
     );
 
+    // Las cuentas viven en `usuarios` (mismo id que el UID de Firebase Auth).
+    const unsubUsuarios = onSnapshot(
+      collection(db, COLECCION_USUARIOS),
+      (snap) => {
+        const cuentas = snap.docs.map((d) =>
+          aUsuarioSistema({ ...(d.data() as CuentaUsuario), id: d.id }),
+        );
+        USUARIOS.splice(0, USUARIOS.length, ...cuentas);
+        setVersion((v) => v + 1);
+      },
+      (error) => console.error("[firestore:usuarios] no se pudo leer", error),
+    );
+
     const unsubExpedientes = onSnapshot(
       collection(db, "expedientes"),
       (snap) => {
