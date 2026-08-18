@@ -12,6 +12,7 @@ import {
   USUARIOS,
 } from "@/data/organizacion";
 import { EMPLEADOS_RRHH, EXPEDIENTES } from "@/data/rrhh";
+import { COLECCION_USUARIOS, aUsuarioSistema, type CuentaUsuario } from "./usuarios-admin";
 import type { ExpedienteEmpleado } from "@/types/rrhh";
 
 /**
@@ -27,7 +28,7 @@ const COLECCIONES: { nombre: string; destino: { id: string }[] }[] = [
   { nombre: "org_centros_costo", destino: CENTROS_COSTO },
   { nombre: "org_cargos", destino: CARGOS },
   { nombre: "org_empleados", destino: EMPLEADOS },
-  { nombre: "usuarios_sistema", destino: USUARIOS },
+  
   { nombre: "empleados_rrhh", destino: EMPLEADOS_RRHH },
 ];
 
@@ -47,6 +48,19 @@ export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
       ),
     );
 
+    // Las cuentas viven en `usuarios` (mismo id que el UID de Firebase Auth).
+    const unsubUsuarios = onSnapshot(
+      collection(db, COLECCION_USUARIOS),
+      (snap) => {
+        const cuentas = snap.docs.map((d) =>
+          aUsuarioSistema({ ...(d.data() as CuentaUsuario), id: d.id }),
+        );
+        USUARIOS.splice(0, USUARIOS.length, ...cuentas);
+        setVersion((v) => v + 1);
+      },
+      (error) => console.error("[firestore:usuarios] no se pudo leer", error),
+    );
+
     const unsubExpedientes = onSnapshot(
       collection(db, "expedientes"),
       (snap) => {
@@ -61,6 +75,7 @@ export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subs.forEach((u) => u());
+      unsubUsuarios();
       unsubExpedientes();
     };
   }, []);

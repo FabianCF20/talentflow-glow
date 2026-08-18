@@ -99,7 +99,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const ingresar = useCallback(async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email.trim(), password);
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+    try {
+      await conLimite(
+        setDoc(
+          doc(db, COLECCION, cred.user.uid),
+          { ultimoAcceso: new Date().toISOString() },
+          { merge: true },
+        ),
+      );
+    } catch (error) {
+      console.error("[auth] no se pudo registrar el último acceso", error);
+    }
   }, []);
 
   const registrar = useCallback<AuthContextValue["registrar"]>(async (datos) => {
