@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { deleteApp, initializeApp } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
@@ -5,7 +6,8 @@ import {
   sendPasswordResetEmail,
   signOut,
 } from "firebase/auth";
-import { auth, firebaseConfig } from "./firebase";
+import { collection, onSnapshot } from "firebase/firestore";
+import { auth, db, firebaseConfig } from "./firebase";
 import { guardarDoc } from "./firestore";
 import type { PerfilUsuario } from "./auth";
 import type { EstadoUsuario, UsuarioSistema } from "@/types/organizacion";
@@ -94,4 +96,18 @@ export async function actualizarCuentaUsuario(
 /** Envía el correo de restablecimiento de contraseña de Firebase Auth. */
 export async function enviarResetClave(email: string) {
   await sendPasswordResetEmail(auth, email.trim());
+}
+
+/** Suscripción en tiempo real a las cuentas de usuario. */
+export function useCuentas(): CuentaUsuario[] {
+  const [cuentas, setCuentas] = useState<CuentaUsuario[]>([]);
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, COLECCION_USUARIOS),
+      (snap) => setCuentas(snap.docs.map((d) => ({ ...(d.data() as CuentaUsuario), id: d.id }))),
+      (error) => console.error("[firestore:usuarios] no se pudo leer", error),
+    );
+    return unsub;
+  }, []);
+  return cuentas;
 }
