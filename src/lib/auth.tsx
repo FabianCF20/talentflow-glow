@@ -42,10 +42,37 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const COLECCION = "usuarios";
 
-async function esPrimerUsuario() {
-  const snap = await getDocs(query(collection(db, COLECCION), limit(1)));
-  return snap.empty;
+/** Error propio cuando Firestore no responde (base sin crear, reglas o red). */
+export class FirestoreNoDisponible extends Error {
+  code = "firestore/unavailable";
+  constructor() {
+    super("Firestore no disponible");
+  }
 }
+
+/** Evita que una operación de Firestore quede colgada indefinidamente. */
+async function conLimite<T>(promesa: Promise<T>, ms = 8000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const limite = new Promise<never>((_, rechazar) => {
+    timer = setTimeout(() => rechazar(new FirestoreNoDisponible()), ms);
+  });
+  try {
+    return await Promise.race([promesa, limite]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
+async function esPrimerUsuario() {
+  try {
+    const snap = await conLimite(getDocs(query(collection(db, COLECCION), limit(1))));
+    return snap.empty;
+  } catch (error) {
+    console.error("[auth] no se pudo consultar la colección de usuarios", error);
+    throw new FirestoreNoDisponible();
+  }
+}
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<User | null>(null);
@@ -57,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsuario(u);
       if (u) {
         try {
-          const snap = await getDoc(doc(db, COLECCION, u.uid));
+          const snap = await conLimite(getDoc(doc(db, COLECCION, u.uid)));
           setPerfil(snap.exists() ? ({ ...(snap.data() as PerfilUsuario), id: u.uid }) : null);
         } catch (error) {
           console.error("[auth] no se pudo leer el perfil", error);
@@ -87,7 +114,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       estado: "activo",
       creadoEn: new Date().toISOString(),
     };
-    await setDoc(doc(db, COLECCION, cred.user.uid), nuevo);
+    try {
+      await conLimite(setDoc(doc(db, COLECCION, cred.user.uid), nuevo));
+    } catch (error) {
+      console.error("[auth] no se pudo guardar el perfil", error);
+      throw new FirestoreNoDisponible();
+    }
     setPerfil(nuevo);
   }, []);
 
@@ -141,6 +173,8 @@ export function mensajeAuth(error: unknown): string {
     "auth/network-request-failed": "Sin conexión con el servidor.",
     "auth/operation-not-allowed":
       "Habilite el método Correo/Contraseña en Firebase Authentication.",
+    "firestore/unavailable":
+      "No hay base de datos Firestore activa en el proyecto indunilo. Créela en Firebase Console (Firestore Database > Crear base de datos) y vuelva a intentar.",
   };
   return mapa[code] ?? "No fue posible completar la operación.";
 }
