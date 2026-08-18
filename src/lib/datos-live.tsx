@@ -27,7 +27,7 @@ const COLECCIONES: { nombre: string; destino: { id: string }[] }[] = [
   { nombre: "org_centros_costo", destino: CENTROS_COSTO },
   { nombre: "org_cargos", destino: CARGOS },
   { nombre: "org_empleados", destino: EMPLEADOS },
-  { nombre: "usuarios_sistema", destino: USUARIOS },
+  
   { nombre: "empleados_rrhh", destino: EMPLEADOS_RRHH },
 ];
 
