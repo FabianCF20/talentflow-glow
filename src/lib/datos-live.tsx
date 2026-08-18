@@ -75,6 +75,7 @@ export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subs.forEach((u) => u());
+      unsubUsuarios();
       unsubExpedientes();
     };
   }, []);
