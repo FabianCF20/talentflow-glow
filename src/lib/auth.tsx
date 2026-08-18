@@ -42,10 +42,37 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const COLECCION = "usuarios";
 
-async function esPrimerUsuario() {
-  const snap = await getDocs(query(collection(db, COLECCION), limit(1)));
-  return snap.empty;
+/** Error propio cuando Firestore no responde (base sin crear, reglas o red). */
+export class FirestoreNoDisponible extends Error {
+  code = "firestore/unavailable";
+  constructor() {
+    super("Firestore no disponible");
+  }
 }
+
+/** Evita que una operación de Firestore quede colgada indefinidamente. */
+async function conLimite<T>(promesa: Promise<T>, ms = 8000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const limite = new Promise<never>((_, rechazar) => {
+    timer = setTimeout(() => rechazar(new FirestoreNoDisponible()), ms);
+  });
+  try {
+    return await Promise.race([promesa, limite]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
+async function esPrimerUsuario() {
+  try {
+    const snap = await conLimite(getDocs(query(collection(db, COLECCION), limit(1))));
+    return snap.empty;
+  } catch (error) {
+    console.error("[auth] no se pudo consultar la colección de usuarios", error);
+    throw new FirestoreNoDisponible();
+  }
+}
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<User | null>(null);
