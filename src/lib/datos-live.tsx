@@ -12,6 +12,7 @@ import {
   USUARIOS,
 } from "@/data/organizacion";
 import { EMPLEADOS_RRHH, EXPEDIENTES } from "@/data/rrhh";
+import { COLECCION_USUARIOS, aUsuarioSistema, type CuentaUsuario } from "./usuarios-admin";
 import type { ExpedienteEmpleado } from "@/types/rrhh";
 
 /**
