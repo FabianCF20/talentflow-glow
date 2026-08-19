@@ -1,0 +1,68 @@
+rules_version = '2';
+
+// Reglas de seguridad de Firestore para el proyecto "indunilo" (SIGTH).
+// Publicar en Firebase Console > Firestore Database > Reglas, o con:
+//   firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function tienePerfil() {
+      return autenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    function tieneRol(rol) {
+      return tienePerfil() && (rol in perfil().roles);
+    }
+
+    function esAdmin() {
+      return tieneRol('administrador');
+    }
+
+    function gestionaPersonas() {
+      return esAdmin() || tieneRol('talento_humano');
+    }
+
+    function activo() {
+      return tienePerfil() && perfil().estado != 'inactivo';
+    }
+
+    // Cuentas de usuario: el id del documento es el UID de Firebase Auth.
+    match /usuarios/{uid} {
+      allow read: if autenticado();
+      // Alta propia (primer registro) o creada por administración de personal.
+      allow create: if autenticado() && (request.auth.uid == uid || gestionaPersonas());
+      allow update: if autenticado() && (request.auth.uid == uid || gestionaPersonas());
+      allow delete: if esAdmin();
+    }
+
+    // Configuración del sistema (incluye la matriz de permisos).
+    match /configuracion/{docId} {
+      allow read: if autenticado();
+      allow write: if esAdmin();
+    }
+
+    // Auditoría: solo lectura para administración; la escritura es de solo alta.
+    match /auditoria/{docId} {
+      allow read: if esAdmin() || tieneRol('gerente_general');
+      allow create: if autenticado();
+      allow update, delete: if false;
+    }
+
+    // Resto de módulos del sistema: acceso a usuarios autenticados y activos.
+    // El control granular por rol y acción se aplica en la aplicación
+    // (matriz de permisos por módulo).
+    match /{coleccion}/{docId=**} {
+      allow read: if autenticado();
+      allow write: if activo();
+    }
+  }
+}
