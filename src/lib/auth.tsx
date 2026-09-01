@@ -85,7 +85,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (u) {
         try {
           const snap = await conLimite(getDoc(doc(db, COLECCION, u.uid)));
-          setPerfil(snap.exists() ? ({ ...(snap.data() as PerfilUsuario), id: u.uid }) : null);
+          if (snap.exists()) {
+            setPerfil({ ...(snap.data() as PerfilUsuario), id: u.uid });
+          } else {
+            // Cuenta de Auth sin perfil: se crea para no quedar sin permisos.
+            const primero = await esPrimerUsuario().catch(() => false);
+            const nuevo: PerfilUsuario = {
+              id: u.uid,
+              email: u.email ?? "",
+              nombres: u.displayName?.split(" ")[0] ?? (u.email?.split("@")[0] ?? "Usuario"),
+              apellidos: u.displayName?.split(" ").slice(1).join(" ") || "",
+              roles: primero ? ["administrador", "talento_humano"] : ["empleado"],
+              estado: "activo",
+              creadoEn: new Date().toISOString(),
+            };
+            await conLimite(setDoc(doc(db, COLECCION, u.uid), nuevo, { merge: true }));
+            setPerfil(nuevo);
+          }
         } catch (error) {
           console.error("[auth] no se pudo leer el perfil", error);
           setPerfil(null);
@@ -97,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsub;
   }, []);
+
 
   const ingresar = useCallback(async (email: string, password: string) => {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
