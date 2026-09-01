@@ -201,6 +201,8 @@ export function mensajeAuth(error: unknown): string {
     "auth/network-request-failed": "Sin conexión con el servidor.",
     "auth/operation-not-allowed":
       "Habilite el método Correo/Contraseña en Firebase Authentication.",
+    "permission-denied":
+      "Las reglas de seguridad de Firestore bloquean esta operación. Publique el archivo firestore.rules del proyecto en Firebase Console > Firestore Database > Reglas.",
     "firestore/unavailable":
       "No hay base de datos Firestore activa en el proyecto indunilo. Créela en Firebase Console (Firestore Database > Crear base de datos) y vuelva a intentar.",
   };
