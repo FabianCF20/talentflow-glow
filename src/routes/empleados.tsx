@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { StatCard } from "@/components/common/StatCard";
 import { EstadoLaboralBadge } from "@/components/rrhh/EstadoLaboralBadge";
+import { EmpleadoDialog } from "@/components/rrhh/EmpleadoDialog";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
