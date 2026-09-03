@@ -258,9 +258,14 @@ function Empleados() {
             <Button variant="outline" size="sm" onClick={() => exportar(empleados, "empleados-sigth.csv")}>
               <Download className="size-4" /> Exportar todo
             </Button>
-            <Button size="sm" onClick={() => exportar(activos, "empleados-activos.csv")}>
+            <Button variant="outline" size="sm" onClick={() => exportar(activos, "empleados-activos.csv")}>
               <FileSpreadsheet className="size-4" /> Exportar activos
             </Button>
+            <EmpleadoDialog
+              empleados={empleados}
+              actor={`${perfil?.nombres ?? "Usuario"} ${perfil?.apellidos ?? ""}`.trim()}
+              puedeEditar={puedeCrear}
+            />
           </>
         }
       />
