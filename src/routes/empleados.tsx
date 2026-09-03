@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { DataTable, type Column } from "@/components/common/DataTable";
 import { StatCard } from "@/components/common/StatCard";
 import { EstadoLaboralBadge } from "@/components/rrhh/EstadoLaboralBadge";
+import { EmpleadoDialog } from "@/components/rrhh/EmpleadoDialog";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -63,6 +65,10 @@ export const Route = createFileRoute("/empleados")({
 
 function Empleados() {
   const { empleados, eventos, rolActivo, setRolActivo, empleadoActuandoId } = useRrhh();
+  const { perfil } = useAuth();
+  const puedeCrear = (perfil?.roles ?? []).some((r) =>
+    ["administrador", "talento_humano"].includes(r),
+  );
   const [query, setQuery] = useState("");
   const [areaFiltro, setAreaFiltro] = useState("todas");
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | EstadoLaboral>("todos");
@@ -258,9 +264,14 @@ function Empleados() {
             <Button variant="outline" size="sm" onClick={() => exportar(empleados, "empleados-sigth.csv")}>
               <Download className="size-4" /> Exportar todo
             </Button>
-            <Button size="sm" onClick={() => exportar(activos, "empleados-activos.csv")}>
+            <Button variant="outline" size="sm" onClick={() => exportar(activos, "empleados-activos.csv")}>
               <FileSpreadsheet className="size-4" /> Exportar activos
             </Button>
+            <EmpleadoDialog
+              empleados={empleados}
+              actor={`${perfil?.nombres ?? "Usuario"} ${perfil?.apellidos ?? ""}`.trim()}
+              puedeEditar={puedeCrear}
+            />
           </>
         }
       />
