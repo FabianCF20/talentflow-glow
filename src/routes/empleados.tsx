@@ -63,6 +63,10 @@ export const Route = createFileRoute("/empleados")({
 
 function Empleados() {
   const { empleados, eventos, rolActivo, setRolActivo, empleadoActuandoId } = useRrhh();
+  const { perfil } = useAuth();
+  const puedeCrear = (perfil?.roles ?? []).some((r) =>
+    ["administrador", "talento_humano"].includes(r),
+  );
   const [query, setQuery] = useState("");
   const [areaFiltro, setAreaFiltro] = useState("todas");
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | EstadoLaboral>("todos");
