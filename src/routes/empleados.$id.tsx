@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { EstadoLaboralBadge } from "@/components/rrhh/EstadoLaboralBadge";
 import { TimelineLaboral } from "@/components/rrhh/TimelineLaboral";
 import { CampoDato, GridDatos, SeccionExpediente } from "@/components/rrhh/SeccionExpediente";
+import { EmpleadoDialog } from "@/components/rrhh/EmpleadoDialog";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -92,6 +94,7 @@ function ExpedienteEmpleadoPage() {
     toggleAcceso,
   } = useRrhh();
 
+  const { perfil } = useAuth();
   const empleado = empleados.find((e) => e.id === id);
   if (!empleado) throw notFound();
 
@@ -141,6 +144,17 @@ function ExpedienteEmpleadoPage() {
               <ShieldOff className="size-4" />
               {empleado.accesoHabilitado ? "Desactivar acceso" : "Habilitar acceso"}
             </Button>
+            <EmpleadoDialog
+              empleado={empleado}
+              empleados={empleados}
+              actor={`${perfil?.nombres ?? "Usuario"} ${perfil?.apellidos ?? ""}`.trim()}
+              puedeEditar={esRrhh}
+              trigger={
+                <Button size="sm" disabled={!esRrhh}>
+                  <UserCog className="size-4" /> Editar expediente
+                </Button>
+              }
+            />
           </>
         }
       />
