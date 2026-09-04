@@ -20,23 +20,24 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const rol = perfil?.roles[0] ? ROLE_LABEL[perfil.roles[0]] : "Sin rol asignado";
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-background/85 px-4 backdrop-blur lg:px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur sm:gap-3 sm:px-4 lg:px-6">
       <button
         onClick={onOpenMobileNav}
         aria-label="Abrir menú"
-        className="grid size-9 place-items-center rounded-md border border-input bg-card text-muted-foreground lg:hidden"
+        className="grid size-9 shrink-0 place-items-center rounded-md border border-input bg-card text-muted-foreground lg:hidden"
       >
         <Menu className="size-4.5" />
       </button>
 
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <GlobalSearch />
       </div>
+
 
       <button
         onClick={toggleTheme}
         aria-label="Cambiar tema"
-        className="grid size-9 place-items-center rounded-md border border-input bg-card text-muted-foreground transition-colors hover:text-foreground"
+        className="grid size-9 shrink-0 place-items-center rounded-md border border-input bg-card text-muted-foreground transition-colors hover:text-foreground"
       >
         {theme === "dark" ? <Sun className="size-4.5" /> : <Moon className="size-4.5" />}
       </button>
@@ -45,7 +46,7 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2.5 rounded-md border border-input bg-card py-1 pl-1 pr-2.5 text-left transition-colors hover:border-ring">
+          <button className="flex shrink-0 items-center gap-2.5 rounded-md border border-input bg-card py-1 pl-1 pr-2.5 text-left transition-colors hover:border-ring">
             <span className="grid size-7 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
               {iniciales}
             </span>
