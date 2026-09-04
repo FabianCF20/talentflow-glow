@@ -37,7 +37,7 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
       <button
         onClick={toggleTheme}
         aria-label="Cambiar tema"
-        className="grid size-9 place-items-center rounded-md border border-input bg-card text-muted-foreground transition-colors hover:text-foreground"
+        className="grid size-9 shrink-0 place-items-center rounded-md border border-input bg-card text-muted-foreground transition-colors hover:text-foreground"
       >
         {theme === "dark" ? <Sun className="size-4.5" /> : <Moon className="size-4.5" />}
       </button>
@@ -46,7 +46,7 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="flex items-center gap-2.5 rounded-md border border-input bg-card py-1 pl-1 pr-2.5 text-left transition-colors hover:border-ring">
+          <button className="flex shrink-0 items-center gap-2.5 rounded-md border border-input bg-card py-1 pl-1 pr-2.5 text-left transition-colors hover:border-ring">
             <span className="grid size-7 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
               {iniciales}
             </span>
