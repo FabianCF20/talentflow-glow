@@ -180,12 +180,12 @@ export function CrudMaestro<T extends Base>({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:flex sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h3 className="font-display text-base font-semibold text-foreground">{titulo}</h3>
           {descripcion && <p className="text-xs text-muted-foreground">{descripcion}</p>}
         </div>
-        <Button size="sm" onClick={abrirNuevo} disabled={!puedeEditar}>
+        <Button size="sm" className="shrink-0" onClick={abrirNuevo} disabled={!puedeEditar}>
           <Plus className="size-4" /> Nuevo
         </Button>
       </div>
