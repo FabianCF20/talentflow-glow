@@ -1,6 +1,7 @@
 /** Desprendibles de pago y liquidaciones en PDF (usa el generador interno). */
 
-import { EMPRESA } from "@/lib/certificados";
+import { EMPRESA } from "@/lib/empresa";
+import { sellarDocumento } from "@/lib/firma-digital";
 import { crearPdf, descargarBlob, type PdfLinea } from "@/lib/pdf";
 import { nombreArea, nombreCargo } from "@/lib/rrhh";
 import { formatCOP } from "@/types/organizacion";
@@ -26,6 +27,7 @@ export function desprendiblePdf(
   periodo: PeriodoNomina,
   detalle: DetalleNomina,
   empleado: EmpleadoRRHH,
+  sello?: string,
 ): Blob {
   const lineas: PdfLinea[] = [
     { texto: EMPRESA.razonSocial, size: 14, bold: true, align: "center" },
@@ -60,8 +62,14 @@ export function desprendiblePdf(
     linea("Vacaciones", formatCOP(detalle.provisiones.vacaciones)),
     { texto: EMPRESA.firmante, size: 10, bold: true, espacio: 34 },
     { texto: EMPRESA.cargoFirmante, size: 9 },
+    ...(sello
+      ? [
+          { texto: "FIRMA ELECTRÓNICA (SHA-256)", size: 8, bold: true, espacio: 14 } as PdfLinea,
+          { texto: sello, size: 8, color: [0.45, 0.48, 0.55] } as PdfLinea,
+        ]
+      : []),
     {
-      texto: "Documento generado automáticamente por SIGTH. Válido sin firma autógrafa.",
+      texto: EMPRESA.textoPie,
       size: 8,
       espacio: 14,
       color: [0.45, 0.48, 0.55],
@@ -70,18 +78,49 @@ export function desprendiblePdf(
   return crearPdf(lineas);
 }
 
-export function descargarDesprendible(
+export async function descargarDesprendible(
   periodo: PeriodoNomina,
   detalle: DetalleNomina,
   empleado: EmpleadoRRHH,
+  usuario?: string,
 ) {
-  descargarBlob(
-    `${codigoDesprendible(periodo, empleado.id)}.pdf`,
-    desprendiblePdf(periodo, detalle, empleado),
-  );
+  const codigo = codigoDesprendible(periodo, empleado.id);
+  let sello: string | undefined;
+  if (EMPRESA.firmaElectronicaActiva) {
+    const r = await sellarDocumento({
+      codigo,
+      tipo: "desprendible",
+      descripcion: `Desprendible ${MESES_LABEL[periodo.mes - 1]} ${periodo.anio}`,
+      empleadoId: empleado.id,
+      empleadoNombre: nombreEmpleado(empleado),
+      documentoEmpleado: empleado.documento,
+      contenido: `${detalle.totalDevengado}|${detalle.totalDeducido}|${detalle.netoPagar}|${detalle.diasLiquidados}`,
+      emitidoPor: usuario ?? "sistema",
+    });
+    sello = r.sello;
+  }
+  descargarBlob(`${codigo}.pdf`, desprendiblePdf(periodo, detalle, empleado, sello));
 }
 
-export function descargarLiquidacion(liq: LiquidacionFinal, empleado: EmpleadoRRHH) {
+export async function descargarLiquidacion(
+  liq: LiquidacionFinal,
+  empleado: EmpleadoRRHH,
+  usuario?: string,
+) {
+  let sello: string | undefined;
+  if (EMPRESA.firmaElectronicaActiva) {
+    const r = await sellarDocumento({
+      codigo: liq.consecutivo,
+      tipo: "liquidacion",
+      descripcion: "Liquidación definitiva de prestaciones sociales",
+      empleadoId: empleado.id,
+      empleadoNombre: nombreEmpleado(empleado),
+      documentoEmpleado: empleado.documento,
+      contenido: `${liq.fechaIngreso}|${liq.fechaRetiro}|${liq.totalPagar}`,
+      emitidoPor: usuario ?? "sistema",
+    });
+    sello = r.sello;
+  }
   const lineas: PdfLinea[] = [
     { texto: EMPRESA.razonSocial, size: 14, bold: true, align: "center" },
     { texto: `NIT ${EMPRESA.nit}`, size: 9, align: "center" },
@@ -105,6 +144,13 @@ export function descargarLiquidacion(liq: LiquidacionFinal, empleado: EmpleadoRR
     { texto: `TOTAL NETO A PAGAR: ${formatCOP(liq.totalPagar)}`, size: 13, bold: true, espacio: 18 },
     { texto: EMPRESA.firmante, size: 10, bold: true, espacio: 40 },
     { texto: EMPRESA.cargoFirmante, size: 9 },
+    ...(sello
+      ? [
+          { texto: "FIRMA ELECTRÓNICA (SHA-256)", size: 8, bold: true, espacio: 14 } as PdfLinea,
+          { texto: sello, size: 8, color: [0.45, 0.48, 0.55] } as PdfLinea,
+        ]
+      : []),
+    { texto: EMPRESA.textoPie, size: 8, espacio: 12, color: [0.45, 0.48, 0.55] },
   ];
   descargarBlob(`${liq.consecutivo}.pdf`, crearPdf(lineas));
 }
