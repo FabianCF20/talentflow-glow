@@ -7,16 +7,13 @@ import {
   type TipoCertificado,
 } from "@/types/portal";
 import { TIPO_CONTRATO_LABEL, nombreEmpleado, type EmpleadoRRHH } from "@/types/rrhh";
+import { EMPRESA } from "@/lib/empresa";
+import { sellarDocumento } from "@/lib/firma-digital";
+import { registrarAccesoDatos } from "@/lib/habeas-data";
 
-/** Datos institucionales usados en la firma de los certificados. */
-export const EMPRESA = {
-  razonSocial: "SIGTH Servicios Empresariales S.A.S.",
-  nit: "901.455.882-1",
-  direccion: "Calle 100 # 19-54, Bogotá D.C., Colombia",
-  telefono: "(601) 745 8800",
-  firmante: "Claudia Marcela Osorio",
-  cargoFirmante: "Directora de Talento Humano",
-};
+/** Datos institucionales usados en la firma de los certificados (configurables). */
+export { EMPRESA };
+
 
 const PREFIJO: Record<TipoCertificado, string> = {
   laboral: "CL",
