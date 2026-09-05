@@ -6,7 +6,7 @@ import {
   type EstadoVigencia,
   type VersionDocumento,
 } from "@/types/portal";
-import { EMPRESA } from "@/lib/certificados";
+import { EMPRESA } from "@/lib/empresa";
 
 /** Días de anticipación para marcar un documento como "por vencer". */
 export const DIAS_ALERTA_VENCIMIENTO = 60;

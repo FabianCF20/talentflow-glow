@@ -7,16 +7,13 @@ import {
   type TipoCertificado,
 } from "@/types/portal";
 import { TIPO_CONTRATO_LABEL, nombreEmpleado, type EmpleadoRRHH } from "@/types/rrhh";
+import { EMPRESA } from "@/lib/empresa";
+import { sellarDocumento } from "@/lib/firma-digital";
+import { registrarAccesoDatos } from "@/lib/habeas-data";
 
-/** Datos institucionales usados en la firma de los certificados. */
-export const EMPRESA = {
-  razonSocial: "SIGTH Servicios Empresariales S.A.S.",
-  nit: "901.455.882-1",
-  direccion: "Calle 100 # 19-54, Bogotá D.C., Colombia",
-  telefono: "(601) 745 8800",
-  firmante: "Claudia Marcela Osorio",
-  cargoFirmante: "Directora de Talento Humano",
-};
+/** Datos institucionales usados en la firma de los certificados (configurables). */
+export { EMPRESA };
+
 
 const PREFIJO: Record<TipoCertificado, string> = {
   laboral: "CL",
@@ -88,7 +85,9 @@ export function construirCertificadoPdf(
   empleado: EmpleadoRRHH,
   datos: CertificadoDatos,
   incluyeSalario: boolean,
+  sello?: string,
 ): Blob {
+  const parrafos = cuerpo(tipo, empleado, incluyeSalario);
   const lineas: PdfLinea[] = [
     { texto: EMPRESA.razonSocial, size: 15, bold: true },
     { texto: `NIT ${EMPRESA.nit} · ${EMPRESA.direccion}`, size: 9, color: [0.4, 0.44, 0.5] },
@@ -110,12 +109,12 @@ export function construirCertificadoPdf(
     { texto: "LA DIRECCIÓN DE TALENTO HUMANO CERTIFICA:", size: 11, bold: true, espacio: 24 },
   ];
 
-  for (const parrafo of cuerpo(tipo, empleado, incluyeSalario)) {
+  for (const parrafo of parrafos) {
     envolver(parrafo, 11).forEach((l, i) => lineas.push({ texto: l, size: 11, espacio: i === 0 ? 12 : 0 }));
   }
 
   envolver(
-    `Se expide la presente certificación a solicitud del interesado el ${fechaLarga(datos.fechaEmision)}. Este documento puede ser verificado con el código único ${datos.codigo} en el Portal del Empleado de ${EMPRESA.razonSocial}.`,
+    `${EMPRESA.textoCierre} Expedido en ${EMPRESA.ciudad} el ${fechaLarga(datos.fechaEmision)} con el código único ${datos.codigo}.`,
     10,
   ).forEach((l, i) =>
     lineas.push({ texto: l, size: 10, espacio: i === 0 ? 18 : 0, color: [0.3, 0.34, 0.42] }),
@@ -126,26 +125,65 @@ export function construirCertificadoPdf(
     { texto: EMPRESA.firmante, size: 11, bold: true, espacio: 2 },
     { texto: EMPRESA.cargoFirmante, size: 10, color: [0.4, 0.44, 0.5] },
     { texto: `Firma institucional autorizada · ${EMPRESA.razonSocial}`, size: 9, color: [0.4, 0.44, 0.5] },
-    {
-      texto: "Documento generado electrónicamente por SIGTH. Válido sin firma manuscrita.",
-      size: 8,
-      espacio: 26,
-      color: [0.5, 0.54, 0.6],
-    },
   );
+
+  if (sello) {
+    lineas.push(
+      { texto: "FIRMA ELECTRÓNICA (SHA-256)", size: 8, bold: true, espacio: 20, color: [0.35, 0.38, 0.46] },
+      { texto: sello, size: 8, espacio: 2, color: [0.35, 0.38, 0.46] },
+    );
+  }
+
+  lineas.push({
+    texto: EMPRESA.textoPie,
+    size: 8,
+    espacio: sello ? 12 : 26,
+    color: [0.5, 0.54, 0.6],
+  });
 
   return crearPdf(lineas);
 }
 
-export function descargarCertificado(
+/**
+ * Genera, sella electrónicamente y descarga el certificado.
+ * Registra además el acceso a datos personales del titular.
+ */
+export async function descargarCertificado(
   cert: CertificadoEmitido,
   empleado: EmpleadoRRHH,
+  usuario?: string,
 ) {
-  const blob = construirCertificadoPdf(
-    cert.tipo,
-    empleado,
-    { codigo: cert.codigo, fechaEmision: cert.fechaEmision },
-    cert.incluyeSalario,
+  const datos = { codigo: cert.codigo, fechaEmision: cert.fechaEmision };
+  let sello: string | undefined;
+
+  if (EMPRESA.firmaElectronicaActiva) {
+    const resultado = await sellarDocumento({
+      codigo: cert.codigo,
+      tipo: "certificado",
+      descripcion: TIPO_CERTIFICADO_LABEL[cert.tipo],
+      empleadoId: empleado.id,
+      empleadoNombre: nombreEmpleado(empleado),
+      documentoEmpleado: empleado.documento,
+      contenido: cuerpo(cert.tipo, empleado, cert.incluyeSalario).join(" "),
+      emitidoPor: usuario ?? "sistema",
+    });
+    sello = resultado.sello;
+  }
+
+  const blob = construirCertificadoPdf(cert.tipo, empleado, datos, cert.incluyeSalario, sello);
+  descargarBlob(
+    `${cert.codigo}-${TIPO_CERTIFICADO_LABEL[cert.tipo].replace(/\s+/g, "-").toLowerCase()}.pdf`,
+    blob,
   );
-  descargarBlob(`${cert.codigo}-${TIPO_CERTIFICADO_LABEL[cert.tipo].replace(/\s+/g, "-").toLowerCase()}.pdf`, blob);
+
+  if (usuario) {
+    void registrarAccesoDatos({
+      usuario,
+      empleadoId: empleado.id,
+      empleadoNombre: nombreEmpleado(empleado),
+      finalidad: "emision_certificado",
+      modulo: "Portal del Empleado",
+      detalle: `${TIPO_CERTIFICADO_LABEL[cert.tipo]} ${cert.codigo}`,
+    });
+  }
 }
