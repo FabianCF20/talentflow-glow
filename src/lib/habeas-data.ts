@@ -63,7 +63,7 @@ export async function registrarAccesoDatos(input: {
   try {
     await setDoc(
       doc(db, "accesos_datos", registro.id),
-      limpiarUndefined(registro) as Record<string, unknown>,
+      limpiarUndefined(registro) as unknown as Record<string, unknown>,
     );
     await setDoc(doc(db, "auditoria", registro.id), {
       id: registro.id,

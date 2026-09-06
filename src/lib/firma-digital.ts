@@ -86,7 +86,7 @@ export async function sellarDocumento(input: {
   try {
     await setDoc(
       doc(db, "firmas_documentos", input.codigo),
-      limpiarUndefined(registro) as Record<string, unknown>,
+      limpiarUndefined(registro) as unknown as Record<string, unknown>,
     );
   } catch (error) {
     console.error("[firestore:firmas_documentos] no se pudo registrar la firma", error);
