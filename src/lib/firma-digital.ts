@@ -5,10 +5,11 @@
  * posterior del documento por su código único — Ley 527 de 1999.
  */
 
+import { useMemo } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { EMPRESA } from "./empresa";
-import { limpiarUndefined } from "./firestore";
+import { limpiarUndefined, useFirestoreState } from "./firestore";
 
 export type TipoDocumentoFirmado =
   | "certificado"
@@ -103,7 +104,7 @@ export async function verificarDocumento(codigo: string): Promise<RegistroFirma 
 
 /** Registro de documentos firmados electrónicamente, del más reciente al más antiguo. */
 export function useDocumentosFirmados(): RegistroFirma[] {
-  const [items] = useFirestoreState<RegistroFirma>("documentos_firmados", "codigo");
+  const [items] = useFirestoreState<RegistroFirma>("firmas_documentos", "codigo");
   return useMemo(
     () => [...items].sort((a, b) => (a.emitidoEn < b.emitidoEn ? 1 : -1)),
     [items],
