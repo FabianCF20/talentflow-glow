@@ -186,7 +186,7 @@ function PortalEmpleadoPage() {
   /* ------------------------------- Certificados ------------------------------- */
   const generar = (tipo: TipoCertificado) => {
     const cert = emitirCertificado(tipo, id, nombreEmpleado(empleado), tipo !== "cargo");
-    descargarCertificado(cert, empleado);
+    void descargarCertificado(cert, empleado, perfilUsuario);
     toast.success(`${TIPO_CERTIFICADO_LABEL[tipo]} generado con código ${cert.codigo}.`);
   };
 
@@ -645,7 +645,7 @@ function PortalEmpleadoPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => descargarCertificado(c, empleado)}
+                    onClick={() => void descargarCertificado(c, empleado, perfilUsuario)}
                   >
                     <Download className="size-4" /> Descargar PDF
                   </Button>

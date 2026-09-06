@@ -153,7 +153,7 @@ function NominaPage() {
             variant="outline"
             disabled={!e || !periodo || periodo.detalles.length === 0}
             onClick={() => {
-              if (e && periodo) descargarDesprendible(periodo, d, e);
+              if (e && periodo) void descargarDesprendible(periodo, d, e, usuarioActual);
             }}
           >
             <FileDown className="size-4" /> PDF
@@ -720,7 +720,7 @@ function Desprendibles({ empleadoActuandoId }: { empleadoActuandoId: string }) {
                     variant="outline"
                     disabled={!d || !empleado}
                     onClick={() => {
-                      if (d && empleado) descargarDesprendible(r.periodo, d, empleado);
+                      if (d && empleado) void descargarDesprendible(r.periodo, d, empleado, usuarioActual);
                     }}
                   >
                     <FileDown className="size-4" /> PDF
