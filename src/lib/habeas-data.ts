@@ -4,10 +4,10 @@
  * colección `accesos_datos` y en la auditoría general del sistema.
  */
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
-import { limpiarUndefined } from "./firestore";
+import { limpiarUndefined, useFirestoreState } from "./firestore";
 
 export type FinalidadAcceso =
   | "consulta_expediente"
@@ -94,4 +94,16 @@ export function useRegistroAcceso(
     // Solo se vuelve a registrar si cambia el empleado, la finalidad o el usuario.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activo, clave]);
+}
+
+/** Bitácora de accesos a datos personales, del más reciente al más antiguo. */
+export function useAccesosDatos(): AccesoDatos[] {
+  const [items] = useFirestoreState<AccesoDatos>("accesos_datos");
+  return useMemo(
+    () =>
+      [...items].sort((a, b) =>
+        `${a.fecha}${a.hora}` < `${b.fecha}${b.hora}` ? 1 : -1,
+      ),
+    [items],
+  );
 }

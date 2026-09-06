@@ -100,3 +100,12 @@ export async function verificarDocumento(codigo: string): Promise<RegistroFirma 
   const snap = await getDoc(doc(db, "firmas_documentos", limpio));
   return snap.exists() ? ({ ...(snap.data() as RegistroFirma), id: snap.id }) : null;
 }
+
+/** Registro de documentos firmados electrónicamente, del más reciente al más antiguo. */
+export function useDocumentosFirmados(): RegistroFirma[] {
+  const [items] = useFirestoreState<RegistroFirma>("documentos_firmados", "codigo");
+  return useMemo(
+    () => [...items].sort((a, b) => (a.emitidoEn < b.emitidoEn ? 1 : -1)),
+    [items],
+  );
+}
