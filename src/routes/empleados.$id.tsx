@@ -8,6 +8,7 @@ import { TimelineLaboral } from "@/components/rrhh/TimelineLaboral";
 import { CampoDato, GridDatos, SeccionExpediente } from "@/components/rrhh/SeccionExpediente";
 import { EmpleadoDialog } from "@/components/rrhh/EmpleadoDialog";
 import { useAuth } from "@/lib/auth";
+import { useRegistroAcceso } from "@/lib/habeas-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -96,6 +97,15 @@ function ExpedienteEmpleadoPage() {
 
   const { perfil } = useAuth();
   const empleado = empleados.find((e) => e.id === id);
+  // Ley 1581 de 2012: toda consulta al expediente queda trazada.
+  useRegistroAcceso(Boolean(empleado && perfil), {
+    usuario: perfil ? `${perfil.nombres} ${perfil.apellidos}`.trim() : "",
+    usuarioUid: perfil?.id,
+    empleadoId: empleado?.id ?? "",
+    empleadoNombre: empleado ? nombreEmpleado(empleado) : "",
+    finalidad: "consulta_expediente",
+    modulo: "Expediente del empleado",
+  });
   if (!empleado) throw notFound();
 
   const exp = EXPEDIENTES[id];

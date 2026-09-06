@@ -5,10 +5,11 @@
  * posterior del documento por su código único — Ley 527 de 1999.
  */
 
+import { useMemo } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { EMPRESA } from "./empresa";
-import { limpiarUndefined } from "./firestore";
+import { limpiarUndefined, useFirestoreState } from "./firestore";
 
 export type TipoDocumentoFirmado =
   | "certificado"
@@ -85,7 +86,7 @@ export async function sellarDocumento(input: {
   try {
     await setDoc(
       doc(db, "firmas_documentos", input.codigo),
-      limpiarUndefined(registro) as Record<string, unknown>,
+      limpiarUndefined(registro) as unknown as Record<string, unknown>,
     );
   } catch (error) {
     console.error("[firestore:firmas_documentos] no se pudo registrar la firma", error);
@@ -99,4 +100,13 @@ export async function verificarDocumento(codigo: string): Promise<RegistroFirma 
   if (!limpio) return null;
   const snap = await getDoc(doc(db, "firmas_documentos", limpio));
   return snap.exists() ? ({ ...(snap.data() as RegistroFirma), id: snap.id }) : null;
+}
+
+/** Registro de documentos firmados electrónicamente, del más reciente al más antiguo. */
+export function useDocumentosFirmados(): RegistroFirma[] {
+  const [items] = useFirestoreState<RegistroFirma>("firmas_documentos", "codigo");
+  return useMemo(
+    () => [...items].sort((a, b) => (a.emitidoEn < b.emitidoEn ? 1 : -1)),
+    [items],
+  );
 }

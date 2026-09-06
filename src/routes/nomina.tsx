@@ -32,6 +32,13 @@ import {
   totalesPeriodo,
 } from "@/lib/nomina";
 import { descargarDesprendible, descargarLiquidacion } from "@/lib/desprendible";
+import { useAuth } from "@/lib/auth";
+
+/** Nombre del usuario en sesión, usado como emisor de los documentos firmados. */
+function useUsuarioActual() {
+  const { perfil, usuario } = useAuth();
+  return perfil ? `${perfil.nombres} ${perfil.apellidos}`.trim() : (usuario?.email ?? "sistema");
+}
 import { downloadExcel } from "@/lib/excel";
 import { nombreArea, nombreCargo } from "@/lib/rrhh";
 import { formatCOP } from "@/types/organizacion";
@@ -73,6 +80,7 @@ export const Route = createFileRoute("/nomina")({
 const mesLabel = (mes: number, anio: number) => `${MESES_LABEL[mes - 1]} ${anio}`;
 
 function NominaPage() {
+  const usuarioActual = useUsuarioActual();
   const { empleados, rolActivo, empleadoActuandoId } = useRrhh();
   const { horasExtras } = useOperaciones();
   const nomina = useNomina();
@@ -153,7 +161,7 @@ function NominaPage() {
             variant="outline"
             disabled={!e || !periodo || periodo.detalles.length === 0}
             onClick={() => {
-              if (e && periodo) descargarDesprendible(periodo, d, e);
+              if (e && periodo) void descargarDesprendible(periodo, d, e, usuarioActual);
             }}
           >
             <FileDown className="size-4" /> PDF
@@ -534,6 +542,7 @@ function ConceptosFijos({ gestiona }: { gestiona: boolean }) {
 /* -------------------------- Liquidaciones definitivas -------------------------- */
 
 function Liquidaciones({ gestiona }: { gestiona: boolean }) {
+  const usuarioActual = useUsuarioActual();
   const { empleados, rolActivo } = useRrhh();
   const { liquidaciones, generarLiquidacion, vacacionesPendientes } = useNomina();
   const [empleadoId, setEmpleadoId] = useState(empleados[0]?.id ?? "");
@@ -565,7 +574,7 @@ function Liquidaciones({ gestiona }: { gestiona: boolean }) {
       render: (l) => {
         const e = empleados.find((x) => x.id === l.empleadoId);
         return (
-          <Button size="sm" variant="outline" disabled={!e} onClick={() => e && descargarLiquidacion(l, e)}>
+          <Button size="sm" variant="outline" disabled={!e} onClick={() => e && void descargarLiquidacion(l, e, usuarioActual)}>
             <FileDown className="size-4" /> PDF
           </Button>
         );
@@ -651,6 +660,7 @@ function Liquidaciones({ gestiona }: { gestiona: boolean }) {
 /* ------------------------------ Desprendibles ------------------------------ */
 
 function Desprendibles({ empleadoActuandoId }: { empleadoActuandoId: string }) {
+  const usuarioActual = useUsuarioActual();
   const { empleados } = useRrhh();
   const { periodos } = useNomina();
   const [empleadoId, setEmpleadoId] = useState(empleadoActuandoId);
@@ -720,7 +730,7 @@ function Desprendibles({ empleadoActuandoId }: { empleadoActuandoId: string }) {
                     variant="outline"
                     disabled={!d || !empleado}
                     onClick={() => {
-                      if (d && empleado) descargarDesprendible(r.periodo, d, empleado);
+                      if (d && empleado) void descargarDesprendible(r.periodo, d, empleado, usuarioActual);
                     }}
                   >
                     <FileDown className="size-4" /> PDF

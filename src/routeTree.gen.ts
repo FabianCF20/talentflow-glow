@@ -14,6 +14,7 @@ import { Route as AsistenciaRouteImport } from './routes/asistencia'
 import { Route as AuditoriaRouteImport } from './routes/auditoria'
 import { Route as AusenciasRouteImport } from './routes/ausencias'
 import { Route as ConfiguracionRouteImport } from './routes/configuracion'
+import { Route as CumplimientoRouteImport } from './routes/cumplimiento'
 import { Route as DisciplinarioRouteImport } from './routes/disciplinario'
 import { Route as DocumentosRouteImport } from './routes/documentos'
 import { Route as DotacionRouteImport } from './routes/dotacion'
@@ -57,6 +58,11 @@ const AusenciasRoute = AusenciasRouteImport.update({
 const ConfiguracionRoute = ConfiguracionRouteImport.update({
   id: '/configuracion',
   path: '/configuracion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CumplimientoRoute = CumplimientoRouteImport.update({
+  id: '/cumplimiento',
+  path: '/cumplimiento',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DisciplinarioRoute = DisciplinarioRouteImport.update({
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/auditoria': typeof AuditoriaRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/cumplimiento': typeof CumplimientoRoute
   '/disciplinario': typeof DisciplinarioRoute
   '/documentos': typeof DocumentosRoute
   '/dotacion': typeof DotacionRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/auditoria': typeof AuditoriaRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/cumplimiento': typeof CumplimientoRoute
   '/disciplinario': typeof DisciplinarioRoute
   '/documentos': typeof DocumentosRoute
   '/dotacion': typeof DotacionRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/auditoria': typeof AuditoriaRoute
   '/ausencias': typeof AusenciasRoute
   '/configuracion': typeof ConfiguracionRoute
+  '/cumplimiento': typeof CumplimientoRoute
   '/disciplinario': typeof DisciplinarioRoute
   '/documentos': typeof DocumentosRoute
   '/dotacion': typeof DotacionRoute
@@ -242,6 +251,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/ausencias'
     | '/configuracion'
+    | '/cumplimiento'
     | '/disciplinario'
     | '/documentos'
     | '/dotacion'
@@ -268,6 +278,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/ausencias'
     | '/configuracion'
+    | '/cumplimiento'
     | '/disciplinario'
     | '/documentos'
     | '/dotacion'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/auditoria'
     | '/ausencias'
     | '/configuracion'
+    | '/cumplimiento'
     | '/disciplinario'
     | '/documentos'
     | '/dotacion'
@@ -321,6 +333,7 @@ export interface RootRouteChildren {
   AuditoriaRoute: typeof AuditoriaRoute
   AusenciasRoute: typeof AusenciasRoute
   ConfiguracionRoute: typeof ConfiguracionRoute
+  CumplimientoRoute: typeof CumplimientoRoute
   DisciplinarioRoute: typeof DisciplinarioRoute
   DocumentosRoute: typeof DocumentosRoute
   DotacionRoute: typeof DotacionRoute
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracion'
       fullPath: '/configuracion'
       preLoaderRoute: typeof ConfiguracionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cumplimiento': {
+      id: '/cumplimiento'
+      path: '/cumplimiento'
+      fullPath: '/cumplimiento'
+      preLoaderRoute: typeof CumplimientoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/disciplinario': {
@@ -532,6 +552,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuditoriaRoute: AuditoriaRoute,
   AusenciasRoute: AusenciasRoute,
   ConfiguracionRoute: ConfiguracionRoute,
+  CumplimientoRoute: CumplimientoRoute,
   DisciplinarioRoute: DisciplinarioRoute,
   DocumentosRoute: DocumentosRoute,
   DotacionRoute: DotacionRoute,

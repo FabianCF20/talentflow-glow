@@ -45,6 +45,7 @@ import {
   ordenarEventos,
 } from "@/lib/rrhh";
 import { descargarCertificado } from "@/lib/certificados";
+import { useAuth } from "@/lib/auth";
 import { formatCOP } from "@/types/organizacion";
 import {
   CAMPO_AUTOGESTION_LABEL,
@@ -92,6 +93,10 @@ const CAMPOS_EDITABLES: Exclude<CampoAutogestion, "familiar">[] = [
 ];
 
 function PortalEmpleadoPage() {
+  const { perfil, usuario } = useAuth();
+  const perfilUsuario = perfil
+    ? `${perfil.nombres} ${perfil.apellidos}`.trim()
+    : (usuario?.email ?? "sistema");
   const { empleados, eventos, empleadoActuandoId, setEmpleadoActuandoId } = useRrhh();
   const {
     solicitudes,
@@ -186,7 +191,7 @@ function PortalEmpleadoPage() {
   /* ------------------------------- Certificados ------------------------------- */
   const generar = (tipo: TipoCertificado) => {
     const cert = emitirCertificado(tipo, id, nombreEmpleado(empleado), tipo !== "cargo");
-    descargarCertificado(cert, empleado);
+    void descargarCertificado(cert, empleado, perfilUsuario);
     toast.success(`${TIPO_CERTIFICADO_LABEL[tipo]} generado con código ${cert.codigo}.`);
   };
 
@@ -645,7 +650,7 @@ function PortalEmpleadoPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => descargarCertificado(c, empleado)}
+                    onClick={() => void descargarCertificado(c, empleado, perfilUsuario)}
                   >
                     <Download className="size-4" /> Descargar PDF
                   </Button>
