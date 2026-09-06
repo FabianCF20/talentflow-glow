@@ -45,6 +45,7 @@ import {
   ordenarEventos,
 } from "@/lib/rrhh";
 import { descargarCertificado } from "@/lib/certificados";
+import { useAuth } from "@/lib/auth";
 import { formatCOP } from "@/types/organizacion";
 import {
   CAMPO_AUTOGESTION_LABEL,
@@ -92,6 +93,10 @@ const CAMPOS_EDITABLES: Exclude<CampoAutogestion, "familiar">[] = [
 ];
 
 function PortalEmpleadoPage() {
+  const { perfil, usuario } = useAuth();
+  const perfilUsuario = perfil
+    ? `${perfil.nombres} ${perfil.apellidos}`.trim()
+    : (usuario?.email ?? "sistema");
   const { empleados, eventos, empleadoActuandoId, setEmpleadoActuandoId } = useRrhh();
   const {
     solicitudes,
