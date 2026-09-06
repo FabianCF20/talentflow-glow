@@ -44,6 +44,14 @@ export const PERMISSION_MATRIX: PermissionMatrix = {
     contabilidad: ["ver", "exportar"],
     empleado: ["ver"],
   },
+  cumplimiento: {
+    administrador: ALL_ACTIONS,
+    talento_humano: ["ver", "exportar"],
+    sst: ["ver", "exportar"],
+    gerente_general: ["ver", "exportar"],
+    director: ["ver"],
+    nomina: ["ver"],
+  },
   maestros: {
     administrador: ALL_ACTIONS,
     talento_humano: ["ver", "crear", "editar", "exportar", "inactivar"],
