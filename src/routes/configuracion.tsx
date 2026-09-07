@@ -1,9 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Save } from "lucide-react";
+import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/lib/auth";
+import { guardarConfigEmpresa, useConfigEmpresa, type ConfigEmpresa } from "@/lib/empresa";
 
 export const Route = createFileRoute("/configuracion")({
   head: () => ({
