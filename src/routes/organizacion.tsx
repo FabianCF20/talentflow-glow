@@ -4,32 +4,26 @@ import {
   Building2,
   Network,
   MapPinned,
-  Coins,
   BriefcaseBusiness,
   Layers,
-  Plus,
-  Download,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
-import { DataTable, type Column } from "@/components/common/DataTable";
-import { StatusBadge } from "@/components/common/StatusBadge";
 import { StatCard } from "@/components/common/StatCard";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CrudMaestro, type CampoDef } from "@/components/maestros/CrudMaestro";
 import {
-  AREAS,
-  CARGOS,
-  CENTROS_COSTO,
-  CENTROS_TRABAJO,
-  DEPENDENCIAS,
-  EMPLEADOS,
-  NIVELES,
-  areaById,
-  empleadoById,
-  nivelById,
-} from "@/data/organizacion";
+  useAreas,
+  useCargos,
+  useCentrosCosto,
+  useCentrosTrabajo,
+  useDependencias,
+  useEmpleadosOrg,
+  useNiveles,
+} from "@/lib/maestros";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/config/roles";
 import { formatCOP, nombreCompleto } from "@/types/organizacion";
 import type {
   AreaOrg,
@@ -61,162 +55,168 @@ export const Route = createFileRoute("/organizacion")({
   component: Organizacion,
 });
 
-const responsable = (id?: string) => {
-  const e = empleadoById(id);
-  return e ? nombreCompleto(e) : "Sin asignar";
-};
-
-const acciones = <T,>(): Column<T & { id: string }> => ({
-  key: "acciones",
-  header: "Acciones",
-  className: "text-right",
-  render: () => (
-    <div className="flex justify-end gap-1">
-      <Button variant="ghost" size="sm">Editar</Button>
-      <Button variant="ghost" size="sm">Inactivar</Button>
-    </div>
-  ),
-});
-
-const areaColumns: Column<AreaOrg>[] = [
-  { key: "codigo", header: "Código", render: (r) => <span className="font-mono text-xs">{r.codigo}</span> },
-  {
-    key: "nombre",
-    header: "Área",
-    render: (r) => (
-      <div>
-        <div className="font-medium text-foreground">{r.nombre}</div>
-        <div className="text-xs text-muted-foreground">
-          {r.direccionId ? `Depende de ${areaById(r.direccionId)?.nombre}` : "Nivel raíz"}
-        </div>
-      </div>
-    ),
-  },
-  { key: "responsable", header: "Responsable", render: (r) => responsable(r.responsableId) },
-  {
-    key: "empleados",
-    header: "Empleados",
-    render: (r) => <span className="tabular-nums">{EMPLEADOS.filter((e) => e.areaId === r.id).length}</span>,
-  },
-  { key: "estado", header: "Estado", render: (r) => <StatusBadge status={r.estado} /> },
-  acciones<AreaOrg>(),
-];
-
-const dependenciaColumns: Column<Dependencia>[] = [
-  { key: "codigo", header: "Código", render: (r) => <span className="font-mono text-xs">{r.codigo}</span> },
-  { key: "nombre", header: "Dependencia", render: (r) => <span className="font-medium text-foreground">{r.nombre}</span> },
-  { key: "area", header: "Área", render: (r) => areaById(r.areaId)?.nombre ?? "—" },
-  { key: "responsable", header: "Responsable", render: (r) => responsable(r.responsableId) },
-  { key: "estado", header: "Estado", render: (r) => <StatusBadge status={r.estado} /> },
-  acciones<Dependencia>(),
-];
-
-const centroTrabajoColumns: Column<CentroTrabajo>[] = [
-  { key: "codigo", header: "Código", render: (r) => <span className="font-mono text-xs">{r.codigo}</span> },
-  {
-    key: "nombre",
-    header: "Centro de trabajo",
-    render: (r) => (
-      <div>
-        <div className="font-medium text-foreground">{r.nombre}</div>
-        <div className="text-xs text-muted-foreground">{r.direccion}</div>
-      </div>
-    ),
-  },
-  { key: "ciudad", header: "Ciudad", render: (r) => r.ciudad },
-  { key: "riesgo", header: "Riesgo ARL", render: (r) => <span className="font-mono text-xs">Clase {r.riesgoArl}</span> },
-  {
-    key: "empleados",
-    header: "Empleados",
-    render: (r) => <span className="tabular-nums">{EMPLEADOS.filter((e) => e.centroTrabajoId === r.id).length}</span>,
-  },
-  { key: "estado", header: "Estado", render: (r) => <StatusBadge status={r.estado} /> },
-  acciones<CentroTrabajo>(),
-];
-
-const centroCostoColumns: Column<CentroCostoOrg>[] = [
-  { key: "codigo", header: "Código", render: (r) => <span className="font-mono text-xs">{r.codigo}</span> },
-  { key: "nombre", header: "Centro de costo", render: (r) => <span className="font-medium text-foreground">{r.nombre}</span> },
-  { key: "area", header: "Área imputable", render: (r) => areaById(r.areaId)?.nombre ?? "—" },
-  {
-    key: "presupuesto",
-    header: "Presupuesto anual",
-    render: (r) => <span className="tabular-nums">{formatCOP(r.presupuestoAnual)}</span>,
-  },
-  { key: "estado", header: "Estado", render: (r) => <StatusBadge status={r.estado} /> },
-  acciones<CentroCostoOrg>(),
-];
-
-const cargoColumns: Column<CargoOrg>[] = [
-  { key: "codigo", header: "Código", render: (r) => <span className="font-mono text-xs">{r.codigo}</span> },
-  { key: "nombre", header: "Cargo", render: (r) => <span className="font-medium text-foreground">{r.nombre}</span> },
-  { key: "area", header: "Área", render: (r) => areaById(r.areaId)?.nombre ?? "—" },
-  {
-    key: "nivel",
-    header: "Nivel jerárquico",
-    render: (r) => {
-      const n = nivelById(r.nivelId);
-      return (
-        <span className="rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground">
-          {n ? `${n.nivel} · ${n.nombre}` : "—"}
-        </span>
-      );
-    },
-  },
-  {
-    key: "ocupantes",
-    header: "Ocupantes",
-    render: (r) => <span className="tabular-nums">{EMPLEADOS.filter((e) => e.cargoId === r.id).length}</span>,
-  },
-  { key: "estado", header: "Estado", render: (r) => <StatusBadge status={r.estado} /> },
-  acciones<CargoOrg>(),
-];
-
-const nivelColumns: Column<NivelJerarquico>[] = [
-  {
-    key: "nivel",
-    header: "Nivel",
-    render: (r) => (
-      <span className="grid size-8 place-items-center rounded-md bg-primary-soft font-display text-sm font-semibold text-primary">
-        {r.nivel}
-      </span>
-    ),
-  },
-  {
-    key: "nombre",
-    header: "Denominación",
-    render: (r) => (
-      <div>
-        <div className="font-medium text-foreground">{r.nombre}</div>
-        <div className="text-xs text-muted-foreground">{r.descripcion}</div>
-      </div>
-    ),
-  },
-  {
-    key: "cargos",
-    header: "Cargos asociados",
-    render: (r) => <span className="tabular-nums">{CARGOS.filter((c) => c.nivelId === r.id).length}</span>,
-  },
-  { key: "estado", header: "Estado", render: (r) => <StatusBadge status={r.estado} /> },
-  acciones<NivelJerarquico>(),
-];
+const RIESGOS = ["I", "II", "III", "IV", "V"].map((v) => ({ value: v, label: `Clase ${v}` }));
 
 function Organizacion() {
-  const [query, setQuery] = useState("");
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  const puedeEditar = can(roles, "organizacion", "crear") || can(roles, "organizacion", "editar");
 
-  const filtrar = <T extends { nombre: string; codigo?: string }>(rows: T[]) =>
-    rows.filter((r) =>
-      `${r.nombre} ${r.codigo ?? ""}`.toLowerCase().includes(query.trim().toLowerCase()),
-    );
+  const [query, setQuery] = useState("");
+  const [niveles, setNiveles] = useNiveles();
+  const [areas, setAreas] = useAreas();
+  const [dependencias, setDependencias] = useDependencias();
+  const [centrosTrabajo, setCentrosTrabajo] = useCentrosTrabajo();
+  const [centrosCosto, setCentrosCosto] = useCentrosCosto();
+  const [cargos, setCargos] = useCargos();
+  const [empleados] = useEmpleadosOrg();
+
+  const opcAreas = areas.map((a) => ({ value: a.id, label: `${a.codigo} · ${a.nombre}` }));
+  const opcNiveles = niveles.map((n) => ({ value: n.id, label: `${n.nivel} · ${n.nombre}` }));
+  const opcEmpleados = empleados.map((e) => ({ value: e.id, label: nombreCompleto(e) }));
+
+  const nombreArea = (id?: string) => areas.find((a) => a.id === id)?.nombre ?? "—";
+  const nombreEmpleado = (id?: string) => {
+    const e = empleados.find((x) => x.id === id);
+    return e ? nombreCompleto(e) : "Sin asignar";
+  };
+
+  const camposNivel: CampoDef<NivelJerarquico>[] = [
+    { key: "nivel", label: "Número de nivel", tipo: "numero", requerido: true },
+    { key: "nombre", label: "Denominación", requerido: true, placeholder: "Dirección, Jefatura…" },
+    { key: "descripcion", label: "Descripción" },
+  ];
+
+  const camposArea: CampoDef<AreaOrg>[] = [
+    { key: "codigo", label: "Código", requerido: true, placeholder: "ADM-01" },
+    { key: "nombre", label: "Área", requerido: true },
+    {
+      key: "direccionId",
+      label: "Depende de",
+      tipo: "select",
+      opciones: opcAreas,
+      render: (r) => (
+        <span className="text-xs text-muted-foreground">
+          {r.direccionId ? nombreArea(r.direccionId) : "Nivel raíz"}
+        </span>
+      ),
+    },
+    {
+      key: "responsableId",
+      label: "Responsable",
+      tipo: "select",
+      opciones: opcEmpleados,
+      render: (r) => nombreEmpleado(r.responsableId),
+    },
+  ];
+
+  const camposDependencia: CampoDef<Dependencia>[] = [
+    { key: "codigo", label: "Código", requerido: true },
+    { key: "nombre", label: "Dependencia", requerido: true },
+    {
+      key: "areaId",
+      label: "Área",
+      tipo: "select",
+      opciones: opcAreas,
+      requerido: true,
+      render: (r) => nombreArea(r.areaId),
+    },
+    {
+      key: "responsableId",
+      label: "Responsable",
+      tipo: "select",
+      opciones: opcEmpleados,
+      render: (r) => nombreEmpleado(r.responsableId),
+    },
+  ];
+
+  const camposCentroTrabajo: CampoDef<CentroTrabajo>[] = [
+    { key: "codigo", label: "Código", requerido: true },
+    { key: "nombre", label: "Centro de trabajo", requerido: true },
+    { key: "ciudad", label: "Ciudad", requerido: true },
+    { key: "direccion", label: "Dirección" },
+    { key: "riesgoArl", label: "Riesgo ARL", tipo: "select", opciones: RIESGOS, requerido: true },
+  ];
+
+  const camposCentroCosto: CampoDef<CentroCostoOrg>[] = [
+    { key: "codigo", label: "Código", requerido: true },
+    { key: "nombre", label: "Centro de costo", requerido: true },
+    {
+      key: "areaId",
+      label: "Área imputable",
+      tipo: "select",
+      opciones: opcAreas,
+      requerido: true,
+      render: (r) => nombreArea(r.areaId),
+    },
+    {
+      key: "presupuestoAnual",
+      label: "Presupuesto anual",
+      tipo: "numero",
+      render: (r) => (
+        <span className="tabular-nums">{formatCOP(Number(r.presupuestoAnual ?? 0))}</span>
+      ),
+    },
+  ];
+
+  const camposCargo: CampoDef<CargoOrg>[] = [
+    { key: "codigo", label: "Código", requerido: true },
+    { key: "nombre", label: "Cargo", requerido: true },
+    {
+      key: "areaId",
+      label: "Área",
+      tipo: "select",
+      opciones: opcAreas,
+      requerido: true,
+      render: (r) => nombreArea(r.areaId),
+    },
+    {
+      key: "nivelId",
+      label: "Nivel jerárquico",
+      tipo: "select",
+      opciones: opcNiveles,
+      requerido: true,
+      render: (r) => {
+        const n = niveles.find((x) => x.id === r.nivelId);
+        return n ? `${n.nivel} · ${n.nombre}` : "—";
+      },
+    },
+    {
+      key: "salarioBase",
+      label: "Salario base",
+      tipo: "numero",
+      render: (r) => <span className="tabular-nums">{formatCOP(Number(r.salarioBase ?? 0))}</span>,
+    },
+  ];
 
   const stats = useMemo(
     () => [
-      { label: "Áreas", value: String(AREAS.filter((a) => a.estado === "activo").length), icon: Building2, hint: "activas" },
-      { label: "Dependencias", value: String(DEPENDENCIAS.filter((d) => d.estado === "activo").length), icon: Network, hint: "activas" },
-      { label: "Cargos", value: String(CARGOS.filter((c) => c.estado === "activo").length), icon: BriefcaseBusiness, hint: "definidos" },
-      { label: "Centros de trabajo", value: String(CENTROS_TRABAJO.filter((c) => c.estado === "activo").length), icon: MapPinned, hint: "operativos" },
+      {
+        label: "Áreas",
+        value: String(areas.filter((a) => a.estado === "activo").length),
+        icon: Building2,
+        hint: "activas",
+      },
+      {
+        label: "Dependencias",
+        value: String(dependencias.filter((d) => d.estado === "activo").length),
+        icon: Network,
+        hint: "activas",
+      },
+      {
+        label: "Cargos",
+        value: String(cargos.filter((c) => c.estado === "activo").length),
+        icon: BriefcaseBusiness,
+        hint: "definidos",
+      },
+      {
+        label: "Centros de trabajo",
+        value: String(centrosTrabajo.filter((c) => c.estado === "activo").length),
+        icon: MapPinned,
+        hint: "operativos",
+      },
     ],
-    [],
+    [areas, dependencias, cargos, centrosTrabajo],
   );
 
   return (
@@ -225,16 +225,6 @@ function Organizacion() {
         breadcrumb={["Organización", "Estructura organizacional"]}
         title="Estructura organizacional"
         description="Áreas, dependencias, centros de trabajo, centros de costo, cargos y niveles jerárquicos. Toda modificación se refleja automáticamente en el organigrama."
-        actions={
-          <>
-            <Button variant="outline" size="sm">
-              <Download className="size-4" /> Exportar
-            </Button>
-            <Button size="sm">
-              <Plus className="size-4" /> Nuevo registro
-            </Button>
-          </>
-        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -262,22 +252,84 @@ function Organizacion() {
         </div>
 
         <TabsContent value="areas" className="mt-4">
-          <DataTable columns={areaColumns} rows={filtrar(AREAS)} />
+          <CrudMaestro<AreaOrg>
+            titulo="Áreas organizacionales"
+            descripcion="Direcciones y áreas dependientes."
+            prefijoId="area"
+            campos={camposArea}
+            items={areas}
+            setItems={setAreas}
+            valoresIniciales={{ codigo: "", nombre: "", direccionId: "", responsableId: "" }}
+            puedeEditar={puedeEditar}
+            filtro={query}
+          />
         </TabsContent>
         <TabsContent value="dependencias" className="mt-4">
-          <DataTable columns={dependenciaColumns} rows={filtrar(DEPENDENCIAS)} />
+          <CrudMaestro<Dependencia>
+            titulo="Dependencias"
+            prefijoId="dep"
+            campos={camposDependencia}
+            items={dependencias}
+            setItems={setDependencias}
+            valoresIniciales={{ codigo: "", nombre: "", areaId: "", responsableId: "" }}
+            puedeEditar={puedeEditar}
+            filtro={query}
+          />
         </TabsContent>
         <TabsContent value="centros-trabajo" className="mt-4">
-          <DataTable columns={centroTrabajoColumns} rows={filtrar(CENTROS_TRABAJO)} />
+          <CrudMaestro<CentroTrabajo>
+            titulo="Centros de trabajo"
+            prefijoId="ct"
+            campos={camposCentroTrabajo}
+            items={centrosTrabajo}
+            setItems={setCentrosTrabajo}
+            valoresIniciales={{
+              codigo: "",
+              nombre: "",
+              ciudad: "",
+              direccion: "",
+              riesgoArl: "I" as CentroTrabajo["riesgoArl"],
+            }}
+            puedeEditar={puedeEditar}
+            filtro={query}
+          />
         </TabsContent>
         <TabsContent value="centros-costo" className="mt-4">
-          <DataTable columns={centroCostoColumns} rows={filtrar(CENTROS_COSTO)} />
+          <CrudMaestro<CentroCostoOrg>
+            titulo="Centros de costo"
+            prefijoId="cc"
+            campos={camposCentroCosto}
+            items={centrosCosto}
+            setItems={setCentrosCosto}
+            valoresIniciales={{ codigo: "", nombre: "", areaId: "", presupuestoAnual: 0 }}
+            puedeEditar={puedeEditar}
+            filtro={query}
+          />
         </TabsContent>
         <TabsContent value="cargos" className="mt-4">
-          <DataTable columns={cargoColumns} rows={filtrar(CARGOS)} />
+          <CrudMaestro<CargoOrg>
+            titulo="Cargos"
+            prefijoId="cargo"
+            campos={camposCargo}
+            items={cargos}
+            setItems={setCargos}
+            valoresIniciales={{ codigo: "", nombre: "", areaId: "", nivelId: "", salarioBase: 0 }}
+            puedeEditar={puedeEditar}
+            filtro={query}
+          />
         </TabsContent>
         <TabsContent value="niveles" className="mt-4">
-          <DataTable columns={nivelColumns} rows={filtrar(NIVELES)} />
+          <CrudMaestro<NivelJerarquico>
+            titulo="Niveles jerárquicos"
+            descripcion="Definen el orden del organigrama."
+            prefijoId="niv"
+            campos={camposNivel}
+            items={niveles}
+            setItems={setNiveles}
+            valoresIniciales={{ nivel: 1, nombre: "", descripcion: "" }}
+            puedeEditar={puedeEditar}
+            filtro={query}
+          />
         </TabsContent>
       </Tabs>
 
@@ -286,6 +338,7 @@ function Organizacion() {
         <p>
           Ningún registro se elimina físicamente: se inactiva o archiva conservando su trazabilidad.
           Los cambios de cargo, área o jefe inmediato regeneran el organigrama automáticamente.
+          {!puedeEditar && " Su rol actual solo permite consultar."}
         </p>
       </div>
     </AppShell>

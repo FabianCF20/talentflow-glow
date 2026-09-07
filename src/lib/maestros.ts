@@ -5,8 +5,10 @@ import type {
   CentroCostoOrg,
   CentroTrabajo,
   Dependencia,
+  EmpleadoOrg,
   NivelJerarquico,
 } from "@/types/organizacion";
+
 
 /** Colecciones de Firestore que respaldan los datos maestros. */
 export const COL_MAESTROS = {
