@@ -31,3 +31,4 @@ export const useDependencias = () => useFirestoreState<Dependencia>(COL_MAESTROS
 export const useCentrosTrabajo = () => useFirestoreState<CentroTrabajo>(COL_MAESTROS.centrosTrabajo);
 export const useCentrosCosto = () => useFirestoreState<CentroCostoOrg>(COL_MAESTROS.centrosCosto);
 export const useCargos = () => useFirestoreState<CargoOrg>(COL_MAESTROS.cargos);
+export const useEmpleadosOrg = () => useFirestoreState<EmpleadoOrg>(COL_MAESTROS.empleados);

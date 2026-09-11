@@ -19,6 +19,7 @@ import {
   cargoById,
   centroTrabajoById,
   dependenciaById,
+  empleadoById,
   nivelById,
   subordinadosDe,
   type OrgNode,
@@ -27,6 +28,7 @@ import { ALCANCE_LABEL, alcanceDe, empleadosVisibles, puedeVerSalario } from "@/
 import { formatCOP, nombreCompleto } from "@/types/organizacion";
 import { ROLE_LABEL } from "@/config/roles";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/organigrama")({
   head: () => ({
@@ -152,19 +154,21 @@ function NodeCard({
 }
 
 function Organigrama() {
-  /** Usuario simulado: permite validar las reglas de visibilidad por rol. */
-  const [usuarioId, setUsuarioId] = useState("us-002");
-  const usuario = USUARIOS.find((u) => u.id === usuarioId)!;
-  const empleado = EMPLEADOS.find((e) => e.id === usuario.empleadoId)!;
+  const { perfil } = useAuth();
+  const [usuarioId, setUsuarioId] = useState(() => perfil?.id ?? "");
+  const usuario = USUARIOS.find((u) => u.id === usuarioId);
+  const roles = usuario?.roles ?? perfil?.roles ?? [];
+  const empleado = empleadoById(usuario?.empleadoId ?? perfil?.empleadoId);
 
   const tree = useMemo(() => buildOrgTree(), []);
   const visibles = useMemo(
-    () => new Set(empleadosVisibles(empleado.id, usuario.roles).map((e) => e.id)),
-    [empleado.id, usuario.roles],
+    () => new Set(empleadosVisibles(empleado?.id ?? "", roles).map((e) => e.id)),
+    [empleado?.id, roles],
   );
-  const alcance = alcanceDe(usuario.roles);
-  const puedeSalario = (id: string) => puedeVerSalario(empleado.id, usuario.roles, id);
-  const equipo = subordinadosDe(empleado.id).length;
+  const alcance = alcanceDe(roles);
+  const puedeSalario = (id: string) =>
+    puedeVerSalario(empleado?.id ?? "", roles, id);
+  const equipo = empleado ? subordinadosDe(empleado.id).length : 0;
 
   return (
     <AppShell>
@@ -184,7 +188,7 @@ function Organigrama() {
           <span className="text-sm font-medium text-foreground">Ver como</span>
           <Select value={usuarioId} onValueChange={setUsuarioId}>
             <SelectTrigger className="w-full sm:w-[320px]">
-              <SelectValue />
+              <SelectValue placeholder="Usuario actual" />
             </SelectTrigger>
             <SelectContent>
               {USUARIOS.map((u) => {
@@ -197,6 +201,11 @@ function Organigrama() {
               })}
             </SelectContent>
           </Select>
+          {USUARIOS.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              No hay cuentas adicionales configuradas.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
@@ -211,17 +220,29 @@ function Organigrama() {
         </div>
       </div>
 
-      <ul className="space-y-2">
-        {tree.map((n) => (
-          <NodeCard
-            key={n.empleado.id}
-            node={n}
-            visibles={visibles}
-            puedeSalario={puedeSalario}
-            depth={0}
-          />
-        ))}
-      </ul>
+      {tree.length > 0 ? (
+        <ul className="space-y-2">
+          {tree.map((n) => (
+            <NodeCard
+              key={n.empleado.id}
+              node={n}
+              visibles={visibles}
+              puedeSalario={puedeSalario}
+              depth={0}
+            />
+          ))}
+        </ul>
+      ) : (
+        <div className="surface-panel p-8 text-center">
+          <h2 className="font-display text-lg font-semibold text-foreground">
+            Aún no hay estructura organizacional
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Cree niveles, áreas, cargos y empleados desde Estructura organizacional
+            para construir el primer organigrama.
+          </p>
+        </div>
+      )}
     </AppShell>
   );
 }
