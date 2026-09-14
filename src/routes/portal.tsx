@@ -110,8 +110,8 @@ function PortalEmpleadoPage() {
     emitirCertificado,
   } = usePortal();
 
-  const empleado = empleados.find((e) => e.id === empleadoActuandoId) ?? empleados[0]!;
-  const id = empleado.id;
+  const empleado = empleados.find((e) => e.id === empleadoActuandoId) ?? empleados[0];
+  const id = empleado?.id ?? "";
   const personales = datosVigentes(id);
   const familiares = familiaresVigentes(id);
 
@@ -166,6 +166,24 @@ function PortalEmpleadoPage() {
   const [docNombre, setDocNombre] = useState("");
   const [docCategoria, setDocCategoria] = useState<CategoriaDocumento>("personales");
   const [docVence, setDocVence] = useState("");
+
+  if (!empleado) {
+    return (
+      <AppShell>
+        <PageHeader
+          breadcrumb={["Talento Humano", "Portal del Empleado"]}
+          title="Portal del Empleado"
+          description="Autoconsulta de tu información laboral, actualización de datos, documentos y certificados."
+        />
+        <div className="surface-panel p-6 text-center">
+          <p className="font-medium text-foreground">No hay un empleado disponible</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Espera a que carguen los datos o solicita a Talento Humano que cree y vincule tu registro.
+          </p>
+        </div>
+      </AppShell>
+    );
+  }
 
   const subir = () => {
     const nombre = docNombre.trim();

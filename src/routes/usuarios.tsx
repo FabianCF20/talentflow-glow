@@ -25,11 +25,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ROLES, ROLE_LABEL } from "@/config/roles";
+import { ROLES, ROLE_LABEL, rolesPredeterminadosPorNivel } from "@/config/roles";
 import { PERMISSION_ACTIONS, PERMISSION_ACTION_LABEL } from "@/types/entities";
 import type { PermissionAction, RoleKey } from "@/types/entities";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { EMPLEADOS, areaById, cargoById, empleadoById } from "@/data/organizacion";
+import { EMPLEADOS, areaById, cargoById, empleadoById, nivelById } from "@/data/organizacion";
 import {
   ESTADO_USUARIO_LABEL,
   nombreCompleto,
@@ -144,12 +144,14 @@ function Usuarios() {
 
   const abrirNuevo = (empleadoId = "") => {
     const empleado = empleadoId ? empleadoById(empleadoId) : undefined;
+    const nivel = nivelById(cargoById(empleado?.cargoId)?.nivelId)?.nivel;
     setEditando(null);
     setForm({
       ...FORM_VACIO,
       empleadoId,
       nombres: empleado?.nombres ?? "",
       apellidos: empleado?.apellidos ?? "",
+      roles: rolesPredeterminadosPorNivel(nivel),
     });
     setDialogoAbierto(true);
   };
@@ -173,6 +175,22 @@ function Usuarios() {
       ...f,
       roles: f.roles.includes(rol) ? f.roles.filter((r) => r !== rol) : [...f.roles, rol],
     }));
+
+  const cambiarEmpleado = (empleadoId: string) => {
+    const empleado = empleadoById(empleadoId);
+    const nivel = nivelById(cargoById(empleado?.cargoId)?.nivelId)?.nivel;
+    setForm((f) => ({
+      ...f,
+      empleadoId: empleadoId === "ninguno" ? "" : empleadoId,
+      ...(editando
+        ? {}
+        : {
+            nombres: empleado?.nombres ?? f.nombres,
+            apellidos: empleado?.apellidos ?? f.apellidos,
+            roles: rolesPredeterminadosPorNivel(nivel),
+          }),
+    }));
+  };
 
   const guardarCuenta = async () => {
     if (!form.nombres.trim() || !form.apellidos.trim()) {
@@ -206,6 +224,7 @@ function Usuarios() {
           apellidos: form.apellidos,
           roles: form.roles,
           empleadoId: form.empleadoId || undefined,
+          nivelJerarquico: nivelById(cargoById(empleadoById(form.empleadoId)?.cargoId)?.nivelId)?.nivel,
         });
         toast.success("Usuario creado en Firebase Authentication.");
       }
@@ -700,7 +719,7 @@ function Usuarios() {
               <Label>Empleado vinculado</Label>
               <Select
                 value={form.empleadoId || "ninguno"}
-                onValueChange={(v) => setForm((f) => ({ ...f, empleadoId: v === "ninguno" ? "" : v }))}
+                onValueChange={cambiarEmpleado}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sin vincular" />
@@ -740,7 +759,11 @@ function Usuarios() {
             )}
 
             <div className="space-y-2">
-              <Label>Roles</Label>
+              <Label>Roles y permisos predeterminados</Label>
+              <p className="text-xs text-muted-foreground">
+                El rol inicial se calcula por el nivel jerárquico del cargo. Puede agregar permisos
+                funcionales adicionales sin retirar el rol jerárquico base.
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {ROLES.map((r) => (
                   <label key={r.key} className="flex items-center gap-2 text-xs text-foreground">

@@ -18,6 +18,28 @@ export const ROLE_LABEL = Object.fromEntries(ROLES.map((r) => [r.key, r.nombre])
   string
 >;
 
+/** Rol jerárquico base que se asigna a una cuenta según el nivel del cargo. */
+export const ROL_JERARQUICO_POR_NIVEL: Record<number, RoleKey> = {
+  1: "administrador",
+  2: "gerente_general",
+  3: "director",
+  4: "jefe",
+  5: "supervisor",
+  9: "empleado",
+};
+
+/**
+ * Devuelve el rol jerárquico predeterminado. Los niveles intermedios o no
+ * configurados quedan como empleado para evitar conceder privilegios mayores.
+ */
+export function rolesPredeterminadosPorNivel(nivel?: number): RoleKey[] {
+  return [ROL_JERARQUICO_POR_NIVEL[nivel ?? 9] ?? "empleado"];
+}
+
+export function nivelDeRol(rol: RoleKey): number {
+  return ROLES.find((item) => item.key === rol)?.nivel ?? 9;
+}
+
 /** Matriz de permisos por módulo: módulo -> rol -> acciones habilitadas. */
 export type PermissionMatrix = Record<string, Partial<Record<RoleKey, PermissionAction[]>>>;
 
