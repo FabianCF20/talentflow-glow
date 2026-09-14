@@ -12,6 +12,7 @@ import { guardarDoc } from "./firestore";
 import type { PerfilUsuario } from "./auth";
 import type { EstadoUsuario, UsuarioSistema } from "@/types/organizacion";
 import type { RoleKey } from "@/types/entities";
+import { rolesPredeterminadosPorNivel } from "@/config/roles";
 
 /** Colección única de cuentas: cada documento usa el UID de Firebase Auth. */
 export const COLECCION_USUARIOS = "usuarios";
@@ -19,6 +20,7 @@ export const COLECCION_USUARIOS = "usuarios";
 /** Cuenta almacenada en Firestore, ligada 1:1 con un usuario de Firebase Auth. */
 export interface CuentaUsuario extends PerfilUsuario {
   empleadoId?: string;
+  nivelJerarquico?: number;
   estadoUsuario?: EstadoUsuario;
   ultimoAcceso?: string;
   intentosFallidos?: number;
@@ -48,33 +50,59 @@ export async function crearCuentaUsuario(datos: {
   password: string;
   nombres: string;
   apellidos: string;
-  roles: RoleKey[];
+  roles?: RoleKey[];
   empleadoId?: string;
+  nivelJerarquico?: number;
 }) {
+  const email = datos.email.trim().toLowerCase();
+  const nombres = datos.nombres.trim();
+  const apellidos = datos.apellidos.trim();
+  if (!email || !nombres || !apellidos) {
+    throw new Error("Los datos obligatorios del usuario están incompletos.");
+  }
+  if (datos.password.length < 6) {
+    throw new Error("La contraseña debe tener al menos 6 caracteres.");
+  }
+  const roles = datos.roles?.length
+    ? [...new Set(datos.roles)]
+    : rolesPredeterminadosPorNivel(datos.nivelJerarquico);
   const secundaria = initializeApp(firebaseConfig, `admin-${Date.now()}`);
   const authSecundaria = getAuth(secundaria);
+  let uid: string | undefined;
+  let perfilGuardado = false;
   try {
     const cred = await createUserWithEmailAndPassword(
       authSecundaria,
-      datos.email.trim(),
+      email,
       datos.password,
     );
+    uid = cred.user.uid;
     const cuenta: CuentaUsuario = {
       id: cred.user.uid,
-      email: datos.email.trim(),
-      nombres: datos.nombres.trim(),
-      apellidos: datos.apellidos.trim(),
-      roles: datos.roles.length ? datos.roles : ["empleado"],
+      email,
+      nombres,
+      apellidos,
+      roles,
       empleadoId: datos.empleadoId,
+      nivelJerarquico: datos.nivelJerarquico,
       estado: "activo",
       estadoUsuario: "activo",
       intentosFallidos: 0,
       creadoEn: new Date().toISOString(),
     };
     await guardarDoc(COLECCION_USUARIOS, cuenta);
-    await signOut(authSecundaria);
+    perfilGuardado = true;
     return cuenta;
   } finally {
+    if (uid && !perfilGuardado) {
+      await authSecundaria.currentUser?.delete().catch((error) =>
+        console.error("[usuarios] no se pudo limpiar la cuenta de Auth", error),
+      );
+    } else if (uid) {
+      await signOut(authSecundaria).catch((error) =>
+        console.error("[usuarios] no se pudo cerrar la sesión secundaria", error),
+      );
+    }
     await deleteApp(secundaria);
   }
 }
