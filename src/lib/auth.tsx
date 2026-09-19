@@ -1,0 +1,210 @@
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+} from "firebase/auth";
+import { collection, doc, getDoc, getDocs, limit, query, setDoc } from "firebase/firestore";
+import { auth, db } from "./firebase";
+import type { RoleKey } from "@/types/entities";
+
+export interface PerfilUsuario {
+  id: string;
+  email: string;
+  nombres: string;
+  apellidos: string;
+  roles: RoleKey[];
+  empleadoId?: string;
+  estado: "activo" | "inactivo";
+  creadoEn: string;
+}
+
+interface AuthContextValue {
+  usuario: User | null;
+  perfil: PerfilUsuario | null;
+  cargando: boolean;
+  iniciales: string;
+  ingresar: (email: string, password: string) => Promise<void>;
+  registrar: (datos: {
+    email: string;
+    password: string;
+    nombres: string;
+    apellidos: string;
+  }) => Promise<void>;
+  recuperarClave: (email: string) => Promise<void>;
+  salir: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+const COLECCION = "usuarios";
+
+/** Error propio cuando Firestore no responde (base sin crear, reglas o red). */
+export class FirestoreNoDisponible extends Error {
+  code = "firestore/unavailable";
+  constructor() {
+    super("Firestore no disponible");
+  }
+}
+
+/** Evita que una operación de Firestore quede colgada indefinidamente. */
+async function conLimite<T>(promesa: Promise<T>, ms = 8000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const limite = new Promise<never>((_, rechazar) => {
+    timer = setTimeout(() => rechazar(new FirestoreNoDisponible()), ms);
+  });
+  try {
+    return await Promise.race([promesa, limite]);
+  } finally {
+    clearTimeout(timer!);
+  }
+}
+
+async function esPrimerUsuario() {
+  try {
+    const snap = await conLimite(getDocs(query(collection(db, COLECCION), limit(1))));
+    return snap.empty;
+  } catch (error) {
+    console.error("[auth] no se pudo consultar la colección de usuarios", error);
+    throw new FirestoreNoDisponible();
+  }
+}
+
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [usuario, setUsuario] = useState<User | null>(null);
+  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setUsuario(u);
+      if (u) {
+        try {
+          const snap = await conLimite(getDoc(doc(db, COLECCION, u.uid)));
+          if (snap.exists()) {
+            setPerfil({ ...(snap.data() as PerfilUsuario), id: u.uid });
+          } else {
+            // Cuenta de Auth sin perfil: se crea para no quedar sin permisos.
+            const primero = await esPrimerUsuario().catch(() => false);
+            const nuevo: PerfilUsuario = {
+              id: u.uid,
+              email: u.email ?? "",
+              nombres: u.displayName?.split(" ")[0] ?? (u.email?.split("@")[0] ?? "Usuario"),
+              apellidos: u.displayName?.split(" ").slice(1).join(" ") || "",
+              roles: primero ? ["administrador", "talento_humano"] : ["empleado"],
+              estado: "activo",
+              creadoEn: new Date().toISOString(),
+            };
+            await conLimite(setDoc(doc(db, COLECCION, u.uid), nuevo, { merge: true }));
+            setPerfil(nuevo);
+          }
+        } catch (error) {
+          console.error("[auth] no se pudo leer el perfil", error);
+          setPerfil(null);
+        }
+      } else {
+        setPerfil(null);
+      }
+      setCargando(false);
+    });
+    return unsub;
+  }, []);
+
+
+  const ingresar = useCallback(async (email: string, password: string) => {
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+    try {
+      await conLimite(
+        setDoc(
+          doc(db, COLECCION, cred.user.uid),
+          { ultimoAcceso: new Date().toISOString() },
+          { merge: true },
+        ),
+      );
+    } catch (error) {
+      console.error("[auth] no se pudo registrar el último acceso", error);
+    }
+  }, []);
+
+  const registrar = useCallback<AuthContextValue["registrar"]>(async (datos) => {
+    const primero = await esPrimerUsuario();
+    const cred = await createUserWithEmailAndPassword(auth, datos.email.trim(), datos.password);
+    const nuevo: PerfilUsuario = {
+      id: cred.user.uid,
+      email: datos.email.trim(),
+      nombres: datos.nombres.trim(),
+      apellidos: datos.apellidos.trim(),
+      roles: primero ? ["administrador", "talento_humano"] : ["empleado"],
+      estado: "activo",
+      creadoEn: new Date().toISOString(),
+    };
+    try {
+      await conLimite(setDoc(doc(db, COLECCION, cred.user.uid), nuevo));
+    } catch (error) {
+      console.error("[auth] no se pudo guardar el perfil", error);
+      throw new FirestoreNoDisponible();
+    }
+    setPerfil(nuevo);
+  }, []);
+
+  const recuperarClave = useCallback(async (email: string) => {
+    await sendPasswordResetEmail(auth, email.trim());
+  }, []);
+
+  const salir = useCallback(async () => {
+    await signOut(auth);
+  }, []);
+
+  const iniciales = perfil
+    ? `${perfil.nombres.charAt(0)}${perfil.apellidos.charAt(0)}`.toUpperCase()
+    : (usuario?.email?.charAt(0).toUpperCase() ?? "?");
+
+  return (
+    <AuthContext.Provider
+      value={{
+        usuario,
+        perfil,
+        cargando,
+        iniciales,
+        ingresar,
+        registrar,
+        recuperarClave,
+        salir,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
+  return ctx;
+}
+
+/** Mensajes de error de Firebase Auth en español. */
+export function mensajeAuth(error: unknown): string {
+  const code = (error as { code?: string })?.code ?? "";
+  const mapa: Record<string, string> = {
+    "auth/invalid-credential": "Correo o contraseña incorrectos.",
+    "auth/invalid-email": "El correo no es válido.",
+    "auth/user-not-found": "No existe una cuenta con ese correo.",
+    "auth/wrong-password": "Correo o contraseña incorrectos.",
+    "auth/too-many-requests": "Demasiados intentos. Intente más tarde.",
+    "auth/email-already-in-use": "Ya existe una cuenta con ese correo.",
+    "auth/weak-password": "La contraseña debe tener al menos 6 caracteres.",
+    "auth/network-request-failed": "Sin conexión con el servidor.",
+    "auth/operation-not-allowed":
+      "Habilite el método Correo/Contraseña en Firebase Authentication.",
+    "permission-denied":
+      "Las reglas de seguridad de Firestore bloquean esta operación. Publique el archivo firestore.rules del proyecto en Firebase Console > Firestore Database > Reglas.",
+    "firestore/unavailable":
+      "No hay base de datos Firestore activa en el proyecto indunilo. Créela en Firebase Console (Firestore Database > Crear base de datos) y vuelva a intentar.",
+  };
+  return mapa[code] ?? "No fue posible completar la operación.";
+}
