@@ -24,8 +24,9 @@ export const PARAMS_NOMINA = {
   topeAuxilioSmmlv: 2,
   saludPct: 0.04,
   pensionPct: 0.04,
-  /** Fondo de solidaridad pensional desde 4 SMMLV. */
+  /** Fondo de solidaridad pensional desde 4 SMMLV hasta 16 SMMLV. */
   fspDesdeSmmlv: 4,
+  fspHastaSmmlv: 16,
   fspPct: 0.01,
   interesesCesantiasPct: 0.12,
   horasMes: 240,
@@ -48,6 +49,12 @@ export const redondear = (v: number) => Math.round(v);
 
 export const valorDia = (salario: number) => salario / 30;
 export const valorHora = (salario: number) => salario / PARAMS_NOMINA.horasMes;
+
+export const baseFsp = (baseRemuneracion: number) => {
+  const limiteInferior = PARAMS_NOMINA.smmlv * PARAMS_NOMINA.fspDesdeSmmlv;
+  const limiteSuperior = PARAMS_NOMINA.smmlv * PARAMS_NOMINA.fspHastaSmmlv;
+  return Math.max(0, Math.min(baseRemuneracion, limiteSuperior) - limiteInferior);
+};
 
 export const tieneAuxilioTransporte = (salario: number) =>
   salario <= PARAMS_NOMINA.smmlv * PARAMS_NOMINA.topeAuxilioSmmlv;
@@ -77,7 +84,11 @@ const ES_RECARGO: TipoHoraExtra[] = ["recargo_nocturno"];
 export function calcularProvisiones(baseMensual: number, dias: number): Provisiones {
   const prima = redondear((baseMensual * dias) / 360);
   const cesantias = redondear((baseMensual * dias) / 360);
-  const interesesCesantias = redondear((cesantias * PARAMS_NOMINA.interesesCesantiasPct * dias) / 360);
+  /*
+   * En Colombia, los intereses sobre cesantías equivalen al 12% del valor
+   * acumulado de las cesantías, no a una tasa aplicada dos veces por los días.
+   */
+  const interesesCesantias = redondear(cesantias * PARAMS_NOMINA.interesesCesantiasPct);
   const vacaciones = redondear((baseMensual * dias) / 720);
   return { prima, cesantias, interesesCesantias, vacaciones };
 }
@@ -142,6 +153,8 @@ export function calcularDetalle(input: {
     (devengados.find((d) => d.codigo === "102")?.valor ?? 0) -
     bonos.filter((b) => b.descripcion.toLowerCase().includes("no salarial")).reduce((s, b) => s + b.valorMensual, 0);
 
+  const baseFspRemunerado = baseFsp(baseAportes);
+
   const deducciones: ConceptoLinea[] = [
     { codigo: "201", descripcion: "Aporte salud (4%)", valor: redondear(baseAportes * PARAMS_NOMINA.saludPct) },
     { codigo: "202", descripcion: "Aporte pensión (4%)", valor: redondear(baseAportes * PARAMS_NOMINA.pensionPct) },
@@ -151,7 +164,7 @@ export function calcularDetalle(input: {
     deducciones.push({
       codigo: "203",
       descripcion: "Fondo de solidaridad pensional (1%)",
-      valor: redondear(baseAportes * PARAMS_NOMINA.fspPct),
+      valor: redondear(baseFspRemunerado * PARAMS_NOMINA.fspPct),
     });
   }
 
@@ -235,7 +248,7 @@ export function calcularLiquidacionFinal(input: {
       codigo: "304",
       descripcion: "Intereses sobre cesantías (12%)",
       cantidad: diasAnio,
-      valor: redondear(((basePrestacional * diasAnio) / 360) * PARAMS_NOMINA.interesesCesantiasPct * (diasAnio / 360)),
+      valor: redondear(((basePrestacional * diasAnio) / 360) * PARAMS_NOMINA.interesesCesantiasPct),
     },
     {
       codigo: "305",
@@ -251,10 +264,19 @@ export function calcularLiquidacionFinal(input: {
   }
 
   const salarioMes = redondear(valorDia(salario) * Math.min(30, Number(fechaRetiro.slice(8, 10))));
+  const baseFspLiquidacion = baseFsp(salarioMes);
   const deducciones: ConceptoLinea[] = [
     { codigo: "401", descripcion: "Aporte salud (4%)", valor: redondear(salarioMes * PARAMS_NOMINA.saludPct) },
     { codigo: "402", descripcion: "Aporte pensión (4%)", valor: redondear(salarioMes * PARAMS_NOMINA.pensionPct) },
   ];
+
+  if (salario >= PARAMS_NOMINA.smmlv * PARAMS_NOMINA.fspDesdeSmmlv) {
+    deducciones.push({
+      codigo: "403",
+      descripcion: "Fondo de solidaridad pensional (1%)",
+      valor: redondear(baseFspLiquidacion * PARAMS_NOMINA.fspPct),
+    });
+  }
 
   const total =
     conceptos.reduce((s, c) => s + c.valor, 0) - deducciones.reduce((s, d) => s + d.valor, 0);

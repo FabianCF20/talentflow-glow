@@ -62,6 +62,7 @@ import {
   type TipoCertificado,
 } from "@/types/portal";
 import { TIPO_CONTRATO_LABEL, iniciales, nombreEmpleado } from "@/types/rrhh";
+import { can } from "@/config/roles";
 
 export const Route = createFileRoute("/portal")({
   head: () => ({
@@ -98,6 +99,9 @@ function PortalEmpleadoPage() {
     ? `${perfil.nombres} ${perfil.apellidos}`.trim()
     : (usuario?.email ?? "sistema");
   const { empleados, eventos, empleadoActuandoId, setEmpleadoActuandoId } = useRrhh();
+  const puedeCambiarEmpleado =
+    (perfil?.roles ?? []).some((rol) => rol !== "empleado" && can([rol], "empleados", "ver")) ??
+    false;
   const {
     solicitudes,
     documentos,
@@ -110,8 +114,12 @@ function PortalEmpleadoPage() {
     emitirCertificado,
   } = usePortal();
 
-  const empleado = empleados.find((e) => e.id === empleadoActuandoId) ?? empleados[0];
-  const id = empleado?.id ?? "";
+  const empleadoSesionId = perfil?.empleadoId ?? empleadoActuandoId;
+  const empleado =
+    empleados.find((e) => e.id === (puedeCambiarEmpleado ? empleadoActuandoId : empleadoSesionId)) ??
+    empleados.find((e) => e.id === empleadoSesionId) ??
+    empleados[0];
+  const id = empleado?.id ?? perfil?.empleadoId ?? "";
   const personales = datosVigentes(id);
   const familiares = familiaresVigentes(id);
 
@@ -166,6 +174,36 @@ function PortalEmpleadoPage() {
   const [docNombre, setDocNombre] = useState("");
   const [docCategoria, setDocCategoria] = useState<CategoriaDocumento>("personales");
   const [docVence, setDocVence] = useState("");
+  const [archivoPdf, setArchivoPdf] = useState<File | null>(null);
+
+  const manejarArchivo = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const archivo = event.target.files?.[0];
+    if (!archivo) {
+      setArchivoPdf(null);
+      return;
+    }
+
+    const nombre = archivo.name.toLowerCase();
+    if (!nombre.endsWith(".pdf") && archivo.type !== "application/pdf") {
+      toast.error("Solo se permiten archivos en formato PDF.");
+      event.target.value = "";
+      setArchivoPdf(null);
+      return;
+    }
+
+    if (archivo.size > 5 * 1024 * 1024) {
+      toast.error("El PDF no puede superar 5 MB.");
+      event.target.value = "";
+      setArchivoPdf(null);
+      return;
+    }
+
+    setArchivoPdf(archivo);
+    if (!docNombre.trim()) {
+      setDocNombre(archivo.name.replace(/\.pdf$/i, "").slice(0, 120));
+    }
+    toast.success(`Archivo PDF listo: ${archivo.name}`);
+  };
 
   if (!empleado) {
     return (
@@ -187,23 +225,44 @@ function PortalEmpleadoPage() {
 
   const subir = () => {
     const nombre = docNombre.trim();
-    if (nombre.length < 4 || nombre.length > 120) {
+    const nombreBase = nombre.length ? nombre : archivoPdf?.name.replace(/\.pdf$/i, "") ?? "documento";
+
+    if (nombreBase.length < 4 || nombreBase.length > 120) {
       toast.error("El nombre del documento debe tener entre 4 y 120 caracteres.");
       return;
     }
+
+    if (docCategoria === "incapacidades" && !archivoPdf) {
+      toast.error("Adjunta el PDF de la incapacidad antes de enviarlo.");
+      return;
+    }
+
+    const nombreArchivo = archivoPdf ? archivoPdf.name : `${nombreBase.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v1.pdf`;
+    const tamanoKb = archivoPdf ? Math.max(1, Math.round(archivoPdf.size / 1024)) : 240;
+
     cargarDocumento({
       empleadoId: id,
       categoria: docCategoria,
-      nombre,
-      nombreArchivo: `${nombre.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v1.pdf`,
-      tamanoKb: 240,
+      nombre: nombreBase,
+      nombreArchivo,
+      tamanoKb,
       subidoPor: nombreEmpleado(empleado),
       fechaVencimiento: docVence || undefined,
-      nota: "Cargado desde el Portal del Empleado",
+      nota:
+        docCategoria === "incapacidades"
+          ? "Incapacidad cargada desde el portal del empleado"
+          : "Cargado desde el Portal del Empleado",
     });
     setDocNombre("");
     setDocVence("");
-    toast.success("Documento cargado en la categoría seleccionada.");
+    setArchivoPdf(null);
+    const input = document.getElementById("portal-documento-file") as HTMLInputElement | null;
+    if (input) input.value = "";
+    toast.success(
+      docCategoria === "incapacidades"
+        ? "PDF de incapacidad cargado correctamente."
+        : "Documento cargado en la categoría seleccionada.",
+    );
   };
 
   /* ------------------------------- Certificados ------------------------------- */
@@ -274,21 +333,29 @@ function PortalEmpleadoPage() {
         title="Portal del Empleado"
         description="Autoconsulta de tu información laboral, actualización de datos con aprobación de Recursos Humanos, documentos y certificados descargables."
         actions={
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Empleado en sesión</span>
-            <Select value={id} onValueChange={setEmpleadoActuandoId}>
-              <SelectTrigger className="w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {empleados.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {nombreEmpleado(e)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          puedeCambiarEmpleado ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Empleado en sesión</span>
+              <Select value={id} onValueChange={setEmpleadoActuandoId}>
+                <SelectTrigger className="w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {empleados.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {nombreEmpleado(e)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="rounded-full border border-border bg-secondary px-2 py-1">
+                {perfil?.empleadoId ? "Panel personal" : "Sin empleado asociado"}
+              </span>
+            </div>
+          )
         }
       />
 
@@ -553,7 +620,11 @@ function PortalEmpleadoPage() {
                 <Input
                   value={docNombre}
                   maxLength={120}
-                  placeholder="Ej. Certificado médico ocupacional"
+                  placeholder={
+                    docCategoria === "incapacidades"
+                      ? "Ej. Incapacidad médica agosto"
+                      : "Ej. Certificado médico ocupacional"
+                  }
                   onChange={(e) => setDocNombre(e.target.value)}
                 />
               </div>
@@ -561,7 +632,15 @@ function PortalEmpleadoPage() {
                 <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Categoría
                 </label>
-                <Select value={docCategoria} onValueChange={(v) => setDocCategoria(v as CategoriaDocumento)}>
+                <Select
+                  value={docCategoria}
+                  onValueChange={(v) => {
+                    setDocCategoria(v as CategoriaDocumento);
+                    if (v === "incapacidades") {
+                      setDocNombre((prev) => prev || "Incapacidad médica");
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -581,6 +660,25 @@ function PortalEmpleadoPage() {
                 <Input type="date" value={docVence} onChange={(e) => setDocVence(e.target.value)} />
               </div>
             </div>
+
+            <div className="mt-4 space-y-2 rounded-md border border-dashed border-border bg-secondary/40 p-3">
+              <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Archivo PDF
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <Input
+                  id="portal-documento-file"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={manejarArchivo}
+                  className="max-w-full file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground"
+                />
+                <span className="text-xs text-muted-foreground">
+                  {archivoPdf ? `Listo: ${archivoPdf.name}` : "Solo PDF · máximo 5 MB"}
+                </span>
+              </div>
+            </div>
+
             <div className="mt-4 flex justify-end">
               <Button size="sm" onClick={subir}>
                 <Upload className="size-4" /> Cargar documento

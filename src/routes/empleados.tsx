@@ -30,9 +30,9 @@ import {
   nombreJefe,
 } from "@/lib/rrhh";
 import { downloadCsv } from "@/lib/export";
-import { ROLES } from "@/config/roles";
+import { ROLES, can } from "@/config/roles";
 import { formatCOP } from "@/types/organizacion";
-import { puedeVerSalario } from "@/lib/visibilidad";
+import { empleadosVisibles, puedeVerSalario } from "@/lib/visibilidad";
 import {
   ESTADO_LABORAL_LABEL,
   ESTADOS_VINCULADOS,
@@ -66,14 +66,22 @@ export const Route = createFileRoute("/empleados")({
 function Empleados() {
   const { empleados, eventos, rolActivo, setRolActivo, empleadoActuandoId } = useRrhh();
   const { perfil } = useAuth();
+  const rolesUsuario = perfil?.roles ?? ["empleado"];
+  const empleadoAsignadoId = perfil?.empleadoId ?? empleadoActuandoId;
   const puedeCrear = (perfil?.roles ?? []).some((r) =>
     ["administrador", "talento_humano"].includes(r),
+  );
+  const puedeElegirRol = rolesUsuario.some((rol) => rol !== "empleado" && can([rol], "empleados", "ver"));
+  const rolesDisponibles = rolesUsuario.length ? rolesUsuario : ["empleado"];
+  const empleadosPermitidos = useMemo(
+    () => empleadosVisibles(empleadoAsignadoId, rolesUsuario, empleados),
+    [empleadoAsignadoId, empleados, rolesUsuario],
   );
   const [query, setQuery] = useState("");
   const [areaFiltro, setAreaFiltro] = useState("todas");
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | EstadoLaboral>("todos");
 
-  const verSalario = (id: string) => puedeVerSalario(empleadoActuandoId, [rolActivo], id);
+  const verSalario = (id: string) => puedeVerSalario(empleadoAsignadoId, rolesUsuario, id);
 
   const filtrar = (rows: EmpleadoRRHH[]) =>
     rows.filter((e) => {
@@ -84,10 +92,13 @@ function Empleados() {
       return okTexto && okArea && okEstado;
     });
 
-  const activos = useMemo(() => empleados.filter(esVinculado), [empleados]);
+  const activos = useMemo(
+    () => empleadosPermitidos.filter(esVinculado),
+    [empleadosPermitidos],
+  );
   const retirados = useMemo(
-    () => empleados.filter((e) => e.estadoLaboral === "retirado"),
-    [empleados],
+    () => empleadosPermitidos.filter((e) => e.estadoLaboral === "retirado"),
+    [empleadosPermitidos],
   );
 
   const nomina = activos.reduce((s, e) => s + e.laboral.salario, 0);
@@ -287,7 +298,7 @@ function Empleados() {
         <StatCard label="Retirados" value={String(retirados.length)} icon={UserMinus} hint="históricos conservados" />
         <StatCard
           label="Masa salarial"
-          value={puedeVerSalario(empleadoActuandoId, [rolActivo], empleadoActuandoId) && ["administrador", "gerente_general", "director", "nomina", "contabilidad"].includes(rolActivo) ? formatCOP(nomina) : "Restringido"}
+          value={verSalario(empleadoAsignadoId) && ["administrador", "gerente_general", "director", "nomina", "contabilidad"].includes(rolActivo) ? formatCOP(nomina) : "Restringido"}
           icon={FileSpreadsheet}
           hint="personal vinculado"
         />
@@ -336,14 +347,18 @@ function Empleados() {
         </div>
         <div className="w-full sm:w-52">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Rol en sesión (simulado)
+            Rol en sesión
           </label>
-          <Select value={rolActivo} onValueChange={(v) => setRolActivo(v as typeof rolActivo)}>
+          <Select
+            value={rolesDisponibles.includes(rolActivo) ? rolActivo : rolesDisponibles[0]}
+            onValueChange={(v) => setRolActivo(v as typeof rolActivo)}
+            disabled={!puedeElegirRol}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {ROLES.map((r) => (
+              {ROLES.filter((r) => rolesDisponibles.includes(r.key)).map((r) => (
                 <SelectItem key={r.key} value={r.key}>
                   {r.nombre}
                 </SelectItem>

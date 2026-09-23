@@ -1,10 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
 import { EMPLEADOS_RRHH, EVENTOS_HV } from "@/data/rrhh";
 import type { EmpleadoRRHH, EstadoLaboral, EventoHojaVida, InformacionLaboral } from "@/types/rrhh";
 import { eventoPorEstado, generarEventosPorCambio } from "@/lib/rrhh";
 import { ESTADO_LABORAL_LABEL } from "@/types/rrhh";
 import type { RoleKey } from "@/types/entities";
+import { useAuth } from "@/lib/auth";
+import { can } from "@/config/roles";
 
 interface RrhhContextValue {
   empleados: EmpleadoRRHH[];
@@ -22,10 +24,81 @@ interface RrhhContextValue {
 const RrhhContext = createContext<RrhhContextValue | null>(null);
 
 export function RrhhProvider({ children }: { children: ReactNode }) {
+  const { perfil } = useAuth();
   const [empleados, setEmpleados] = useFirestoreState<EmpleadoRRHH>("empleados_rrhh");
   const [eventos, setEventos] = useFirestoreState<EventoHojaVida>("eventos_hoja_vida");
-  const [rolActivo, setRolActivo] = useState<RoleKey>("talento_humano");
-  const [empleadoActuandoId, setEmpleadoActuandoId] = useState("e-004");
+  const rolesUsuario = perfil?.roles ?? ["empleado"];
+  const [rolActivo, setRolActivoState] = useState<RoleKey>(
+    rolesUsuario.includes("administrador")
+      ? "administrador"
+      : rolesUsuario.includes("talento_humano")
+        ? "talento_humano"
+        : rolesUsuario.includes("jefe")
+          ? "jefe"
+          : rolesUsuario.includes("supervisor")
+            ? "supervisor"
+            : rolesUsuario.includes("director")
+              ? "director"
+              : rolesUsuario.includes("gerente_general")
+                ? "gerente_general"
+                : "empleado",
+  );
+
+  const puedeVerOtrosEmpleados = useMemo(
+    () =>
+      perfil?.roles.some(
+        (rol) => rol !== "empleado" && can([rol], "empleados", "ver"),
+      ) ?? false,
+    [perfil?.roles],
+  );
+  const [empleadoActuandoId, setEmpleadoActuandoIdState] = useState<string>(perfil?.empleadoId ?? "e-004");
+
+  useEffect(() => {
+    if (!perfil?.empleadoId) return;
+    const empleadoAsignado = empleados.find((e) => e.id === perfil.empleadoId);
+    if (empleadoAsignado) {
+      setEmpleadoActuandoIdState(perfil.empleadoId);
+    }
+  }, [empleados, perfil?.empleadoId]);
+
+  useEffect(() => {
+    if (!perfil?.roles.length) return;
+    const rolInicial =
+      perfil.roles.includes("administrador")
+        ? "administrador"
+        : perfil.roles.includes("talento_humano")
+          ? "talento_humano"
+          : perfil.roles.includes("jefe")
+            ? "jefe"
+            : perfil.roles.includes("director")
+              ? "director"
+              : perfil.roles.includes("gerente_general")
+                ? "gerente_general"
+                : perfil.roles.includes("supervisor")
+                  ? "supervisor"
+                  : perfil.roles.includes("nomina")
+                    ? "nomina"
+                    : "empleado";
+    if (!perfil.roles.includes(rolActivo)) {
+      setRolActivoState(rolInicial);
+    }
+  }, [perfil, rolActivo]);
+
+  const setRolActivo = useCallback(
+    (nuevoRol: RoleKey) => {
+      if (!perfil?.roles.includes(nuevoRol) && nuevoRol !== "empleado") return;
+      setRolActivoState(nuevoRol);
+    },
+    [perfil?.roles],
+  );
+
+  const setEmpleadoActuandoId = useCallback(
+    (id: string) => {
+      if (!puedeVerOtrosEmpleados && perfil?.empleadoId && id !== perfil.empleadoId) return;
+      setEmpleadoActuandoIdState(id);
+    },
+    [perfil?.empleadoId, puedeVerOtrosEmpleados],
+  );
 
   const actor = useMemo(() => `Usuario (${rolActivo})`, [rolActivo]);
 
