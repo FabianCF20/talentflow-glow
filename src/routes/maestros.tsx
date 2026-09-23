@@ -12,16 +12,15 @@ import {
   useCentrosCosto,
   useCentrosTrabajo,
   useDependencias,
-  useNiveles,
 } from "@/lib/maestros";
 import { useAuth } from "@/lib/auth";
+import { NIVELES_JERARQUICOS } from "@/config/roles";
 import type {
   AreaOrg,
   CargoOrg,
   CentroCostoOrg,
   CentroTrabajo,
   Dependencia,
-  NivelJerarquico,
 } from "@/types/organizacion";
 
 export const Route = createFileRoute("/maestros")({
@@ -30,7 +29,7 @@ export const Route = createFileRoute("/maestros")({
       { title: "Datos maestros | SIGTH" },
       {
         name: "description",
-        content: "Entidades maestras: niveles, áreas, dependencias, centros de trabajo, centros de costo y cargos.",
+        content: "Entidades maestras: áreas, dependencias, centros de trabajo, centros de costo y cargos.",
       },
       { property: "og:title", content: "Datos maestros | SIGTH" },
       {
@@ -53,7 +52,6 @@ function Maestros() {
   );
 
   const [query, setQuery] = useState("");
-  const [niveles, setNiveles] = useNiveles();
   const [areas, setAreas] = useAreas();
   const [dependencias, setDependencias] = useDependencias();
   const [centrosTrabajo, setCentrosTrabajo] = useCentrosTrabajo();
@@ -61,13 +59,10 @@ function Maestros() {
   const [cargos, setCargos] = useCargos();
 
   const opcAreas = areas.map((a) => ({ value: a.id, label: `${a.codigo} · ${a.nombre}` }));
-  const opcNiveles = niveles.map((n) => ({ value: n.id, label: `${n.nivel} · ${n.nombre}` }));
-
-  const camposNivel: CampoDef<NivelJerarquico>[] = [
-    { key: "nivel", label: "Número de nivel", tipo: "numero", requerido: true },
-    { key: "nombre", label: "Denominación", requerido: true, placeholder: "Dirección, Jefatura…" },
-    { key: "descripcion", label: "Descripción" },
-  ];
+  const opcNiveles = NIVELES_JERARQUICOS.map((n) => ({
+    value: n.id,
+    label: `${n.nivel} · ${n.nombre}`,
+  }));
 
   const camposArea: CampoDef<AreaOrg>[] = [
     { key: "codigo", label: "Código", requerido: true, placeholder: "ADM-01" },
@@ -115,7 +110,6 @@ function Maestros() {
       <Tabs defaultValue="niveles">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <TabsList className="flex-wrap">
-            <TabsTrigger value="niveles">Niveles</TabsTrigger>
             <TabsTrigger value="areas">Áreas</TabsTrigger>
             <TabsTrigger value="dependencias">Dependencias</TabsTrigger>
             <TabsTrigger value="centros-trabajo">Centros de trabajo</TabsTrigger>
@@ -130,19 +124,6 @@ function Maestros() {
           />
         </div>
 
-        <TabsContent value="niveles" className="mt-4">
-          <CrudMaestro<NivelJerarquico>
-            titulo="Niveles jerárquicos"
-            descripcion="Definen el orden del organigrama."
-            prefijoId="niv"
-            campos={camposNivel}
-            items={niveles}
-            setItems={setNiveles}
-            valoresIniciales={{ nivel: 1, nombre: "", descripcion: "" }}
-            puedeEditar={puedeEditar}
-            filtro={query}
-          />
-        </TabsContent>
         <TabsContent value="areas" className="mt-4">
           <CrudMaestro<AreaOrg>
             titulo="Áreas organizacionales"
@@ -214,8 +195,8 @@ function Maestros() {
       <div className="surface-panel flex items-start gap-3 p-4 text-sm text-muted-foreground">
         <Layers className="mt-0.5 size-4 shrink-0 text-primary" />
         <p>
-          Cree primero los niveles jerárquicos y las áreas: el resto de entidades (dependencias,
-          centros de costo y cargos) dependen de ellas, y los empleados se crean sobre estos datos.
+          Los niveles jerárquicos provienen de los roles del sistema. Seleccione uno de ellos al
+          crear un cargo; los empleados y sus usuarios heredarán la correspondencia jerárquica.
           {!puedeEditar && " Su rol actual solo permite consultar."}
         </p>
       </div>

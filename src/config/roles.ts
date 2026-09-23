@@ -36,6 +36,22 @@ export function rolesPredeterminadosPorNivel(nivel?: number): RoleKey[] {
   return [ROL_JERARQUICO_POR_NIVEL[nivel ?? 9] ?? "empleado"];
 }
 
+/** Rol jerárquico que debe acompañar a un empleado según su nivel de cargo. */
+export function rolJerarquicoPorNivel(nivel?: number): RoleKey {
+  return ROL_JERARQUICO_POR_NIVEL[nivel ?? 9] ?? "empleado";
+}
+
+/** Catálogo único de niveles jerárquicos que pueden usarse en cargos. */
+export const NIVELES_JERARQUICOS = Object.entries(ROL_JERARQUICO_POR_NIVEL).map(
+  ([nivel, rol]) => ({
+    id: `nivel-${nivel}`,
+    nivel: Number(nivel),
+    nombre: ROLE_LABEL[rol],
+    descripcion: ROLES.find((item) => item.key === rol)?.descripcion ?? "",
+    rol,
+  }),
+);
+
 export function nivelDeRol(rol: RoleKey): number {
   return ROLES.find((item) => item.key === rol)?.nivel ?? 9;
 }

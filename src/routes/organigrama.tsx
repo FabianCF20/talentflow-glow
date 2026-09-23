@@ -26,7 +26,7 @@ import {
 } from "@/data/organizacion";
 import { ALCANCE_LABEL, alcanceDe, empleadosVisibles, puedeVerSalario } from "@/lib/visibilidad";
 import { formatCOP, nombreCompleto } from "@/types/organizacion";
-import { ROLE_LABEL } from "@/config/roles";
+import { ROLE_LABEL, rolJerarquicoPorNivel } from "@/config/roles";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 
@@ -68,6 +68,8 @@ function NodeCard({
   const nivel = nivelById(cargo?.nivelId);
   const visible = visibles.has(e.id);
   const usuario = USUARIOS.find((u) => u.empleadoId === e.id);
+  const rolBase = rolJerarquicoPorNivel(nivel?.nivel);
+  const tieneRolBase = usuario?.roles.includes(rolBase) ?? false;
 
   return (
     <li className="relative pl-5 before:absolute before:left-0 before:top-0 before:h-full before:w-px before:bg-border last:before:h-6">
@@ -107,6 +109,19 @@ function NodeCard({
               {!usuario && (
                 <span className="rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
                   Sin usuario
+                </span>
+              )}
+              {usuario?.roles.map((rol) => (
+                <span
+                  key={rol}
+                  className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground"
+                >
+                  {ROLE_LABEL[rol]}
+                </span>
+              ))}
+              {usuario && !tieneRolBase && (
+                <span className="rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[10px] text-warning-foreground">
+                  Falta rol base: {ROLE_LABEL[rolBase]}
                 </span>
               )}
             </div>

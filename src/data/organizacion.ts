@@ -8,6 +8,7 @@ import type {
   NivelJerarquico,
   UsuarioSistema,
 } from "@/types/organizacion";
+import { NIVELES_JERARQUICOS } from "@/config/roles";
 
 /**
  * Estructura organizacional real. Los arreglos se hidratan en caliente desde
@@ -27,7 +28,9 @@ export const USUARIOS: UsuarioSistema[] = [];
 
 export const areaById = (id?: string) => AREAS.find((a) => a.id === id);
 export const cargoById = (id?: string) => CARGOS.find((c) => c.id === id);
-export const nivelById = (id?: string) => NIVELES.find((n) => n.id === id);
+export const nivelById = (id?: string) =>
+  NIVELES.find((n) => n.id === id) ??
+  NIVELES_JERARQUICOS.find((n) => n.id === id);
 export const dependenciaById = (id?: string) => DEPENDENCIAS.find((d) => d.id === id);
 export const centroTrabajoById = (id?: string) => CENTROS_TRABAJO.find((c) => c.id === id);
 export const centroCostoById = (id?: string) => CENTROS_COSTO.find((c) => c.id === id);

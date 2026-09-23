@@ -23,7 +23,7 @@ import {
   useNiveles,
 } from "@/lib/maestros";
 import { useAuth } from "@/lib/auth";
-import { can } from "@/config/roles";
+import { can, NIVELES_JERARQUICOS } from "@/config/roles";
 import { formatCOP, nombreCompleto } from "@/types/organizacion";
 import type {
   AreaOrg,
@@ -31,7 +31,6 @@ import type {
   CentroCostoOrg,
   CentroTrabajo,
   Dependencia,
-  NivelJerarquico,
 } from "@/types/organizacion";
 
 export const Route = createFileRoute("/organizacion")({
@@ -63,7 +62,7 @@ function Organizacion() {
   const puedeEditar = can(roles, "organizacion", "crear") || can(roles, "organizacion", "editar");
 
   const [query, setQuery] = useState("");
-  const [niveles, setNiveles] = useNiveles();
+  const [nivelesLegados] = useNiveles();
   const [areas, setAreas] = useAreas();
   const [dependencias, setDependencias] = useDependencias();
   const [centrosTrabajo, setCentrosTrabajo] = useCentrosTrabajo();
@@ -72,7 +71,10 @@ function Organizacion() {
   const [empleados] = useEmpleadosOrg();
 
   const opcAreas = areas.map((a) => ({ value: a.id, label: `${a.codigo} · ${a.nombre}` }));
-  const opcNiveles = niveles.map((n) => ({ value: n.id, label: `${n.nivel} · ${n.nombre}` }));
+  const opcNiveles = NIVELES_JERARQUICOS.map((n) => ({
+    value: n.id,
+    label: `${n.nivel} · ${n.nombre}`,
+  }));
   const opcEmpleados = empleados.map((e) => ({ value: e.id, label: nombreCompleto(e) }));
 
   const nombreArea = (id?: string) => areas.find((a) => a.id === id)?.nombre ?? "—";
@@ -80,12 +82,6 @@ function Organizacion() {
     const e = empleados.find((x) => x.id === id);
     return e ? nombreCompleto(e) : "Sin asignar";
   };
-
-  const camposNivel: CampoDef<NivelJerarquico>[] = [
-    { key: "nivel", label: "Número de nivel", tipo: "numero", requerido: true },
-    { key: "nombre", label: "Denominación", requerido: true, placeholder: "Dirección, Jefatura…" },
-    { key: "descripcion", label: "Descripción" },
-  ];
 
   const camposArea: CampoDef<AreaOrg>[] = [
     { key: "codigo", label: "Código", requerido: true, placeholder: "ADM-01" },
@@ -177,7 +173,9 @@ function Organizacion() {
       opciones: opcNiveles,
       requerido: true,
       render: (r) => {
-        const n = niveles.find((x) => x.id === r.nivelId);
+        const n =
+          NIVELES_JERARQUICOS.find((x) => x.id === r.nivelId) ??
+          nivelesLegados.find((x) => x.id === r.nivelId);
         return n ? `${n.nivel} · ${n.nombre}` : "—";
       },
     },
@@ -241,7 +239,6 @@ function Organizacion() {
             <TabsTrigger value="centros-trabajo">Centros de trabajo</TabsTrigger>
             <TabsTrigger value="centros-costo">Centros de costo</TabsTrigger>
             <TabsTrigger value="cargos">Cargos</TabsTrigger>
-            <TabsTrigger value="niveles">Niveles jerárquicos</TabsTrigger>
           </TabsList>
           <Input
             value={query}
@@ -318,26 +315,15 @@ function Organizacion() {
             filtro={query}
           />
         </TabsContent>
-        <TabsContent value="niveles" className="mt-4">
-          <CrudMaestro<NivelJerarquico>
-            titulo="Niveles jerárquicos"
-            descripcion="Definen el orden del organigrama."
-            prefijoId="niv"
-            campos={camposNivel}
-            items={niveles}
-            setItems={setNiveles}
-            valoresIniciales={{ nivel: 1, nombre: "", descripcion: "" }}
-            puedeEditar={puedeEditar}
-            filtro={query}
-          />
-        </TabsContent>
       </Tabs>
 
       <div className="surface-panel flex items-start gap-3 p-4 text-sm text-muted-foreground">
         <Layers className="mt-0.5 size-4 shrink-0 text-primary" />
         <p>
-          Ningún registro se elimina físicamente: se inactiva o archiva conservando su trazabilidad.
-          Los cambios de cargo, área o jefe inmediato regeneran el organigrama automáticamente.
+          Los niveles jerárquicos se derivan de los roles del sistema y no se crean de forma
+          independiente. Al crear un cargo, seleccione uno de los niveles predeterminados; los
+          usuarios vinculados recibirán el rol jerárquico correspondiente. Los cambios de cargo,
+          área o jefe inmediato regeneran el organigrama automáticamente.
           {!puedeEditar && " Su rol actual solo permite consultar."}
         </p>
       </div>

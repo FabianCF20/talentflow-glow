@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ROLES, ROLE_LABEL, rolesPredeterminadosPorNivel } from "@/config/roles";
+import { ROLES, ROLE_LABEL, rolJerarquicoPorNivel, rolesPredeterminadosPorNivel } from "@/config/roles";
 import { PERMISSION_ACTIONS, PERMISSION_ACTION_LABEL } from "@/types/entities";
 import type { PermissionAction, RoleKey } from "@/types/entities";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -142,6 +142,12 @@ function Usuarios() {
   );
   const bloqueados = usuarios.filter((u) => u.estadoUsuario === "bloqueado").length;
 
+  const rolBaseDeEmpleado = (empleadoId?: string) => {
+    const empleado = empleadoById(empleadoId);
+    const nivel = nivelById(cargoById(empleado?.cargoId)?.nivelId)?.nivel;
+    return empleado ? rolJerarquicoPorNivel(nivel) : undefined;
+  };
+
   const abrirNuevo = (empleadoId = "") => {
     const empleado = empleadoId ? empleadoById(empleadoId) : undefined;
     const nivel = nivelById(cargoById(empleado?.cargoId)?.nivelId)?.nivel;
@@ -173,7 +179,11 @@ function Usuarios() {
   const alternarRol = (rol: RoleKey) =>
     setForm((f) => ({
       ...f,
-      roles: f.roles.includes(rol) ? f.roles.filter((r) => r !== rol) : [...f.roles, rol],
+      roles: f.roles.includes(rol)
+        ? rol === rolBaseDeEmpleado(f.empleadoId)
+          ? f.roles
+          : f.roles.filter((r) => r !== rol)
+        : [...f.roles, rol],
     }));
 
   const cambiarEmpleado = (empleadoId: string) => {
@@ -199,11 +209,13 @@ function Usuarios() {
     }
     setGuardando(true);
     try {
+      const rolBase = rolBaseDeEmpleado(form.empleadoId);
+      const roles = rolBase ? [...new Set([...form.roles, rolBase])] : form.roles;
       if (editando) {
         await actualizarCuentaUsuario(editando, {
           nombres: form.nombres,
           apellidos: form.apellidos,
-          roles: form.roles.length ? form.roles : ["empleado"],
+          roles: roles.length ? roles : ["empleado"],
           empleadoId: form.empleadoId || undefined,
           estadoUsuario: form.estadoUsuario,
         });
@@ -222,7 +234,7 @@ function Usuarios() {
           password: form.password,
           nombres: form.nombres,
           apellidos: form.apellidos,
-          roles: form.roles,
+          roles,
           empleadoId: form.empleadoId || undefined,
           nivelJerarquico: nivelById(cargoById(empleadoById(form.empleadoId)?.cargoId)?.nivelId)?.nivel,
         });
@@ -332,6 +344,14 @@ function Usuarios() {
               {ROLE_LABEL[r]}
             </span>
           ))}
+          {(() => {
+            const rolBase = rolBaseDeEmpleado(u.empleadoId);
+            return rolBase && !u.roles.includes(rolBase) ? (
+              <span className="rounded-md border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[11px] text-warning-foreground">
+                Falta rol base: {ROLE_LABEL[rolBase]}
+              </span>
+            ) : null;
+          })()}
         </div>
       ),
     },
