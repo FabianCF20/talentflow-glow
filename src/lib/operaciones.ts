@@ -44,8 +44,6 @@ export function calcularAsistencia(r: RegistroAsistencia): CalculoAsistencia {
   if (r.ausente) {
     return {
       minutosTrabajados: 0,
-      minutosAlmuerzo: 0,
-      minutosRecesos: 0,
       minutosTardanza: 0,
       ausencia: true,
       incompleto: false,
@@ -54,31 +52,13 @@ export function calcularAsistencia(r: RegistroAsistencia): CalculoAsistencia {
 
   const ingreso = aMinutos(r.horaIngreso);
   const salida = aMinutos(r.horaSalida);
-  const almuerzoIni = aMinutos(r.inicioAlmuerzo);
-  const almuerzoFin = aMinutos(r.finAlmuerzo);
-
-  const minutosAlmuerzo =
-    almuerzoIni !== null && almuerzoFin !== null && almuerzoFin > almuerzoIni
-      ? almuerzoFin - almuerzoIni
-      : 0;
-
-  const minutosRecesos = r.recesos.reduce((acc, rec) => {
-    const ini = aMinutos(rec.inicio);
-    const fin = aMinutos(rec.fin);
-    return acc + (ini !== null && fin !== null && fin > ini ? fin - ini : 0);
-  }, 0);
-
   const entradaEsperada = aMinutos(JORNADA.horaEntrada)!;
   const minutosTardanza =
     ingreso !== null ? Math.max(0, ingreso - entradaEsperada - JORNADA.toleranciaMinutos) : 0;
 
   const bruto = ingreso !== null && salida !== null && salida > ingreso ? salida - ingreso : 0;
-  const minutosTrabajados = Math.max(0, bruto - minutosAlmuerzo - minutosRecesos);
-
   return {
-    minutosTrabajados,
-    minutosAlmuerzo,
-    minutosRecesos,
+    minutosTrabajados: bruto,
     minutosTardanza,
     ausencia: false,
     incompleto: ingreso === null || salida === null,
@@ -98,12 +78,6 @@ export function resumenAsistencia(registros: RegistroAsistencia[]) {
     incompletos: calculos.filter((c) => c.incompleto).length,
     jornadasCompletas: calculos.filter((c) => c.minutosTrabajados >= JORNADA.minutosJornada).length,
   };
-}
-
-/** Valor aproximado de la hora extra según salario mensual (240 horas/mes). */
-export function valorHoraExtra(salarioMensual: number, tipo: TipoHoraExtra, horas: number) {
-  const valorHora = salarioMensual / 240;
-  return Math.round(valorHora * (1 + RECARGO_HORA_EXTRA[tipo]) * horas);
 }
 
 /* ------------------------------- Reglas de rol ------------------------------ */

@@ -48,8 +48,10 @@ import {
 import { usePermisos, guardarPermisos } from "@/lib/permisos";
 import { mensajeAuth, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { z } from "zod";
 
 export const Route = createFileRoute("/usuarios")({
+  validateSearch: z.object({ empleadoId: z.string().optional() }),
   head: () => ({
     meta: [
       { title: "Usuarios, roles y permisos | SIGTH" },
@@ -112,6 +114,7 @@ const FORM_VACIO: FormularioCuenta = {
 };
 
 function Usuarios() {
+  const { empleadoId: empleadoInicial } = Route.useSearch();
   const { perfil } = useAuth();
   const cuentas = useCuentas();
   const { matriz, setMatriz } = usePermisos();
@@ -415,7 +418,7 @@ function Usuarios() {
         title="Usuarios, roles y permisos"
         description="Cada empleado puede tener un usuario con estado, último acceso e intentos fallidos controlados. Los permisos son granulares por módulo y acción."
         actions={
-          <Button size="sm" disabled={!puedeGestionar} onClick={() => abrirNuevo()}>
+          <Button size="sm" disabled={!puedeGestionar} onClick={() => abrirNuevo(empleadoInicial)}>
             <UserPlus className="size-4" /> Nuevo usuario
           </Button>
         }

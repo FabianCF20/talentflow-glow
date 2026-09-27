@@ -74,11 +74,10 @@ interface OperacionesContextValue {
   registrarMarcacion: (input: {
     empleadoId: string;
     fecha: string;
-    campo: "horaIngreso" | "inicioAlmuerzo" | "finAlmuerzo" | "horaSalida";
+    campo: "horaIngreso" | "horaSalida";
     valor: string;
     responsable: string;
   }) => void;
-  agregarReceso: (empleadoId: string, fecha: string, inicio: string, fin: string, responsable: string) => void;
   marcarAusencia: (empleadoId: string, fecha: string, justificacion: string, responsable: string) => void;
 
   registrarHoraExtra: (input: {
@@ -439,7 +438,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
           id: nextId("as"),
           empleadoId,
           fecha,
-          recesos: [],
           ausente: false,
           registradoPor: responsable,
         };
@@ -457,8 +455,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       });
       const etiqueta: Record<typeof campo, string> = {
         horaIngreso: "Hora de ingreso",
-        inicioAlmuerzo: "Inicio de almuerzo",
-        finAlmuerzo: "Fin de almuerzo",
         horaSalida: "Hora de salida",
       };
       registrarNovedad({
@@ -474,36 +470,13 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     [registrarNovedad, upsertAsistencia],
   );
 
-  const agregarReceso = useCallback<OperacionesContextValue["agregarReceso"]>(
-    (empleadoId, fecha, inicio, fin, responsable) => {
-      upsertAsistencia(empleadoId, fecha, responsable, (r) => ({
-        ...r,
-        recesos: [...r.recesos, { inicio, fin }],
-        registradoPor: responsable,
-      }));
-      registrarNovedad({
-        empleadoId,
-        tipo: "asistencia",
-        titulo: "Receso registrado",
-        detalle: `${fecha} · ${inicio} a ${fin}`,
-        etapa: "jefe",
-        responsable,
-        referencia: `AS-${fecha}`,
-      });
-    },
-    [registrarNovedad, upsertAsistencia],
-  );
-
   const marcarAusencia = useCallback<OperacionesContextValue["marcarAusencia"]>(
     (empleadoId, fecha, justificacion, responsable) => {
       upsertAsistencia(empleadoId, fecha, responsable, (r) => ({
         ...r,
         ausente: true,
         horaIngreso: undefined,
-        inicioAlmuerzo: undefined,
-        finAlmuerzo: undefined,
         horaSalida: undefined,
-        recesos: [],
         justificacion,
         registradoPor: responsable,
       }));
@@ -652,7 +625,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       rechazarIncapacidad,
       transcribirIncapacidad,
       registrarMarcacion,
-      agregarReceso,
       marcarAusencia,
       registrarHoraExtra,
       aprobarHoraExtraJefe,
@@ -676,7 +648,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       rechazarIncapacidad,
       transcribirIncapacidad,
       registrarMarcacion,
-      agregarReceso,
       marcarAusencia,
       registrarHoraExtra,
       aprobarHoraExtraJefe,

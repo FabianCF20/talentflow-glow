@@ -5,6 +5,9 @@ defines a route. Do **not** create `src/pages/`, `src/routes/_app/index.tsx`, or
 `app/layout.tsx` — those are Next.js / Remix conventions. The only root layout
 is `src/routes/__root.tsx`.
 
+For the wider source map and manual editing workflow, see
+[`src/README.md`](../README.md) and [`docs/GUIA-DE-EDICION.md`](../../docs/GUIA-DE-EDICION.md).
+
 ## Conventions
 
 | File | URL |

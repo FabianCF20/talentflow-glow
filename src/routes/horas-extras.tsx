@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Check, Timer, Wallet, X } from "lucide-react";
+import { Check, Timer, X } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatCard } from "@/components/common/StatCard";
@@ -12,11 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { useRrhh } from "@/store/rrhh";
 import { useOperaciones } from "@/store/operaciones";
-import { esJefeOp, esNominaOp, esSupervisorOp, hoyISO, valorHoraExtra } from "@/lib/operaciones";
+import { esJefeOp, esNominaOp, esSupervisorOp, hoyISO } from "@/lib/operaciones";
 import { downloadCsv } from "@/lib/export";
 import { esVinculado } from "@/lib/rrhh";
 import { nombreEmpleado } from "@/types/rrhh";
-import { formatCOP } from "@/types/organizacion";
 import {
   ESTADO_HORA_EXTRA_LABEL,
   TIPO_HORA_EXTRA_LABEL,
@@ -30,12 +29,12 @@ export const Route = createFileRoute("/horas-extras")({
       {
         name: "description",
         content:
-          "Registro y aprobación de horas extras con flujo Supervisor → Jefe → Nómina, recargos legales colombianos y liquidación trazable.",
+          "Registro y aprobación de horas extras con flujo Supervisor → Jefe → Nómina y trazabilidad de cada etapa.",
       },
       { property: "og:title", content: "Horas extras | SIGTH" },
       {
         property: "og:description",
-        content: "Flujo de horas extras Supervisor → Jefe → Nómina con cálculo de recargos y trazabilidad.",
+        content: "Flujo de horas extras Supervisor → Jefe → Nómina con registro de horas y trazabilidad.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -53,7 +52,6 @@ function HorasExtrasPage() {
   const nomina = esNominaOp(rolActivo);
 
   const vinculados = empleados.filter(esVinculado);
-  const salarioDe = (id: string) => empleados.find((e) => e.id === id)?.laboral.salario ?? 0;
   const nombrePor = useMemo(
     () => Object.fromEntries(empleados.map((e) => [e.id, nombreEmpleado(e)])),
     [empleados],
@@ -69,21 +67,16 @@ function HorasExtrasPage() {
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
   const comentario = (id: string) => comentarios[id]?.trim() || undefined;
 
-  const totalLiquidado = op.horasExtras
-    .filter((h) => h.estado === "liquidada")
-    .reduce((acc, h) => acc + valorHoraExtra(salarioDe(h.empleadoId), h.tipo, h.horas), 0);
-
   const exportar = () =>
     downloadCsv(
       `horas-extras-${hoyISO()}.csv`,
-      ["Consecutivo", "Empleado", "Fecha", "Tipo", "Horas", "Valor estimado", "Estado", "Registrado por"],
+      ["Consecutivo", "Empleado", "Fecha", "Tipo", "Horas", "Estado", "Registrado por"],
       op.horasExtras.map((h) => [
         h.consecutivo,
         nombrePor[h.empleadoId] ?? h.empleadoId,
         h.fecha,
         TIPO_HORA_EXTRA_LABEL[h.tipo],
         h.horas,
-        valorHoraExtra(salarioDe(h.empleadoId), h.tipo, h.horas),
         ESTADO_HORA_EXTRA_LABEL[h.estado],
         h.registradoPor,
       ]),
@@ -112,10 +105,15 @@ function HorasExtrasPage() {
         <StatCard
           label="Pendientes nómina"
           value={String(op.horasExtras.filter((h) => h.estado === "pendiente_nomina").length)}
-          icon={Wallet}
+          icon={Timer}
           hint="Por liquidar"
         />
-        <StatCard label="Liquidado" value={formatCOP(totalLiquidado)} icon={Check} hint="Valor estimado acumulado" />
+        <StatCard
+          label="Liquidado"
+          value={String(op.horasExtras.filter((h) => h.estado === "liquidada").length)}
+          icon={Check}
+          hint="Registros cerrados"
+        />
       </div>
 
       <div className="surface-panel space-y-4 p-5">
@@ -183,12 +181,6 @@ function HorasExtrasPage() {
           value={form.justificacion}
           onChange={(e) => setForm((f) => ({ ...f, justificacion: e.target.value }))}
         />
-        <p className="text-xs text-muted-foreground">
-          Valor estimado:{" "}
-          <span className="font-medium text-foreground">
-            {formatCOP(valorHoraExtra(salarioDe(form.empleadoId), form.tipo, Number(form.horas) || 0))}
-          </span>
-        </p>
         <Button
           disabled={!supervisor || !form.justificacion.trim() || !(Number(form.horas) > 0)}
           onClick={() => {
@@ -223,8 +215,7 @@ function HorasExtrasPage() {
                     {nombrePor[h.empleadoId] ?? h.empleadoId} · {h.horas} h · {TIPO_HORA_EXTRA_LABEL[h.tipo]}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {h.consecutivo} · {h.fecha} · Valor estimado{" "}
-                    {formatCOP(valorHoraExtra(salarioDe(h.empleadoId), h.tipo, h.horas))}
+                    {h.consecutivo} · {h.fecha}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{h.justificacion}</p>
                 </div>
@@ -258,7 +249,7 @@ function HorasExtrasPage() {
                     toast.success("Horas extras liquidadas en nómina.");
                   }}
                 >
-                  <Wallet className="size-4" /> Liquidar (nómina)
+                    <Timer className="size-4" /> Liquidar (nómina)
                 </Button>
                 <Button
                   size="sm"

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { AlarmClock, CalendarX, Clock, Coffee, UserCheck } from "lucide-react";
+import { AlarmClock, CalendarX, Clock, UserCheck } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatCard } from "@/components/common/StatCard";
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/asistencia")({
       {
         name: "description",
         content:
-          "Registro diario del supervisor: hora de ingreso, almuerzo, recesos y salida, con cálculo automático de horas trabajadas, tardanzas y ausencias.",
+          "Registro diario del supervisor: hora de llegada y salida, con cálculo automático de horas trabajadas, tardanzas y ausencias.",
       },
       { property: "og:title", content: "Control de asistencia | SIGTH" },
       {
@@ -49,7 +49,6 @@ function AsistenciaPage() {
   const actor = useMemo(() => `Usuario (${rolActivo})`, [rolActivo]);
 
   const [fecha, setFecha] = useState("2026-08-01");
-  const [receso, setReceso] = useState<Record<string, { inicio: string; fin: string }>>({});
   const [motivo, setMotivo] = useState<Record<string, string>>({});
 
   const vinculados = empleados.filter(esVinculado);
@@ -61,7 +60,6 @@ function AsistenciaPage() {
       id: `tmp-${empleadoId}`,
       empleadoId,
       fecha,
-      recesos: [],
       ausente: false,
       registradoPor: actor,
     };
@@ -73,9 +71,6 @@ function AsistenciaPage() {
         "Empleado",
         "Fecha",
         "Ingreso",
-        "Inicio almuerzo",
-        "Fin almuerzo",
-        "Recesos (min)",
         "Salida",
         "Horas trabajadas",
         "Tardanza (min)",
@@ -88,9 +83,6 @@ function AsistenciaPage() {
           emp ? nombreEmpleado(emp) : r.empleadoId,
           r.fecha,
           r.horaIngreso ?? "",
-          r.inicioAlmuerzo ?? "",
-          r.finAlmuerzo ?? "",
-          c.minutosRecesos,
           r.horaSalida ?? "",
           formatoHoras(c.minutosTrabajados),
           c.minutosTardanza,
@@ -104,7 +96,7 @@ function AsistenciaPage() {
       <PageHeader
         breadcrumb={["Operación", "Control de asistencia"]}
         title="Control de asistencia"
-        description={`El supervisor registra diariamente ingreso, almuerzo, recesos y salida. La jornada estándar es ${JORNADA.horaEntrada}–${JORNADA.horaSalida} con ${JORNADA.toleranciaMinutos} minutos de tolerancia.`}
+        description={`El supervisor registra diariamente la hora de llegada y salida. La jornada estándar es ${JORNADA.horaEntrada}–${JORNADA.horaSalida} con ${JORNADA.toleranciaMinutos} minutos de tolerancia.`}
         actions={
           <div className="flex items-center gap-2">
             <Input type="date" value={fecha} className="h-9 w-40" onChange={(e) => setFecha(e.target.value)} />
@@ -132,7 +124,6 @@ function AsistenciaPage() {
         {vinculados.map((e) => {
           const r = registroDe(e.id);
           const c = calcularAsistencia(r);
-          const rec = receso[e.id] ?? { inicio: "", fin: "" };
           return (
             <div key={e.id} className="surface-panel p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
@@ -165,13 +156,11 @@ function AsistenciaPage() {
                 </div>
               </div>
 
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {(
                   [
-                    ["horaIngreso", "Hora ingreso"],
-                    ["inicioAlmuerzo", "Inicio almuerzo"],
-                    ["finAlmuerzo", "Fin almuerzo"],
-                    ["horaSalida", "Hora salida"],
+                    ["horaIngreso", "Hora de llegada"],
+                    ["horaSalida", "Hora de salida"],
                   ] as const
                 ).map(([campo, label]) => (
                   <label key={campo} className="text-xs text-muted-foreground">
@@ -197,38 +186,6 @@ function AsistenciaPage() {
               </div>
 
               <div className="mt-3 flex flex-wrap items-end gap-2">
-                <label className="text-xs text-muted-foreground">
-                  Receso desde
-                  <Input
-                    type="time"
-                    className="mt-1 h-9 w-32"
-                    disabled={!puede}
-                    value={rec.inicio}
-                    onChange={(ev) => setReceso((p) => ({ ...p, [e.id]: { ...rec, inicio: ev.target.value } }))}
-                  />
-                </label>
-                <label className="text-xs text-muted-foreground">
-                  Receso hasta
-                  <Input
-                    type="time"
-                    className="mt-1 h-9 w-32"
-                    disabled={!puede}
-                    value={rec.fin}
-                    onChange={(ev) => setReceso((p) => ({ ...p, [e.id]: { ...rec, fin: ev.target.value } }))}
-                  />
-                </label>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  disabled={!puede || !rec.inicio || !rec.fin}
-                  onClick={() => {
-                    op.agregarReceso(e.id, fecha, rec.inicio, rec.fin, actor);
-                    setReceso((p) => ({ ...p, [e.id]: { inicio: "", fin: "" } }));
-                    toast.success("Receso registrado.");
-                  }}
-                >
-                  <Coffee className="size-4" /> Agregar receso
-                </Button>
                 <Input
                   className="h-9 flex-1"
                   placeholder="Justificación de ausencia"
@@ -249,12 +206,6 @@ function AsistenciaPage() {
                 </Button>
               </div>
 
-              {r.recesos.length > 0 && (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Recesos: {r.recesos.map((x) => `${x.inicio}–${x.fin}`).join(", ")} ·{" "}
-                  {c.minutosRecesos} min · Almuerzo {c.minutosAlmuerzo} min
-                </p>
-              )}
             </div>
           );
         })}

@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { mensajeAuth } from "@/lib/auth";
+import { actualizarCuentaUsuario, useCuentas } from "@/lib/usuarios-admin";
 import { AREAS, CARGOS, CENTROS_COSTO, CENTROS_TRABAJO, EMPLEADOS } from "@/data/organizacion";
 import { EXPEDIENTES } from "@/data/rrhh";
 import { useRrhh } from "@/store/rrhh";
@@ -33,6 +35,8 @@ import {
   puedeEditarCamposSensibles,
 } from "@/lib/rrhh";
 import { puedeVerSalario } from "@/lib/visibilidad";
+import { cargoById, nivelById } from "@/data/organizacion";
+import { rolJerarquicoPorNivel } from "@/config/roles";
 import { formatCOP } from "@/types/organizacion";
 import {
   ESTADO_LABORAL_LABEL,
@@ -96,6 +100,7 @@ function ExpedienteEmpleadoPage() {
   } = useRrhh();
 
   const { perfil } = useAuth();
+  const cuentas = useCuentas();
   const empleado = empleados.find((e) => e.id === id);
   // Ley 1581 de 2012: toda consulta al expediente queda trazada.
   useRegistroAcceso(Boolean(empleado && perfil), {
@@ -115,6 +120,8 @@ function ExpedienteEmpleadoPage() {
 
   const [form, setForm] = useState<InformacionLaboral>(empleado.laboral);
   const [motivoRetiro, setMotivoRetiro] = useState("");
+  const cuenta = cuentas.find((c) => c.empleadoId === id);
+  const accesoActivo = cuenta ? (cuenta.estadoUsuario ?? cuenta.estado) === "activo" : false;
 
   const set = <K extends keyof InformacionLaboral>(k: K, v: InformacionLaboral[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -125,11 +132,34 @@ function ExpedienteEmpleadoPage() {
       return;
     }
     const n = actualizarInformacionLaboral(id, form);
+    if (cuenta && form.cargoId !== empleado.laboral.cargoId) {
+      const rolAnterior = rolJerarquicoPorNivel(nivelById(cargoById(empleado.laboral.cargoId)?.nivelId)?.nivel);
+      const rolNuevo = rolJerarquicoPorNivel(nivelById(cargoById(form.cargoId)?.nivelId)?.nivel);
+      void actualizarCuentaUsuario(cuenta, {
+        roles: [...new Set([...cuenta.roles.filter((rol) => rol !== rolAnterior), rolNuevo])],
+      }).catch((error) => {
+        console.error("[empleados] no se pudo sincronizar el rol base", error);
+        toast.error(mensajeAuth(error));
+      });
+    }
     toast.success(
       n > 0
         ? `${n} novedad(es) registradas automáticamente en la hoja de vida.`
         : "Sin cambios por registrar.",
     );
+  };
+
+  const cambiarAcceso = async () => {
+    if (!cuenta) return;
+    const habilitar = !accesoActivo;
+    try {
+      await actualizarCuentaUsuario(cuenta, { estadoUsuario: habilitar ? "activo" : "inactivo" });
+      toggleAcceso(id);
+      toast.success(`Acceso ${habilitar ? "habilitado" : "desactivado"}.`);
+    } catch (error) {
+      console.error("[empleados] no se pudo sincronizar el acceso", error);
+      toast.error(mensajeAuth(error));
+    }
   };
 
   return (
@@ -145,15 +175,30 @@ function ExpedienteEmpleadoPage() {
                 <ArrowLeft className="size-4" /> Volver
               </Link>
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={empleado.estadoLaboral === "retirado"}
-              onClick={() => toggleAcceso(id)}
-            >
-              <ShieldOff className="size-4" />
-              {empleado.accesoHabilitado ? "Desactivar acceso" : "Habilitar acceso"}
-            </Button>
+            {cuenta ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={empleado.estadoLaboral === "retirado"}
+                  onClick={() => void cambiarAcceso()}
+                >
+                  <ShieldOff className="size-4" />
+                  {accesoActivo ? "Desactivar acceso" : "Habilitar acceso"}
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/usuarios" search={{ empleadoId: id }}>
+                    <UserCog className="size-4" /> Administrar usuario
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" disabled={!esRrhh || empleado.estadoLaboral === "retirado"} asChild>
+                <Link to="/usuarios" search={{ empleadoId: id }}>
+                  <UserCog className="size-4" /> Crear usuario
+                </Link>
+              </Button>
+            )}
             <EmpleadoDialog
               empleado={empleado}
               empleados={empleados}
@@ -179,7 +224,10 @@ function ExpedienteEmpleadoPage() {
             Antigüedad {antiguedadAnios(empleado.laboral.fechaIngreso, empleado.laboral.fechaRetiro)} años
           </span>
           <span className="text-sm text-muted-foreground">
-            Acceso: {empleado.accesoHabilitado ? "habilitado" : "desactivado"}
+            Cuenta: {cuenta ? cuenta.email : "sin usuario"}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            Acceso: {cuenta ? (accesoActivo ? "habilitado" : "desactivado") : "pendiente de creación"}
           </span>
           <span className="text-sm text-muted-foreground">
             Salario: {verSalario ? formatCOP(empleado.laboral.salario) : "restringido por rol"}

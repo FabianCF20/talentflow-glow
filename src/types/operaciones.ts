@@ -116,20 +116,12 @@ export interface IncapacidadOperativa {
 
 /* --------------------------- Control de asistencia -------------------------- */
 
-export interface Receso {
-  inicio: string;
-  fin: string;
-}
-
-/** Marcaciones diarias registradas por el supervisor. */
+/** Horas diarias de llegada y salida registradas por el supervisor. */
 export interface RegistroAsistencia {
   id: string;
   empleadoId: string;
   fecha: string;
   horaIngreso?: string;
-  inicioAlmuerzo?: string;
-  finAlmuerzo?: string;
-  recesos: Receso[];
   horaSalida?: string;
   /** Ausencia registrada explícitamente por el supervisor. */
   ausente: boolean;
@@ -139,8 +131,6 @@ export interface RegistroAsistencia {
 
 export interface CalculoAsistencia {
   minutosTrabajados: number;
-  minutosAlmuerzo: number;
-  minutosRecesos: number;
   minutosTardanza: number;
   ausencia: boolean;
   incompleto: boolean;
