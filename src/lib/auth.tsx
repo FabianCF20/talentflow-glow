@@ -100,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               creadoEn: new Date().toISOString(),
             };
             await conLimite(setDoc(doc(db, COLECCION, u.uid), nuevo, { merge: true }));
+            if (primero) await marcarInicializado(u.uid);
             setPerfil(nuevo);
           }
         } catch (error) {
@@ -144,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     try {
       await conLimite(setDoc(doc(db, COLECCION, cred.user.uid), nuevo));
+      if (primero) await marcarInicializado(cred.user.uid);
     } catch (error) {
       console.error("[auth] no se pudo guardar el perfil", error);
       throw new FirestoreNoDisponible();
@@ -160,7 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const iniciales = perfil
-    ? `${perfil.nombres.charAt(0)}${perfil.apellidos.charAt(0)}`.toUpperCase()
+    ? `${(perfil.nombres ?? "").charAt(0)}${(perfil.apellidos ?? "").charAt(0)}`.toUpperCase() ||
+      (usuario?.email?.charAt(0).toUpperCase() ?? "?")
     : (usuario?.email?.charAt(0).toUpperCase() ?? "?");
 
   return (
@@ -207,4 +210,16 @@ export function mensajeAuth(error: unknown): string {
       "No hay base de datos Firestore activa en el proyecto indunilo. Créela en Firebase Console (Firestore Database > Crear base de datos) y vuelva a intentar.",
   };
   return mapa[code] ?? "No fue posible completar la operación.";
+}
+
+/** Cierra el alta de administradores propios una vez existe el primero. */
+async function marcarInicializado(uid: string) {
+  try {
+    await setDoc(doc(db, "configuracion", "inicializacion"), {
+      primerAdministrador: uid,
+      fecha: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("[auth] no se pudo marcar la inicialización", error);
+  }
 }
