@@ -162,7 +162,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const iniciales = perfil
-    ? `${perfil.nombres.charAt(0)}${perfil.apellidos.charAt(0)}`.toUpperCase()
+    ? `${(perfil.nombres ?? "").charAt(0)}${(perfil.apellidos ?? "").charAt(0)}`.toUpperCase() ||
+      (usuario?.email?.charAt(0).toUpperCase() ?? "?")
     : (usuario?.email?.charAt(0).toUpperCase() ?? "?");
 
   return (
