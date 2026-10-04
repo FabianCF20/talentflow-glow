@@ -81,8 +81,13 @@ service cloud.firestore {
 
     match /usuarios/{uid} {
       allow read: if autenticado();
-      // Alta propia (primer registro) o creada por administración de personal.
-      allow create: if autenticado() && (request.auth.uid == uid || esRrhh());
+      // Alta propia: solo como 'empleado', salvo el primer administrador del
+      // sistema (antes de que exista configuracion/inicializacion).
+      // RRHH puede crear cuentas con cualquier rol.
+      allow create: if esRrhh()
+        || (autenticado() && request.auth.uid == uid
+            && (request.resource.data.roles == ['empleado']
+                || !exists(/databases/$(database)/documents/configuracion/inicializacion)));
       // El propio usuario no puede escalar sus roles ni reactivarse solo.
       allow update: if esRrhh()
         || (request.auth.uid == uid
