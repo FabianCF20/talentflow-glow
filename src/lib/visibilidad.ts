@@ -50,11 +50,11 @@ export function alcanceDe(roles: RoleKey[]): AlcanceVisibilidad {
 }
 
 /** Empleados visibles para un usuario según su rol y su posición en el organigrama. */
-export function empleadosVisibles(
+export function empleadosVisibles<T extends EmpleadoOrg = EmpleadoOrg>(
   empleadoId: string,
   roles: RoleKey[],
-  empleados: EmpleadoOrg[] = EMPLEADOS,
-): EmpleadoOrg[] {
+  empleados: T[] = EMPLEADOS as T[],
+): T[] {
   const alcance = alcanceDe(roles);
   const yo = empleadoById(empleadoId);
   switch (alcance) {
