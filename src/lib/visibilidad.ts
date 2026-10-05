@@ -50,11 +50,13 @@ export function alcanceDe(roles: RoleKey[]): AlcanceVisibilidad {
 }
 
 /** Empleados visibles para un usuario según su rol y su posición en el organigrama. */
-export function empleadosVisibles(
+export function empleadosVisibles<
+  T extends { id: string; areaId?: string; jefeInmediatoId?: string } = EmpleadoOrg,
+>(
   empleadoId: string,
   roles: RoleKey[],
-  empleados: EmpleadoOrg[] = EMPLEADOS,
-): EmpleadoOrg[] {
+  empleados: T[] = EMPLEADOS as unknown as T[],
+): T[] {
   const alcance = alcanceDe(roles);
   const yo = empleadoById(empleadoId);
   switch (alcance) {
@@ -63,10 +65,10 @@ export function empleadosVisibles(
     case "direccion": {
       if (!yo) return [];
       const areas = areasDeDireccion(yo.areaId);
-      return empleados.filter((e) => areas.includes(e.areaId));
+      return empleados.filter((e) => areas.includes(e.areaId ?? ""));
     }
     case "a_cargo": {
-      const ids = new Set([empleadoId, ...subordinadosDe(empleadoId, empleados)]);
+      const ids = new Set([empleadoId, ...subordinadosDe(empleadoId, empleados as unknown as EmpleadoOrg[])]);
       return empleados.filter((e) => ids.has(e.id));
     }
     case "asignado":
@@ -85,7 +87,7 @@ export function puedeVerSalario(
 ): boolean {
   if (roles.some((r) => ROLES_SALARIO_GLOBAL.includes(r))) return true;
   if (objetivoId === empleadoId) return true;
-  if (roles.includes("jefe")) return subordinadosDe(empleadoId, empleados).includes(objetivoId);
+  if (roles.includes("jefe")) return subordinadosDe(empleadoId, empleados as unknown as EmpleadoOrg[]).includes(objetivoId);
   if (roles.includes("supervisor"))
     return empleados.some((e) => e.id === objetivoId && e.jefeInmediatoId === empleadoId);
   return false;

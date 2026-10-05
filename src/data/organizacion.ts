@@ -62,7 +62,7 @@ export function buildOrgTree(empleados: EmpleadoOrg[] = EMPLEADOS): OrgNode[] {
     nodes.sort((a, b) => {
       const na = nivelById(cargoById(a.empleado.cargoId)?.nivelId)?.nivel ?? 99;
       const nb = nivelById(cargoById(b.empleado.cargoId)?.nivelId)?.nivel ?? 99;
-      return na - nb || a.empleado.nombres.localeCompare(b.empleado.nombres);
+      return na - nb || String(a.empleado?.nombres ?? "").localeCompare(String(b.empleado?.nombres ?? ""));
     });
     nodes.forEach((n) => ordenar(n.hijos));
   };
