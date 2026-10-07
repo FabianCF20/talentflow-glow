@@ -38,6 +38,7 @@ import {
 import { descargarDesprendible, descargarLiquidacion } from "@/lib/desprendible";
 import { useAuth } from "@/lib/auth";
 import { downloadExcel } from "@/lib/excel";
+import { mesLabel } from "@/lib/nomina";
 import { nombreArea, nombreCargo } from "@/lib/rrhh";
 import { formatCOP } from "@/lib/formato";
 import { ESTADOS_VINCULADOS, nombreEmpleado } from "@/types/rrhh";

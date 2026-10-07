@@ -73,23 +73,3 @@ export function EstadoUsuarioBadge({ estado }: { estado: EstadoUsuario }) {
     </span>
   );
 }
-
-interface FormularioCuenta {
-  email: string;
-  password: string;
-  nombres: string;
-  apellidos: string;
-  empleadoId: string;
-  roles: RoleKey[];
-  estadoUsuario: EstadoUsuario;
-}
-
-const FORM_VACIO: FormularioCuenta = {
-  email: "",
-  password: "",
-  nombres: "",
-  apellidos: "",
-  empleadoId: "",
-  roles: ["empleado"],
-  estadoUsuario: "activo",
-};
