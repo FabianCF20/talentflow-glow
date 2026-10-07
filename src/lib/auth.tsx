@@ -1,3 +1,6 @@
+/**
+ * Sesión de usuario con Firebase Auth: ingreso, registro, salida y perfil con roles (colección `usuarios`).
+ */
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import {
   createUserWithEmailAndPassword,

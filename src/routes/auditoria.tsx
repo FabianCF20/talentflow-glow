@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Consulta del registro de auditoría.
+ * Ruta: /auditoria
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { Download } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";

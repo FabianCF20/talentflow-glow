@@ -1,3 +1,6 @@
+/**
+ * Barra superior: buscador, tema claro/oscuro, notificaciones y menú del usuario.
+ */
 import { Menu, Moon, Sun, LogOut, User, KeyRound } from "lucide-react";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationsMenu } from "./NotificationsMenu";

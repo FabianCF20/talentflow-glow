@@ -1,3 +1,6 @@
+/**
+ * Modelos del expediente del empleado y la hoja de vida.
+ */
 import type { RecordStatus } from "./entities";
 
 /**

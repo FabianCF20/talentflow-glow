@@ -1,3 +1,6 @@
+/**
+ * Lectura y guardado de la matriz de permisos en Firestore (`configuracion/permisos`).
+ */
 import { useEffect, useState } from "react";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
 import { db } from "./firebase";

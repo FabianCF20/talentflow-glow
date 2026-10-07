@@ -1,3 +1,6 @@
+/**
+ * Estado compartido del Portal del Empleado (solicitudes de cambio, documentos, certificados).
+ */
 import {
   createContext,
   useCallback,

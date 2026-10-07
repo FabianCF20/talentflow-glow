@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Bandeja de aprobación de cambios de datos pedidos desde el portal.
+ * Ruta: /solicitudes
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, Inbox, X } from "lucide-react";

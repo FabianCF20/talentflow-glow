@@ -1,3 +1,6 @@
+/**
+ * Alcance de datos por rol (global, dirección, equipo, propio) y permiso para ver salarios.
+ */
 import type { RoleKey } from "@/types/entities";
 import type { EmpleadoOrg } from "@/types/organizacion";
 import { EMPLEADOS, areasDeDireccion, empleadoById, subordinadosDe } from "@/data/organizacion";

@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Control de asistencia diario del equipo.
+ * Ruta: /asistencia
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AlarmClock, CalendarX, Clock, UserCheck } from "lucide-react";

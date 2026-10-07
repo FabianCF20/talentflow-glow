@@ -1,3 +1,6 @@
+/**
+ * Tarjeta de documento del expediente con versiones, vigencia y descarga.
+ */
 import { useState } from "react";
 import { ChevronDown, Download, History, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";

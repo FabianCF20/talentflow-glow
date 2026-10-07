@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Solicitudes (vacaciones, permisos, licencias) e incapacidades con flujo de aprobación.
+ * Ruta: /ausencias
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { CalendarClock, CalendarDays, Check, HeartPulse, Inbox, Send, X } from "lucide-react";

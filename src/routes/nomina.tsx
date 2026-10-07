@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Liquidación de nómina, conceptos, prestaciones, liquidaciones y desprendibles.
+ * Ruta: /nomina
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Wallet, Calculator, PiggyBank, FileDown, Receipt, Plus } from "lucide-react";

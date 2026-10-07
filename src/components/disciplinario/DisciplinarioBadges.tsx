@@ -1,3 +1,6 @@
+/**
+ * Etiquetas visuales del módulo disciplinario (gravedad, estado del caso, etapa).
+ */
 import { cn } from "@/lib/utils";
 import {
   ACCION_DISCIPLINARIA_LABEL,

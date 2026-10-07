@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Dashboards e indicadores consolidados.
+ * Ruta: /reportes
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { BarChart3, FileDown, FileText, Users, Wallet, HardHat } from "lucide-react";

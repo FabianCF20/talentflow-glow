@@ -1,3 +1,6 @@
+/**
+ * Arreglos compartidos de SST (se llenan desde Firestore).
+ */
 import type {
   AccidenteLaboral,
   CapacitacionSST,

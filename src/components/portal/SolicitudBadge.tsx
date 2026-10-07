@@ -1,3 +1,6 @@
+/**
+ * Etiqueta de estado de una solicitud de actualización de datos.
+ */
 import { cn } from "@/lib/utils";
 import { ESTADO_SOLICITUD_LABEL, type EstadoSolicitud } from "@/types/portal";
 

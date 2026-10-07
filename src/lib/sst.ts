@@ -1,3 +1,6 @@
+/**
+ * Reglas de SST: exámenes, vencimientos, consecutivos e indicadores.
+ */
 import { CARGOS, EMPLEADOS, areasDeDireccion } from "@/data/organizacion";
 import type {
   AccidenteLaboral,

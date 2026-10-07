@@ -1,3 +1,6 @@
+/**
+ * Arreglos compartidos del módulo disciplinario (se llenan desde Firestore, sin datos de prueba).
+ */
 import type {
   Evaluacion,
   Incidencia,

@@ -1,3 +1,6 @@
+/**
+ * Reglas de procesos operativos: asistencia, horas, ausencias y cálculos de tiempo.
+ */
 import type { RoleKey } from "@/types/entities";
 import { empleadoById } from "@/data/organizacion";
 import {

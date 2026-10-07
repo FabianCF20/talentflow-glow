@@ -1,3 +1,6 @@
+/**
+ * Línea de tiempo de la hoja de vida digital del empleado.
+ */
 import {
   ArrowRightLeft,
   BadgeCheck,

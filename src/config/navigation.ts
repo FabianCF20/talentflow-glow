@@ -1,3 +1,6 @@
+/**
+ * Definición del menú lateral. Para agregar un módulo al menú, añada un elemento aquí (y cree su ruta).
+ */
 import {
   LayoutDashboard,
   Users,

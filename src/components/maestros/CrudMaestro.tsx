@@ -1,3 +1,6 @@
+/**
+ * Componente genérico de alta/edición/inactivación para cualquier dato maestro (áreas, cargos, etc.).
+ */
 import { useMemo, useState, type SetStateAction } from "react";
 import { Pencil, Plus, RotateCcw, ShieldOff } from "lucide-react";
 import { toast } from "sonner";

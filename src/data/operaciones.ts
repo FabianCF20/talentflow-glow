@@ -1,3 +1,6 @@
+/**
+ * Arreglos compartidos de procesos operativos (se llenan desde Firestore).
+ */
 import type {
   HoraExtra,
   IncapacidadOperativa,

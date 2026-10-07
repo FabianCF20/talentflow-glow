@@ -1,3 +1,6 @@
+/**
+ * Estado compartido de empleados y hoja de vida.
+ */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
 import { EMPLEADOS_RRHH, EVENTOS_HV } from "@/data/rrhh";

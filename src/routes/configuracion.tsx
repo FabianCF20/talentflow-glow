@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Parámetros globales: seguridad, plantillas de documentos y cumplimiento.
+ * Ruta: /configuracion
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Save } from "lucide-react";

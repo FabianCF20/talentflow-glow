@@ -1,3 +1,6 @@
+/**
+ * Gráficos reutilizables (barras, líneas, torta) para dashboards y reportes.
+ */
 import { cn } from "@/lib/utils";
 
 /** Gráficos ligeros en SVG con tokens semánticos del sistema de diseño. */

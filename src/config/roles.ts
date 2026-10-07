@@ -1,3 +1,6 @@
+/**
+ * Catálogo de roles, niveles jerárquicos y matriz base de permisos por módulo y acción.
+ */
 import type { Role, RoleKey, PermissionAction } from "@/types/entities";
 
 export const ROLES: Role[] = [

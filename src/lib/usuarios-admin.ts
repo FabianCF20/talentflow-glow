@@ -1,3 +1,6 @@
+/**
+ * Administración de cuentas: creación en Firebase Auth, roles, estado y restablecimiento de contraseña.
+ */
 import { useEffect, useState } from "react";
 import { deleteApp, initializeApp } from "firebase/app";
 import {

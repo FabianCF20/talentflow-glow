@@ -1,3 +1,6 @@
+/**
+ * Buscador global de empleados en la barra superior.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Search } from "lucide-react";

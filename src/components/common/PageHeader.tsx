@@ -1,3 +1,6 @@
+/**
+ * Encabezado estándar de página: ruta de ubicación, título, descripción y acciones.
+ */
 import type { ReactNode } from "react";
 
 export function PageHeader({

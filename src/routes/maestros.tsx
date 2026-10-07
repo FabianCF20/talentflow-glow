@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Administración de datos maestros.
+ * Ruta: /maestros
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Layers } from "lucide-react";

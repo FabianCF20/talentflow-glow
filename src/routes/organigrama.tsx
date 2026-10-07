@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Organigrama automático con visibilidad por rol.
+ * Ruta: /organigrama
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, EyeOff, RefreshCw, Users2 } from "lucide-react";

@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Constructor de formularios dinámicos.
+ * Ruta: /formularios
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ClipboardList, Users, BarChart3, Plus, Trash2 } from "lucide-react";

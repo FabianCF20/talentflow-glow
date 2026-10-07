@@ -1,3 +1,6 @@
+/**
+ * Arreglos compartidos de Recursos Humanos (se llenan desde Firestore).
+ */
 import type { EmpleadoRRHH, EventoHojaVida, ExpedienteEmpleado } from "@/types/rrhh";
 
 /**

@@ -1,3 +1,6 @@
+/**
+ * Datos auxiliares de demostración para notificaciones y auditoría.
+ */
 import type { AuditLog, Notificacion } from "@/types/entities";
 
 /**

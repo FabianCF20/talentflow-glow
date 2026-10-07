@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Evaluaciones, encuestas y pruebas: creación, respuesta y resultados.
+ * Ruta: /evaluaciones
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ClipboardCheck, Users, BarChart3, Plus, Trash2, Award } from "lucide-react";

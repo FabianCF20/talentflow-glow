@@ -1,3 +1,6 @@
+/**
+ * Reglas de negocio del módulo disciplinario (consecutivos, permisos, etapas).
+ */
 import { EMPLEADOS, areasDeDireccion } from "@/data/organizacion";
 import type { RoleKey } from "@/types/entities";
 import type { AsignacionFormulario, ValorRespuesta } from "@/types/sst";

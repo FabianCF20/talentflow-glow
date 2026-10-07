@@ -1,3 +1,6 @@
+/**
+ * Modelos de la estructura organizacional, usuarios del sistema y etiquetas asociadas.
+ */
 import type { RecordStatus, RoleKey } from "./entities";
 
 /** Estructura organizacional de SIGTH. Ningún registro se elimina: se inactiva o archiva. */

@@ -1,3 +1,6 @@
+/**
+ * Modelos de datos del módulo disciplinario.
+ */
 import type { RecordStatus, RoleKey } from "./entities";
 import type { AsignacionFormulario, CampoFormulario, ValorRespuesta } from "./sst";
 

@@ -1,3 +1,6 @@
+/**
+ * Etiqueta del estado laboral del empleado (activo, retirado, etc.).
+ */
 import { cn } from "@/lib/utils";
 import { ESTADO_LABORAL_LABEL, type EstadoLaboral } from "@/types/rrhh";
 

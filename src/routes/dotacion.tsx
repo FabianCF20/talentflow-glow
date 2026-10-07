@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Ficha de tallas y entregas de dotación con aceptación digital.
+ * Ruta: /dotacion
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Shirt, PackageCheck, Ruler, PenLine } from "lucide-react";

@@ -1,3 +1,6 @@
+/**
+ * Modelos de Seguridad y Salud en el Trabajo.
+ */
 import type { RecordStatus } from "./entities";
 
 /**

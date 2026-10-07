@@ -1,3 +1,6 @@
+/**
+ * Nombres de colecciones y hooks de los datos maestros (niveles, áreas, cargos, etc.).
+ */
 import { useFirestoreState } from "./firestore";
 import type {
   AreaOrg,

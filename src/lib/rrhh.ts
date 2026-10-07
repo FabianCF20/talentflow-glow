@@ -1,3 +1,6 @@
+/**
+ * Reglas de Recursos Humanos: expediente, hoja de vida y estados laborales.
+ */
 import type { RoleKey } from "@/types/entities";
 import {
   ESTADOS_VINCULADOS,
