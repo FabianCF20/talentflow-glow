@@ -111,7 +111,7 @@ function Maestros() {
         description="Entidades base sobre las que operan todos los módulos. Ningún registro se elimina: se inactiva o archiva."
       />
 
-      <Tabs defaultValue="niveles">
+      <Tabs defaultValue="areas">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <TabsList className="flex-wrap">
             <TabsTrigger value="areas">Áreas</TabsTrigger>
