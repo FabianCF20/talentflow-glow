@@ -76,13 +76,19 @@ Principios aplicados:
 8. **Auditoría:** registre las acciones importantes en la colección `auditoria`.
 9. **Comprobar:** `bun run lint` y `bun run build`.
 
-## 5. Convenciones de documentación
+## 5. Pantallas divididas por pestañas
+
+Cuando una pantalla tiene pestañas, la ruta solo arma el encabezado y las
+pestañas; cada pestaña vive en `components/<dominio>/<Nombre>Tab.tsx` (ver
+`components/sst/` y `components/nomina/`). Así cada archivo tiene una sola tarea.
+
+## 6. Convenciones de documentación
 
 - Cada archivo empieza con un comentario `/** … */` que explica su propósito.
 - Toda función exportada lleva un comentario de una línea con qué hace.
 - Los comentarios se escriben en **español**.
 - Explique el *porqué* de reglas no obvias (leyes, flujos de aprobación).
 
-## 6. Etapas de mejora
+## 7. Etapas de mejora
 
 Ver [`roadmap.md`](../roadmap.md) para el plan de reorganización por etapas.
