@@ -95,9 +95,6 @@ export interface UsuarioSistema {
   creadoEn: string;
 }
 
-export const nombreCompleto = (e: EmpleadoOrg) =>
-  `${e?.nombres ?? ""} ${e?.apellidos ?? ""}`.trim() ||
-  ((e as unknown as { nombre?: string })?.nombre ?? "Sin nombre");
-
-export const formatCOP = (v: number) =>
-  new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
+// Formatos de presentación: viven en `@/lib/formato` y se re-exportan aquí
+// porque muchas pantallas ya los importan desde este archivo.
+export { nombreCompleto, formatCOP } from "@/lib/formato";

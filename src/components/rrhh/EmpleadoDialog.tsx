@@ -40,8 +40,8 @@ import type {
 } from "@/types/rrhh";
 import type { EmpleadoOrg } from "@/types/organizacion";
 import type { EventoHojaVida } from "@/types/rrhh";
+import { hoyISO as hoy } from "@/lib/fechas";
 
-const hoy = () => new Date().toISOString().slice(0, 10);
 
 const expedienteVacio = (empleadoId: string): ExpedienteEmpleado => ({
   empleadoId,

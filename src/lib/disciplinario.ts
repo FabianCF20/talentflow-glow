@@ -9,9 +9,9 @@ import type {
   RespuestaEvaluacion,
 } from "@/types/disciplinario";
 import { ROLES_OBSERVACION } from "@/types/disciplinario";
+// Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
+export { hoyISO, horaActual } from "./fechas";
 
-export const hoyISO = () => new Date().toISOString().slice(0, 10);
-export const horaActual = () => new Date().toTimeString().slice(0, 5);
 
 export const consecutivoDisciplinario = (n: number) =>
   `DIS-${new Date().getFullYear()}-${String(n).padStart(4, "0")}`;

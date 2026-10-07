@@ -15,6 +15,8 @@ import type {
   PeriodoNomina,
   Provisiones,
 } from "@/types/nomina";
+// Utilidad de fecha compartida (se re-exporta para no romper importaciones existentes).
+export { hoyISO } from "./fechas";
 
 /** Parámetros legales vigentes (editables desde configuración de nómina). */
 export const PARAMS_NOMINA = {
@@ -43,7 +45,6 @@ export const ROLES_REPORTES_GERENCIA: RoleKey[] = [
   "contabilidad",
 ];
 
-export const hoyISO = () => new Date().toISOString().slice(0, 10);
 
 export const redondear = (v: number) => Math.round(v);
 

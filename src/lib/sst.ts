@@ -9,9 +9,9 @@ import type {
   ValorRespuesta,
 } from "@/types/sst";
 import type { RoleKey } from "@/types/entities";
+// Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
+export { hoyISO, horaActual, sumarMeses } from "./fechas";
 
-export const hoyISO = () => new Date().toISOString().slice(0, 10);
-export const horaActual = () => new Date().toTimeString().slice(0, 5);
 
 export const ROLES_SST: RoleKey[] = ["administrador", "sst", "talento_humano"];
 export const puedeGestionarSST = (rol: RoleKey) => ROLES_SST.includes(rol);
@@ -19,11 +19,6 @@ export const puedeGestionarSST = (rol: RoleKey) => ROLES_SST.includes(rol);
 export const consecutivoSST = (prefijo: string, n: number) =>
   `${prefijo}-${new Date().getFullYear()}-${String(n).padStart(4, "0")}`;
 
-export const sumarMeses = (fecha: string, meses: number) => {
-  const d = new Date(`${fecha}T00:00:00`);
-  d.setMonth(d.getMonth() + meses);
-  return d.toISOString().slice(0, 10);
-};
 
 export const diasHasta = (fecha?: string) => {
   if (!fecha) return null;
