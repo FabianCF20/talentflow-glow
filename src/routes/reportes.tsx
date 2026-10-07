@@ -121,7 +121,7 @@ function ReportesPage() {
   const he = horasExtrasReporte(horasExtras, empleados, filtro.anio);
   const accMes = accidentalidadMensual(accidentes, filtro.anio);
   const cap = capacitacionesResumen(capacitaciones, filtro.anio);
-  const ultimoLiquidado = [...periodos].reverse().find((p) => p.detalles.length > 0);
+  const ultimoLiquidado = [...periodos].reverse().find((p) => (p.detalles?.length ?? 0) > 0);
   const porArea = costosPorArea(ultimoLiquidado, filtrados);
   const porCC = costosPorCentroCosto(ultimoLiquidado, filtrados);
 
@@ -189,8 +189,8 @@ function ReportesPage() {
         c.tema,
         c.fecha,
         c.duracionHoras,
-        c.asistentes.length,
-        c.asistentes.filter((a) => a.asistio).length,
+        (c.asistentes ?? []).length,
+        (c.asistentes ?? []).filter((a) => a.asistio).length,
       ]),
     },
     {
