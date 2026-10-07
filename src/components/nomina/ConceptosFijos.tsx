@@ -36,11 +36,6 @@ import {
 import { descargarDesprendible, descargarLiquidacion } from "@/lib/desprendible";
 import { useAuth } from "@/lib/auth";
 
-/** Nombre del usuario en sesión, usado como emisor de los documentos firmados. */
-function useUsuarioActual() {
-  const { perfil, usuario } = useAuth();
-  return perfil ? `${perfil.nombres} ${perfil.apellidos}`.trim() : (usuario?.email ?? "sistema");
-}
 import { downloadExcel } from "@/lib/excel";
 import { nombreArea, nombreCargo } from "@/lib/rrhh";
 import { formatCOP } from "@/types/organizacion";

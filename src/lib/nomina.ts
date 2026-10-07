@@ -340,3 +340,7 @@ export const totalDevengadoPorTipo = (p: PeriodoNomina, codigo: string) =>
     (s, d) => s + d.devengados.filter((x) => x.codigo === codigo).reduce((a, b) => a + b.valor, 0),
     0,
   );
+
+/** Etiqueta legible de un periodo de nómina. Ej.: "Octubre 2026". */
+export const mesLabel = (mes: number, anio: number) =>
+  `${MESES_LABEL[mes as keyof typeof MESES_LABEL] ?? mes} ${anio}`;
