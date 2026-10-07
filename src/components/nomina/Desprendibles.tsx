@@ -110,7 +110,7 @@ export function Desprendibles({ empleadoActuandoId }: { empleadoActuandoId: stri
               key: "neto",
               header: "Neto pagado",
               render: (r) => {
-                const d = r.periodo.detalles.find((x) => x.empleadoId === empleadoId);
+                const d = (r.periodo.detalles ?? []).find((x) => x.empleadoId === empleadoId);
                 return <span className="tabular-nums">{formatCOP(d?.netoPagar ?? 0)}</span>;
               },
             },
@@ -118,7 +118,7 @@ export function Desprendibles({ empleadoActuandoId }: { empleadoActuandoId: stri
               key: "pdf",
               header: "Descarga",
               render: (r) => {
-                const d = r.periodo.detalles.find((x) => x.empleadoId === empleadoId);
+                const d = (r.periodo.detalles ?? []).find((x) => x.empleadoId === empleadoId);
                 return (
                   <Button
                     size="sm"
