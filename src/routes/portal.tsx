@@ -67,6 +67,7 @@ import {
 } from "@/types/portal";
 import { TIPO_CONTRATO_LABEL, iniciales, nombreEmpleado } from "@/types/rrhh";
 import { can } from "@/config/roles";
+import { ResumenMini } from "@/components/portal/ResumenMini";
 
 export const Route = createFileRoute("/portal")({
   head: () => ({
@@ -794,27 +795,5 @@ function PortalEmpleadoPage() {
         <Shirt className="size-3.5" /> Dotación vigente: {dotacion.length} elementos entregados.
       </p>
     </AppShell>
-  );
-}
-
-function ResumenMini({
-  icon: Icon,
-  label,
-  valor,
-}: {
-  icon: typeof CalendarDays;
-  label: string;
-  valor: string;
-}) {
-  return (
-    <div className="surface-panel flex items-center gap-3 p-4">
-      <span className="grid size-9 place-items-center rounded-md bg-primary-soft text-primary">
-        <Icon className="size-4.5" />
-      </span>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="font-display text-lg font-semibold text-foreground">{valor}</p>
-      </div>
-    </div>
   );
 }

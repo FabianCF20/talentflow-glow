@@ -50,6 +50,7 @@ import {
   type EstadoLaboral,
   type InformacionLaboral,
 } from "@/types/rrhh";
+import { Campo } from "@/components/rrhh/Campo";
 
 export const Route = createFileRoute("/empleados/$id")({
   head: () => ({
@@ -602,16 +603,5 @@ function ExpedienteEmpleadoPage() {
         </TabsContent>
       </Tabs>
     </AppShell>
-  );
-}
-
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </label>
-      {children}
-    </div>
   );
 }
