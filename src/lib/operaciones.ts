@@ -8,7 +8,8 @@ import {
   type TipoHoraExtra,
 } from "@/types/operaciones";
 // Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
-export { hoyISO, horaActual, diasEntre, sumarDias } from "./fechas";
+import { hoyISO, horaActual, diasEntre, sumarDias } from "./fechas";
+export { hoyISO, horaActual, diasEntre, sumarDias };
 
 /** Utilidades de cálculo y reglas de los procesos operativos. */
 

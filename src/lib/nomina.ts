@@ -16,7 +16,8 @@ import type {
   Provisiones,
 } from "@/types/nomina";
 // Utilidad de fecha compartida (se re-exporta para no romper importaciones existentes).
-export { hoyISO } from "./fechas";
+import { hoyISO } from "./fechas";
+export { hoyISO };
 
 /** Parámetros legales vigentes (editables desde configuración de nómina). */
 export const PARAMS_NOMINA = {

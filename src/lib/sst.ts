@@ -10,7 +10,8 @@ import type {
 } from "@/types/sst";
 import type { RoleKey } from "@/types/entities";
 // Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
-export { hoyISO, horaActual, sumarMeses } from "./fechas";
+import { hoyISO, horaActual, sumarMeses } from "./fechas";
+export { hoyISO, horaActual, sumarMeses };
 
 
 export const ROLES_SST: RoleKey[] = ["administrador", "sst", "talento_humano"];

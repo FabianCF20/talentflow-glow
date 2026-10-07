@@ -10,7 +10,8 @@ import type {
 } from "@/types/disciplinario";
 import { ROLES_OBSERVACION } from "@/types/disciplinario";
 // Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
-export { hoyISO, horaActual } from "./fechas";
+import { hoyISO, horaActual } from "./fechas";
+export { hoyISO, horaActual };
 
 
 export const consecutivoDisciplinario = (n: number) =>
