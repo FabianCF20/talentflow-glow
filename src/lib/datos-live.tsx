@@ -4,6 +4,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";
+import { useUidSesion } from "./firestore";
 import {
   AREAS,
   CARGOS,
@@ -38,7 +39,10 @@ const COLECCIONES: { nombre: string; destino: { id: string }[] }[] = [
 export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
   const [version, setVersionReal] = useState(0);
 
+  const uid = useUidSesion();
+
   useEffect(() => {
+    if (!uid) return; // Sin sesión no se leen datos.
     // Agrupa las actualizaciones: en lugar de rehacer la pantalla con cada
     // colección (10 veces al iniciar), se rehace una sola vez cada 250 ms.
     let pendiente: ReturnType<typeof setTimeout> | null = null;
@@ -93,7 +97,7 @@ export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
       unsubUsuarios();
       unsubExpedientes();
     };
-  }, []);
+  }, [uid]);
 
   // Al cambiar los datos maestros se rehace el árbol para reflejar los valores nuevos.
   return <div key={version} className="contents">{children}</div>;

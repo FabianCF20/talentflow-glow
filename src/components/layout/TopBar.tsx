@@ -20,7 +20,7 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const { theme, toggleTheme } = useTheme();
   const { perfil, usuario, iniciales, salir } = useAuth();
   const nombre = perfil ? `${perfil.nombres} ${perfil.apellidos}`.trim() : (usuario?.email ?? "Sin sesión");
-  const rol = perfil?.roles[0] ? ROLE_LABEL[perfil.roles[0]] : "Sin rol asignado";
+  const rol = perfil?.roles?.[0] ? ROLE_LABEL[perfil.roles[0]] : "Sin rol asignado";
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border bg-background/85 px-3 backdrop-blur sm:gap-3 sm:px-4 lg:px-6">

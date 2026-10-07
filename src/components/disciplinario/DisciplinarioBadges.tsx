@@ -88,7 +88,7 @@ export function ResultadoBadge({ puntaje, aprobado }: { puntaje?: number; aproba
 export function TrazaDisciplinaria({ pasos }: { pasos: PasoDisciplinario[] }) {
   return (
     <ol className="space-y-3">
-      {pasos.map((p, i) => (
+      {(pasos ?? []).map((p, i) => (
         <li key={`${p.fecha}-${p.hora}-${i}`} className="flex gap-3">
           <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />
           <div className="min-w-0 space-y-0.5">

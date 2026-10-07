@@ -90,7 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const snap = await conLimite(getDoc(doc(db, COLECCION, u.uid)));
           if (snap.exists()) {
-            setPerfil({ ...(snap.data() as PerfilUsuario), id: u.uid });
+            const datos = snap.data() as PerfilUsuario;
+            // Un perfil sin roles se normaliza a lista vacía para no romper pantallas.
+            setPerfil({ ...datos, roles: Array.isArray(datos.roles) ? datos.roles : [], id: u.uid });
           } else {
             // Cuenta de Auth sin perfil: se crea para no quedar sin permisos.
             const primero = await esPrimerUsuario().catch(() => false);

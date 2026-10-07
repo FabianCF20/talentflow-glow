@@ -103,7 +103,7 @@ function NominaPage() {
   /** Previsualización cuando el periodo aún está abierto. */
   const detalles: DetalleNomina[] = useMemo(() => {
     if (!periodo) return [];
-    if (periodo.detalles.length > 0) return periodo.detalles;
+    if ((periodo.detalles?.length ?? 0) > 0) return periodo.detalles ?? [];
     return vinculados.map((emp) =>
       calcularDetalle({
         periodo,
@@ -160,7 +160,7 @@ function NominaPage() {
           <Button
             size="sm"
             variant="outline"
-            disabled={!e || !periodo || periodo.detalles.length === 0}
+            disabled={!e || !periodo || (periodo.detalles?.length ?? 0) === 0}
             onClick={() => {
               if (e && periodo) void descargarDesprendible(periodo, d, e, usuarioActual);
             }}
@@ -281,7 +281,7 @@ function NominaPage() {
                     {periodo.codigo} · {periodo.desde} al {periodo.hasta}
                   </p>
                   <p className="text-muted-foreground">
-                    {periodo.detalles.length === 0
+                    {(periodo.detalles?.length ?? 0) === 0
                       ? "Previsualización: el periodo aún no ha sido liquidado."
                       : `Liquidado por ${periodo.liquidadoPor} el ${periodo.fechaLiquidacion}`}
                   </p>

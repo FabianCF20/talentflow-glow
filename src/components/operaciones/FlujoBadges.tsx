@@ -81,10 +81,10 @@ const ACCION_LABEL: Record<PasoFlujo["accion"], string> = {
 };
 
 /** Traza del flujo de aprobación paso a paso. */
-export function FlujoTraza({ pasos }: { pasos: PasoFlujo[] }) {
+export function FlujoTraza({ pasos }: { pasos?: PasoFlujo[] | null }) {
   return (
     <ol className="mt-3 space-y-2 border-l border-border pl-4">
-      {pasos.map((p, i) => (
+      {(pasos ?? []).map((p, i) => (
         <li key={`${p.etapa}-${i}`} className="relative text-xs">
           <span
             className={cn(

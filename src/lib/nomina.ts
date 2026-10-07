@@ -337,7 +337,7 @@ export function totalesPeriodo(p: PeriodoNomina): TotalesPeriodo {
 }
 
 export const totalDevengadoPorTipo = (p: PeriodoNomina, codigo: string) =>
-  p.detalles.reduce(
+  (p.detalles ?? []).reduce(
     (s, d) => s + d.devengados.filter((x) => x.codigo === codigo).reduce((a, b) => a + b.valor, 0),
     0,
   );
