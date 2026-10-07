@@ -37,6 +37,21 @@ import {
 } from "@/lib/nomina";
 import { descargarDesprendible, descargarLiquidacion } from "@/lib/desprendible";
 import { useAuth } from "@/lib/auth";
+import { downloadExcel } from "@/lib/excel";
+import { nombreArea, nombreCargo } from "@/lib/rrhh";
+import { formatCOP } from "@/lib/formato";
+import { ESTADOS_VINCULADOS, nombreEmpleado } from "@/types/rrhh";
+import {
+  ESTADO_PERIODO_LABEL,
+  MESES_LABEL,
+  MOTIVO_LIQUIDACION_LABEL,
+  TIPO_RECURRENTE_LABEL,
+  type ConceptoRecurrente,
+  type DetalleNomina,
+  type LiquidacionFinal,
+  type MotivoLiquidacion,
+  type TipoRecurrente,
+} from "@/types/nomina";
 import { useUsuarioActual } from "@/components/nomina/useUsuarioActual";
 import { ConceptosFijos } from "@/components/nomina/ConceptosFijos";
 import { Liquidaciones } from "@/components/nomina/Liquidaciones";
