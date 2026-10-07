@@ -58,6 +58,28 @@ import { ConceptosFijos } from "@/components/nomina/ConceptosFijos";
 import { Liquidaciones } from "@/components/nomina/Liquidaciones";
 import { Desprendibles } from "@/components/nomina/Desprendibles";
 
+export const Route = createFileRoute("/nomina")({
+  head: () => ({
+    meta: [
+      { title: "Nómina Colombia — Devengados, deducciones y prestaciones | SIGTH" },
+      {
+        name: "description",
+        content:
+          "Liquidación mensual de nómina con devengados, deducciones legales, provisión de prestaciones sociales, liquidaciones definitivas y desprendibles en PDF.",
+      },
+      { property: "og:title", content: "Nómina Colombia | SIGTH" },
+      {
+        property: "og:description",
+        content:
+          "Liquide nómina, prestaciones y liquidaciones definitivas con desprendibles de pago descargables e histórico de 12 meses.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: NominaPage,
+});
+
 function NominaPage() {
   const usuarioActual = useUsuarioActual();
   const { empleados, rolActivo, empleadoActuandoId } = useRrhh();
