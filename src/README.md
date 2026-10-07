@@ -1,7 +1,8 @@
 # Mapa del codigo fuente
 
 Esta carpeta contiene la aplicacion. Para aprender a modificarla paso a paso,
-consulta la [guia de edicion manual](../docs/GUIA-DE-EDICION.md).
+consulta la [guia de edicion manual](../docs/GUIA-DE-EDICION.md) y la
+[arquitectura y metodologia](../docs/ARQUITECTURA.md).
 
 ## Donde buscar
 
@@ -17,6 +18,7 @@ consulta la [guia de edicion manual](../docs/GUIA-DE-EDICION.md).
 | Estado compartido | `store/` | Estado React agrupado por dominio. |
 | Tipos y modelos | `types/` | Entidades y contratos de datos agrupados por dominio. |
 | Roles y menus | `config/roles.ts`, `config/navigation.ts` | Catalogos y configuracion de acceso/navegacion. |
+| Fechas, moneda, nombres | `lib/fechas.ts`, `lib/formato.ts` | Utilidades compartidas: reutilizalas en vez de reescribirlas. |
 | Estilos globales | `styles.css` | Tokens y estilos globales. |
 | Arranque y renderizado del servidor | `start.ts`, `server.ts`, `router.tsx` | Inicializacion de TanStack Start y del router. |
 
