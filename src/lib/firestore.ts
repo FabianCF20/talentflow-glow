@@ -11,7 +11,15 @@ import {
   setDoc,
   writeBatch,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth, db } from "./firebase";
+
+/** UID de la sesión activa (null sin sesión); usado para no leer datos antes de ingresar. */
+export function useUidSesion(): string | null {
+  const [uid, setUid] = useState<string | null>(null);
+  useEffect(() => onAuthStateChanged(auth, (u) => setUid(u?.uid ?? null)), []);
+  return uid;
+}
 
 /** Firestore rechaza valores `undefined`: se eliminan antes de escribir. */
 export function limpiarUndefined<T>(valor: T): T {
@@ -93,7 +101,15 @@ export function useFirestoreState<T extends object>(
   const ref = useRef<T[]>([]);
   ref.current = items;
 
+  const uid = useUidSesion();
+
   useEffect(() => {
+    // Sin sesión no se escucha nada: evita lecturas rechazadas y tráfico inútil.
+    if (!uid) {
+      ref.current = [];
+      setItems([]);
+      return;
+    }
     const unsub = onSnapshot(
       collection(db, coleccion),
       (snap) => {
@@ -104,7 +120,7 @@ export function useFirestoreState<T extends object>(
       (error) => console.error(`[firestore:${coleccion}] no se pudo leer`, error),
     );
     return unsub;
-  }, [coleccion, campoId]);
+  }, [coleccion, campoId, uid]);
 
   const actualizar = useCallback(
     (accion: SetStateAction<T[]>) => {
