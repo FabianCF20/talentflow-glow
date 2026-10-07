@@ -68,8 +68,9 @@ function NodeCard({
   const nivel = nivelById(cargo?.nivelId);
   const visible = visibles.has(e.id);
   const usuario = USUARIOS.find((u) => u.empleadoId === e.id);
+  const rolesUsuario = usuario?.roles ?? [];
   const rolBase = rolJerarquicoPorNivel(nivel?.nivel);
-  const tieneRolBase = usuario?.roles.includes(rolBase) ?? false;
+  const tieneRolBase = rolesUsuario.includes(rolBase) ?? false;
 
   return (
     <li className="relative pl-5 before:absolute before:left-0 before:top-0 before:h-full before:w-px before:bg-border last:before:h-6">
@@ -94,8 +95,8 @@ function NodeCard({
           )}
 
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
-            {e.nombres[0]}
-            {e.apellidos[0]}
+            {(e.nombres ?? "").charAt(0)}
+            {(e.apellidos ?? "").charAt(0)}
           </span>
 
           <div className="min-w-0 flex-1">
@@ -111,7 +112,7 @@ function NodeCard({
                   Sin usuario
                 </span>
               )}
-              {usuario?.roles.map((rol) => (
+              {rolesUsuario.map((rol) => (
                 <span
                   key={rol}
                   className="rounded-md bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-secondary-foreground"
@@ -137,7 +138,7 @@ function NodeCard({
           <div className="ml-auto text-right">
             {puedeSalario(e.id) ? (
               <span className="font-mono text-sm tabular-nums text-foreground">
-                {formatCOP(e.salario)}
+                {formatCOP(Number(e.salario) || 0)}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -210,7 +211,7 @@ function Organigrama() {
                 const emp = EMPLEADOS.find((e) => e.id === u.empleadoId);
                 return (
                   <SelectItem key={u.id} value={u.id}>
-                    {emp ? nombreCompleto(emp) : u.username} — {u.roles.map((r) => ROLE_LABEL[r]).join(", ")}
+                    {emp ? nombreCompleto(emp) : u.username} — {(u.roles ?? []).map((r) => ROLE_LABEL[r]).join(", ")}
                   </SelectItem>
                 );
               })}
