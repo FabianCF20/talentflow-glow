@@ -75,7 +75,7 @@ export function useAlertasCumplimiento(): AlertaCumplimiento[] {
 
     // Contratos a término con fecha de finalización próxima.
     for (const e of empleados) {
-      const fin = e.laboral.fechaFinContrato;
+      const fin = e.laboral?.fechaFinContrato;
       if (!fin || e.estadoLaboral === "retirado") continue;
       const dias = diasHasta(fin, hoy);
       if (dias > umbral) continue;
