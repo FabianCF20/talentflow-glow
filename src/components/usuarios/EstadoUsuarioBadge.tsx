@@ -52,6 +52,14 @@ import { mensajeAuth, useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 
+/** Clases de color por estado de cuenta. */
+const ESTADO_STYLE: Record<EstadoUsuario, string> = {
+  activo: "bg-success/12 text-success border-success/30",
+  inactivo: "bg-muted text-muted-foreground border-border",
+  bloqueado: "bg-destructive/10 text-destructive border-destructive/30",
+  pendiente: "bg-warning/15 text-warning-foreground border-warning/40 dark:text-warning",
+};
+
 export function EstadoUsuarioBadge({ estado }: { estado: EstadoUsuario }) {
   return (
     <span

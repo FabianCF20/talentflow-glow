@@ -77,12 +77,6 @@ export const Route = createFileRoute("/usuarios")({
   component: Usuarios,
 });
 
-const ESTADO_STYLE: Record<EstadoUsuario, string> = {
-  activo: "bg-success/12 text-success border-success/30",
-  inactivo: "bg-muted text-muted-foreground border-border",
-  bloqueado: "bg-destructive/10 text-destructive border-destructive/30",
-  pendiente: "bg-warning/15 text-warning-foreground border-warning/40 dark:text-warning",
-};
 
 function Usuarios() {
   const { empleadoId: empleadoInicial } = Route.useSearch();
