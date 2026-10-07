@@ -2,6 +2,7 @@
  * Reglas de cálculo de nómina colombiana (parámetros legales configurables).
  * Base 30 días/mes y 360 días/año, según la práctica laboral colombiana.
  */
+import { MESES_LABEL } from "@/types/nomina";
 
 import type { RoleKey } from "@/types/entities";
 import { RECARGO_HORA_EXTRA, type HoraExtra, type TipoHoraExtra } from "@/types/operaciones";
@@ -343,4 +344,4 @@ export const totalDevengadoPorTipo = (p: PeriodoNomina, codigo: string) =>
 
 /** Etiqueta legible de un periodo de nómina. Ej.: "Octubre 2026". */
 export const mesLabel = (mes: number, anio: number) =>
-  `${MESES_LABEL[mes as keyof typeof MESES_LABEL] ?? mes} ${anio}`;
+  `${MESES_LABEL[mes - 1] ?? mes} ${anio}`;
