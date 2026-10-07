@@ -95,7 +95,9 @@ export interface UsuarioSistema {
   creadoEn: string;
 }
 
-export const nombreCompleto = (e: EmpleadoOrg) => `${e.nombres} ${e.apellidos}`;
+export const nombreCompleto = (e: EmpleadoOrg) =>
+  `${e?.nombres ?? ""} ${e?.apellidos ?? ""}`.trim() ||
+  ((e as unknown as { nombre?: string })?.nombre ?? "Sin nombre");
 
 export const formatCOP = (v: number) =>
   new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 }).format(v);
