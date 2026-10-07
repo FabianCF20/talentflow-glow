@@ -1,3 +1,6 @@
+/**
+ * Reglas de procesos operativos: asistencia, horas, ausencias y cálculos de tiempo.
+ */
 import type { RoleKey } from "@/types/entities";
 import { empleadoById } from "@/data/organizacion";
 import {
@@ -7,11 +10,12 @@ import {
   type RegistroAsistencia,
   type TipoHoraExtra,
 } from "@/types/operaciones";
+// Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
+import { hoyISO, horaActual, diasEntre, sumarDias } from "./fechas";
+export { hoyISO, horaActual, diasEntre, sumarDias };
 
 /** Utilidades de cálculo y reglas de los procesos operativos. */
 
-export const hoyISO = () => new Date().toISOString().slice(0, 10);
-export const horaActual = () => new Date().toTimeString().slice(0, 5);
 
 export const aMinutos = (hhmm?: string) => {
   if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
@@ -25,19 +29,6 @@ export const formatoHoras = (minutos: number) => {
   return `${signo}${Math.floor(abs / 60)}h ${String(abs % 60).padStart(2, "0")}m`;
 };
 
-/** Días calendario entre dos fechas (inclusive). */
-export const diasEntre = (desde: string, hasta: string) => {
-  const d = new Date(`${desde}T00:00:00`).getTime();
-  const h = new Date(`${hasta}T00:00:00`).getTime();
-  if (Number.isNaN(d) || Number.isNaN(h) || h < d) return 0;
-  return Math.round((h - d) / 86_400_000) + 1;
-};
-
-export function sumarDias(fecha: string, dias: number) {
-  const d = new Date(`${fecha}T00:00:00`);
-  d.setDate(d.getDate() + dias);
-  return d.toISOString().slice(0, 10);
-}
 
 /** Horas trabajadas, tardanza y ausencia a partir de las marcaciones del supervisor. */
 export function calcularAsistencia(r: RegistroAsistencia): CalculoAsistencia {

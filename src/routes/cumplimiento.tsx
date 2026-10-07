@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Alertas de vencimiento, documentos firmados y bitácora de acceso a datos personales.
+ * Ruta: /cumplimiento
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AlertTriangle, CalendarClock, Eye, FileCheck2, ShieldCheck } from "lucide-react";

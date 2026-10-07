@@ -1,3 +1,6 @@
+/**
+ * Arreglos compartidos del módulo de nómina (se llenan desde Firestore).
+ */
 import { hoyISO } from "@/lib/nomina";
 import type { ConceptoRecurrente, LiquidacionFinal, PeriodoNomina } from "@/types/nomina";
 

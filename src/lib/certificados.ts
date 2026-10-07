@@ -1,3 +1,6 @@
+/**
+ * Generación de certificados laborales en PDF con firma electrónica.
+ */
 import { crearPdf, descargarBlob, envolver, type PdfLinea } from "@/lib/pdf";
 import { antiguedadAnios, nombreArea, nombreCargo, nombreCentroTrabajo } from "@/lib/rrhh";
 import { formatCOP } from "@/types/organizacion";

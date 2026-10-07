@@ -1,3 +1,6 @@
+/**
+ * Arreglos compartidos del Portal del Empleado (se llenan desde Firestore).
+ */
 import type {
   DesprendibleNomina,
   DocumentoEmpleado,

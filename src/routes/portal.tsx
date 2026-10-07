@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Portal de autoconsulta del empleado.
+ * Ruta: /portal
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {

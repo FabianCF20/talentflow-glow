@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Historial inalterable de novedades operativas.
+ * Ruta: /novedades
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { History } from "lucide-react";

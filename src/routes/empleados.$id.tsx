@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Ficha detallada (expediente) de un empleado.
+ * Ruta: /empleados/$id
+ */
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ArrowLeft, Lock, Save, ShieldOff, UserCog } from "lucide-react";

@@ -1,3 +1,6 @@
+/**
+ * Marco común de todas las pantallas internas: menú lateral, barra superior, aviso de inactividad y pie.
+ */
 import { useEffect, useState, type ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";

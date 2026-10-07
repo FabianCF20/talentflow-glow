@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Incidencias, actuaciones y observaciones internas.
+ * Ruta: /disciplinario
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Scale, ShieldAlert, Gavel, EyeOff, Plus } from "lucide-react";

@@ -1,3 +1,6 @@
+/**
+ * Formulario completo de creación/edición de empleados (datos personales, laborales, familia, formación, banco y seguridad social).
+ */
 import { useMemo, useState } from "react";
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -40,8 +43,8 @@ import type {
 } from "@/types/rrhh";
 import type { EmpleadoOrg } from "@/types/organizacion";
 import type { EventoHojaVida } from "@/types/rrhh";
+import { hoyISO as hoy } from "@/lib/fechas";
 
-const hoy = () => new Date().toISOString().slice(0, 10);
 
 const expedienteVacio = (empleadoId: string): ExpedienteEmpleado => ({
   empleadoId,

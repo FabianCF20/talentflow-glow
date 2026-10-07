@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Usuarios, roles, matriz de permisos y visibilidad.
+ * Ruta: /usuarios
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment, useMemo, useState } from "react";
 import { Check, Minus, UserPlus, ShieldAlert, KeyRound, Wallet, Save, Loader2 } from "lucide-react";

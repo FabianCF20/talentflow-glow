@@ -1,3 +1,6 @@
+/**
+ * Reglas de la gestión documental: vigencias, versiones y categorías.
+ */
 import { crearPdf, descargarBlob, envolver, type PdfLinea } from "@/lib/pdf";
 import { nombreEmpleado, type EmpleadoRRHH } from "@/types/rrhh";
 import {

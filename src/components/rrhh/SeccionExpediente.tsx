@@ -1,3 +1,6 @@
+/**
+ * Bloque visual reutilizable para mostrar una sección del expediente.
+ */
 import type { ReactNode } from "react";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";

@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Dashboard inicial según el rol.
+ * Ruta: /
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { Users, FileWarning, Inbox, ShieldAlert, LayoutGrid } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";

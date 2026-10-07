@@ -1,3 +1,6 @@
+/**
+ * Reglas de negocio del módulo disciplinario (consecutivos, permisos, etapas).
+ */
 import { EMPLEADOS, areasDeDireccion } from "@/data/organizacion";
 import type { RoleKey } from "@/types/entities";
 import type { AsignacionFormulario, ValorRespuesta } from "@/types/sst";
@@ -9,9 +12,10 @@ import type {
   RespuestaEvaluacion,
 } from "@/types/disciplinario";
 import { ROLES_OBSERVACION } from "@/types/disciplinario";
+// Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
+import { hoyISO, horaActual } from "./fechas";
+export { hoyISO, horaActual };
 
-export const hoyISO = () => new Date().toISOString().slice(0, 10);
-export const horaActual = () => new Date().toTimeString().slice(0, 5);
 
 export const consecutivoDisciplinario = (n: number) =>
   `DIS-${new Date().getFullYear()}-${String(n).padStart(4, "0")}`;

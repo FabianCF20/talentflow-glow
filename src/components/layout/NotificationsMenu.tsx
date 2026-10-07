@@ -1,3 +1,6 @@
+/**
+ * Campana de notificaciones internas con contador de no leídas.
+ */
 import { Bell, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useFirestoreState } from "@/lib/firestore";

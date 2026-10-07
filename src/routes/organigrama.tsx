@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Organigrama automático con visibilidad por rol.
+ * Ruta: /organigrama
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, EyeOff, RefreshCw, Users2 } from "lucide-react";
@@ -25,7 +29,7 @@ import {
   type OrgNode,
 } from "@/data/organizacion";
 import { ALCANCE_LABEL, alcanceDe, empleadosVisibles, puedeVerSalario } from "@/lib/visibilidad";
-import { formatCOP, nombreCompleto } from "@/types/organizacion";
+import { formatCOP, iniciales, nombreCompleto } from "@/lib/formato";
 import { ROLE_LABEL, rolJerarquicoPorNivel } from "@/config/roles";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -95,8 +99,7 @@ function NodeCard({
           )}
 
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-semibold text-primary">
-            {(e.nombres ?? "").charAt(0)}
-            {(e.apellidos ?? "").charAt(0)}
+            {iniciales(e)}
           </span>
 
           <div className="min-w-0 flex-1">
@@ -138,7 +141,7 @@ function NodeCard({
           <div className="ml-auto text-right">
             {puedeSalario(e.id) ? (
               <span className="font-mono text-sm tabular-nums text-foreground">
-                {formatCOP(Number(e.salario) || 0)}
+                {formatCOP(e.salario)}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Registro, autorización y liquidación de horas extras.
+ * Ruta: /horas-extras
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, Timer, X } from "lucide-react";

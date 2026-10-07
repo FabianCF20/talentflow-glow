@@ -1,3 +1,6 @@
+/**
+ * Estado compartido del Portal del Empleado (solicitudes de cambio, documentos, certificados).
+ */
 import {
   createContext,
   useCallback,
@@ -19,6 +22,7 @@ import type {
   TipoCertificado,
 } from "@/types/portal";
 import type { DatosPersonales, Familiar } from "@/types/rrhh";
+import { hoyISO as hoy } from "@/lib/fechas";
 
 /**
  * Estado del Portal del Empleado.
@@ -71,7 +75,6 @@ interface PortalContextValue {
 
 const PortalContext = createContext<PortalContextValue | null>(null);
 
-const hoy = () => new Date().toISOString().slice(0, 10);
 
 export function PortalProvider({ children }: { children: ReactNode }) {
   const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudCambio>("portal_solicitudes");

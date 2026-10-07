@@ -1,3 +1,6 @@
+/**
+ * Envío de errores al entorno de vista previa.
+ */
 type LovableErrorOptions = {
   mechanism?: "manual" | "onerror" | "unhandledrejection" | "react_error_boundary";
   handled?: boolean;

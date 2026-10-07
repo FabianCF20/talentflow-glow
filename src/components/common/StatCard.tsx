@@ -1,3 +1,6 @@
+/**
+ * Tarjeta de indicador (valor + etiqueta + icono) usada en dashboards.
+ */
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 

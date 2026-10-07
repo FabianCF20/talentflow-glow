@@ -1,3 +1,6 @@
+/**
+ * Tabla genérica con columnas configurables. Úsela para cualquier listado en lugar de crear tablas nuevas.
+ */
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

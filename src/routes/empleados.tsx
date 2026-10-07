@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Listado, creación, exportación y reportes de empleados.
+ * Ruta: /empleados
+ */
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Download, FileSpreadsheet, Filter, UserCheck, UserMinus, Users2 } from "lucide-react";

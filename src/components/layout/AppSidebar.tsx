@@ -1,3 +1,6 @@
+/**
+ * Menú lateral generado a partir de `config/navigation.ts`.
+ */
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronsLeft, Lock } from "lucide-react";
 import { NAV_GROUPS } from "@/config/navigation";

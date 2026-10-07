@@ -1,3 +1,6 @@
+/**
+ * Suscripción en tiempo real a los datos maestros de Firestore; mantiene actualizados los arreglos de `src/data`.
+ */
 import { useEffect, useState, type ReactNode } from "react";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebase";

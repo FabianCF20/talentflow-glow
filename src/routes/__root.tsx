@@ -1,3 +1,6 @@
+/**
+ * Raíz de la aplicación: documento HTML, proveedores globales (sesión, datos, tema) y protección de rutas.
+ */
 import type { ErrorComponentProps } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {

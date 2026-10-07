@@ -1,3 +1,6 @@
+/**
+ * Etiquetas de etapa y estado de los flujos de aprobación (Empleado → Jefe → RRHH).
+ */
 import { cn } from "@/lib/utils";
 import {
   ESTADO_HORA_EXTRA_LABEL,

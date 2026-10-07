@@ -1,3 +1,6 @@
+/**
+ * Mensaje estándar para listas o secciones sin datos.
+ */
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 

@@ -1,3 +1,6 @@
+/**
+ * Tabla reutilizable que muestra el historial de auditoría (quién, cuándo, qué cambió) de un registro.
+ */
 import { DataTable, type Column } from "@/components/common/DataTable";
 import type { AuditLog } from "@/types/entities";
 

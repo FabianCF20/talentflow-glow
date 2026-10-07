@@ -1,3 +1,6 @@
+/**
+ * Reglas de Recursos Humanos: expediente, hoja de vida y estados laborales.
+ */
 import type { RoleKey } from "@/types/entities";
 import {
   ESTADOS_VINCULADOS,
@@ -9,6 +12,7 @@ import {
 } from "@/types/rrhh";
 import { areaById, cargoById, centroCostoById, centroTrabajoById, empleadoById } from "@/data/organizacion";
 import { formatCOP } from "@/types/organizacion";
+import { hoyISO as hoy } from "./fechas";
 
 /** Roles autorizados a modificar cargo, salario, área, centro de costo y jefe inmediato. */
 export const ROLES_RRHH: RoleKey[] = ["administrador", "talento_humano"];
@@ -65,7 +69,6 @@ const mostrar = (campo: keyof InformacionLaboral, valor: unknown): string => {
   }
 };
 
-const hoy = () => new Date().toISOString().slice(0, 10);
 
 /** Clasifica automáticamente el tipo de evento según el campo modificado. */
 function tipoDeCambio(

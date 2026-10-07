@@ -1,3 +1,6 @@
+/**
+ * Estado compartido del módulo disciplinario sincronizado con Firestore.
+ */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
 import {

@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Exámenes médicos, accidentes, capacitaciones e indicadores SST.
+ * Ruta: /sst
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {

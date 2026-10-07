@@ -1,3 +1,6 @@
+/**
+ * Utilidades genéricas de Firestore: hook `useFirestoreState`, tiempos límite y errores de disponibilidad.
+ */
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import {
   collection,

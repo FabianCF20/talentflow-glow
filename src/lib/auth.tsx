@@ -1,3 +1,6 @@
+/**
+ * Sesión de usuario con Firebase Auth: ingreso, registro, salida y perfil con roles (colección `usuarios`).
+ */
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import {
   createUserWithEmailAndPassword,
@@ -7,6 +10,7 @@ import {
   signOut,
   type User,
 } from "firebase/auth";
+import { iniciales as inicialesDe } from "./formato";
 import { collection, doc, getDoc, getDocs, limit, query, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { RoleKey } from "@/types/entities";
@@ -161,10 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   }, []);
 
-  const iniciales = perfil
-    ? `${(perfil.nombres ?? "").charAt(0)}${(perfil.apellidos ?? "").charAt(0)}`.toUpperCase() ||
-      (usuario?.email?.charAt(0).toUpperCase() ?? "?")
-    : (usuario?.email?.charAt(0).toUpperCase() ?? "?");
+  const respaldo = usuario?.email?.charAt(0).toUpperCase() ?? "?";
+  const iniciales = perfil ? inicialesDe(perfil, respaldo) : respaldo;
 
   return (
     <AuthContext.Provider

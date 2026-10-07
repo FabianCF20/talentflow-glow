@@ -1,3 +1,6 @@
+/**
+ * Etiqueta de color para estados de ciclo de vida (activo, inactivo, archivado).
+ */
 import { cn } from "@/lib/utils";
 import { RECORD_STATUS_LABEL, type RecordStatus } from "@/types/entities";
 

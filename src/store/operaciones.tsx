@@ -1,3 +1,6 @@
+/**
+ * Estado compartido de solicitudes, incapacidades, asistencia y horas extras.
+ */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
 import {

@@ -1,3 +1,6 @@
+/**
+ * Página de error mostrada cuando una pantalla falla.
+ */
 export function renderErrorPage(): string {
   return `<!doctype html>
 <html lang="en">

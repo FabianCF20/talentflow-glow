@@ -1,3 +1,6 @@
+/**
+ * Estructura organizacional en memoria y utilidades del organigrama (búsqueda por id, árbol, subordinados).
+ */
 import type {
   AreaOrg,
   CargoOrg,

@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Estructura organizacional (áreas, dependencias, sedes, centros de costo, cargos).
+ * Ruta: /organizacion
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {

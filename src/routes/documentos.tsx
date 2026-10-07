@@ -1,3 +1,7 @@
+/**
+ * Pantalla: Gestión documental del expediente con versiones y vigencias.
+ * Ruta: /documentos
+ */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AlertTriangle, FileStack, FolderOpen, Upload } from "lucide-react";
