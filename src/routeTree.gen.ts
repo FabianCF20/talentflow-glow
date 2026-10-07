@@ -24,7 +24,6 @@ import { Route as FormulariosRouteImport } from './routes/formularios'
 import { Route as HorasExtrasRouteImport } from './routes/horas-extras'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MaestrosRouteImport } from './routes/maestros'
-import { Route as NominaRouteImport } from './routes/nomina'
 import { Route as NovedadesRouteImport } from './routes/novedades'
 import { Route as OrganigramaRouteImport } from './routes/organigrama'
 import { Route as OrganizacionRouteImport } from './routes/organizacion'
@@ -110,11 +109,6 @@ const MaestrosRoute = MaestrosRouteImport.update({
   path: '/maestros',
   getParentRoute: () => rootRouteImport,
 } as any)
-const NominaRoute = NominaRouteImport.update({
-  id: '/nomina',
-  path: '/nomina',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const NovedadesRoute = NovedadesRouteImport.update({
   id: '/novedades',
   path: '/novedades',
@@ -177,7 +171,6 @@ export interface FileRoutesByFullPath {
   '/horas-extras': typeof HorasExtrasRoute
   '/login': typeof LoginRoute
   '/maestros': typeof MaestrosRoute
-  '/nomina': typeof NominaRoute
   '/novedades': typeof NovedadesRoute
   '/organigrama': typeof OrganigramaRoute
   '/organizacion': typeof OrganizacionRoute
@@ -204,7 +197,6 @@ export interface FileRoutesByTo {
   '/horas-extras': typeof HorasExtrasRoute
   '/login': typeof LoginRoute
   '/maestros': typeof MaestrosRoute
-  '/nomina': typeof NominaRoute
   '/novedades': typeof NovedadesRoute
   '/organigrama': typeof OrganigramaRoute
   '/organizacion': typeof OrganizacionRoute
@@ -232,7 +224,6 @@ export interface FileRoutesById {
   '/horas-extras': typeof HorasExtrasRoute
   '/login': typeof LoginRoute
   '/maestros': typeof MaestrosRoute
-  '/nomina': typeof NominaRoute
   '/novedades': typeof NovedadesRoute
   '/organigrama': typeof OrganigramaRoute
   '/organizacion': typeof OrganizacionRoute
@@ -261,7 +252,6 @@ export interface FileRouteTypes {
     | '/horas-extras'
     | '/login'
     | '/maestros'
-    | '/nomina'
     | '/novedades'
     | '/organigrama'
     | '/organizacion'
@@ -288,7 +278,6 @@ export interface FileRouteTypes {
     | '/horas-extras'
     | '/login'
     | '/maestros'
-    | '/nomina'
     | '/novedades'
     | '/organigrama'
     | '/organizacion'
@@ -315,7 +304,6 @@ export interface FileRouteTypes {
     | '/horas-extras'
     | '/login'
     | '/maestros'
-    | '/nomina'
     | '/novedades'
     | '/organigrama'
     | '/organizacion'
@@ -343,7 +331,6 @@ export interface RootRouteChildren {
   HorasExtrasRoute: typeof HorasExtrasRoute
   LoginRoute: typeof LoginRoute
   MaestrosRoute: typeof MaestrosRoute
-  NominaRoute: typeof NominaRoute
   NovedadesRoute: typeof NovedadesRoute
   OrganigramaRoute: typeof OrganigramaRoute
   OrganizacionRoute: typeof OrganizacionRoute
@@ -461,13 +448,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MaestrosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/nomina': {
-      id: '/nomina'
-      path: '/nomina'
-      fullPath: '/nomina'
-      preLoaderRoute: typeof NominaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/novedades': {
       id: '/novedades'
       path: '/novedades'
@@ -562,7 +542,6 @@ const rootRouteChildren: RootRouteChildren = {
   HorasExtrasRoute: HorasExtrasRoute,
   LoginRoute: LoginRoute,
   MaestrosRoute: MaestrosRoute,
-  NominaRoute: NominaRoute,
   NovedadesRoute: NovedadesRoute,
   OrganigramaRoute: OrganigramaRoute,
   OrganizacionRoute: OrganizacionRoute,
