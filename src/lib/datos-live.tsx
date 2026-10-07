@@ -36,9 +36,20 @@ const COLECCIONES: { nombre: string; destino: { id: string }[] }[] = [
 ];
 
 export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
-  const [version, setVersion] = useState(0);
+  const [version, setVersionReal] = useState(0);
 
   useEffect(() => {
+    // Agrupa las actualizaciones: en lugar de rehacer la pantalla con cada
+    // colección (10 veces al iniciar), se rehace una sola vez cada 250 ms.
+    let pendiente: ReturnType<typeof setTimeout> | null = null;
+    const setVersion = (_: (v: number) => number) => {
+      if (pendiente) return;
+      pendiente = setTimeout(() => {
+        pendiente = null;
+        setVersionReal((v) => v + 1);
+      }, 250);
+    };
+
     const subs = COLECCIONES.map(({ nombre, destino }) =>
       onSnapshot(
         collection(db, nombre),
@@ -77,6 +88,7 @@ export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
     );
 
     return () => {
+      if (pendiente) clearTimeout(pendiente);
       subs.forEach((u) => u());
       unsubUsuarios();
       unsubExpedientes();
