@@ -42,7 +42,7 @@ export function rotacionMensual(empleados: EmpleadoRRHH[], anio: number): PuntoS
   const base = empleados.filter(vinculado).length || 1;
   return MESES_LABEL.map((mes, i) => {
     const prefijo = `${anio}-${String(i + 1).padStart(2, "0")}`;
-    const retiros = empleados.filter((e) => e.laboral.fechaRetiro?.startsWith(prefijo)).length;
+    const retiros = empleados.filter((e) => e.laboral?.fechaRetiro?.startsWith(prefijo)).length;
     return { label: mes.slice(0, 3), valor: Number(((retiros / base) * 100).toFixed(2)) };
   });
 }
@@ -113,7 +113,7 @@ export function reporteVacaciones(
       empleadoId: e.id,
       diasTomados,
       diasPendientes: pendientesPorEmpleado[e.id] ?? 0,
-      solicitudesPendientes: propias.filter((s) => s.estado.startsWith("pendiente")).length,
+      solicitudesPendientes: propias.filter((s) => s.estado?.startsWith("pendiente")).length,
     };
   });
 }
@@ -130,7 +130,7 @@ export interface CostoMensual {
 
 export function costosLaborales(periodos: PeriodoNomina[], anio: number): CostoMensual[] {
   return periodos
-    .filter((p) => p.anio === anio && p.detalles.length > 0)
+    .filter((p) => p.anio === anio && (p.detalles?.length ?? 0) > 0)
     .map((p) => {
       const t = totalesPeriodo(p);
       const prestaciones =
@@ -184,16 +184,16 @@ export function horasExtrasReporte(
 export function accidentalidadMensual(accidentes: AccidenteLaboral[], anio: number): PuntoSerie[] {
   return MESES_LABEL.map((mes, i) => ({
     label: mes.slice(0, 3),
-    valor: accidentes.filter((a) => a.fecha.startsWith(`${anio}-${String(i + 1).padStart(2, "0")}`)).length,
+    valor: accidentes.filter((a) => a.fecha?.startsWith(`${anio}-${String(i + 1).padStart(2, "0")}`)).length,
   }));
 }
 
 export function capacitacionesResumen(capacitaciones: CapacitacionSST[], anio: number) {
   const delAnio = capacitaciones.filter((c) => c.fecha.startsWith(String(anio)));
-  const convocados = delAnio.reduce((s, c) => s + c.asistentes.length, 0);
-  const asistieron = delAnio.reduce((s, c) => s + c.asistentes.filter((a) => a.asistio).length, 0);
+  const convocados = delAnio.reduce((s, c) => s + (c.asistentes ?? []).length, 0);
+  const asistieron = delAnio.reduce((s, c) => s + (c.asistentes ?? []).filter((a) => a.asistio).length, 0);
   const horas = delAnio.reduce((s, c) => s + c.duracionHoras, 0);
-  const notas = delAnio.flatMap((c) => c.asistentes.map((a) => a.calificacion ?? 0)).filter((n) => n > 0);
+  const notas = delAnio.flatMap((c) => (c.asistentes ?? []).map((a) => a.calificacion ?? 0)).filter((n) => n > 0);
   return {
     sesiones: delAnio.length,
     convocados,
@@ -293,8 +293,8 @@ export function indicadoresGlobales(input: {
 }): IndicadoresGlobales {
   const { empleados, periodos, anio } = input;
   const activos = empleados.filter(vinculado);
-  const retirosAnio = empleados.filter((e) => e.laboral.fechaRetiro?.startsWith(String(anio))).length;
-  const ultimo = [...periodos].reverse().find((p) => p.detalles.length > 0);
+  const retirosAnio = empleados.filter((e) => e.laboral?.fechaRetiro?.startsWith(String(anio))).length;
+  const ultimo = [...periodos].reverse().find((p) => (p.detalles?.length ?? 0) > 0);
   const totales = ultimo ? totalesPeriodo(ultimo) : null;
   const hoy = Date.now();
   const antiguedad = activos.length
@@ -315,7 +315,7 @@ export function indicadoresGlobales(input: {
     tasaAusentismo: aus.length
       ? Number((aus.reduce((s, a) => s + a.tasa, 0) / aus.length).toFixed(2))
       : 0,
-    accidentesAnio: input.accidentes.filter((a) => a.fecha.startsWith(String(anio))).length,
+    accidentesAnio: input.accidentes.filter((a) => a.fecha?.startsWith(String(anio))).length,
     coberturaCapacitacion: cap.cobertura,
   };
 }
