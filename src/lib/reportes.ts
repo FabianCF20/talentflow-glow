@@ -151,7 +151,7 @@ export function costosLaborales(periodos: PeriodoNomina[], anio: number): CostoM
 export function prestacionesPorEmpleado(periodos: PeriodoNomina[], anio: number) {
   const acc = new Map<string, { prima: number; cesantias: number; intereses: number; vacaciones: number }>();
   for (const p of periodos.filter((x) => x.anio === anio)) {
-    for (const d of p.detalles) {
+    for (const d of p.detalles ?? []) {
       const prev = acc.get(d.empleadoId) ?? { prima: 0, cesantias: 0, intereses: 0, vacaciones: 0 };
       acc.set(d.empleadoId, {
         prima: prev.prima + d.provisiones.prima,
