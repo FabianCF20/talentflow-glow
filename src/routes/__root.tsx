@@ -27,6 +27,8 @@ import { DisciplinarioProvider } from "../store/disciplinario";
 import { NominaProvider } from "../store/nomina";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { DatosMaestrosProvider } from "../lib/datos-live";
+import { NAV_GROUPS } from "../config/navigation";
+import { can } from "../config/roles";
 
 
 function NotFoundComponent() {
@@ -146,7 +148,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 /** Bloquea la aplicación hasta que exista una sesión real de Firebase Auth. */
 function SesionRequerida({ children }: { children: ReactNode }) {
-  const { usuario, cargando } = useAuth();
+  const { usuario, cargando, perfil } = useAuth();
   const navigate = useRouter().navigate;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const esLogin = pathname === "/login";
@@ -161,6 +163,22 @@ function SesionRequerida({ children }: { children: ReactNode }) {
     return (
       <div className="grid min-h-screen place-items-center bg-background">
         <p className="text-sm text-muted-foreground">Verificando sesión…</p>
+      </div>
+    );
+  }
+
+  // Bloquea la entrada directa por dirección a módulos que el rol no puede ver.
+  const item = NAV_GROUPS.flatMap((g) => g.items)
+    .filter((i) => i.to && (i.to === "/" ? pathname === "/" : pathname.startsWith(i.to)))
+    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))[0];
+  if (perfil && item && item.to !== "/" && !can(perfil.roles ?? [], item.modulo, "ver")) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background px-4 text-center">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Sin acceso a este módulo</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Su rol no tiene permiso para ver «{item.label}».</p>
+          <Link to="/" className="mt-4 inline-block text-sm font-medium text-primary underline">Volver al inicio</Link>
+        </div>
       </div>
     );
   }

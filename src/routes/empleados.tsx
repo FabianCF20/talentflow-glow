@@ -89,9 +89,9 @@ function Empleados() {
 
   const filtrar = (rows: EmpleadoRRHH[]) =>
     rows.filter((e) => {
-      const texto = `${nombreEmpleado(e)} ${e.documento} ${nombreCargo(e.laboral.cargoId)}`.toLowerCase();
+      const texto = `${nombreEmpleado(e)} ${e.documento} ${nombreCargo(e.laboral?.cargoId)}`.toLowerCase();
       const okTexto = texto.includes(query.trim().toLowerCase());
-      const okArea = areaFiltro === "todas" || e.laboral.areaId === areaFiltro;
+      const okArea = areaFiltro === "todas" || e.laboral?.areaId === areaFiltro;
       const okEstado = estadoFiltro === "todos" || e.estadoLaboral === estadoFiltro;
       return okTexto && okArea && okEstado;
     });
@@ -105,7 +105,7 @@ function Empleados() {
     [empleadosPermitidos],
   );
 
-  const nomina = activos.reduce((s, e) => s + e.laboral.salario, 0);
+  const nomina = activos.reduce((s, e) => s + e.laboral?.salario, 0);
 
   const columnas = (mostrarRetiro: boolean): Column<EmpleadoRRHH>[] => [
     {
@@ -129,8 +129,8 @@ function Empleados() {
       header: "Cargo / Área",
       render: (e) => (
         <div>
-          <div className="text-foreground">{nombreCargo(e.laboral.cargoId)}</div>
-          <div className="text-xs text-muted-foreground">{nombreArea(e.laboral.areaId)}</div>
+          <div className="text-foreground">{nombreCargo(e.laboral?.cargoId)}</div>
+          <div className="text-xs text-muted-foreground">{nombreArea(e.laboral?.areaId)}</div>
         </div>
       ),
     },
@@ -139,20 +139,20 @@ function Empleados() {
       header: "Centro de trabajo / costo",
       render: (e) => (
         <div className="text-xs text-muted-foreground">
-          <div>{nombreCentroTrabajo(e.laboral.centroTrabajoId)}</div>
-          <div>{nombreCentroCosto(e.laboral.centroCostoId)}</div>
+          <div>{nombreCentroTrabajo(e.laboral?.centroTrabajoId)}</div>
+          <div>{nombreCentroCosto(e.laboral?.centroCostoId)}</div>
         </div>
       ),
     },
-    { key: "jefe", header: "Jefe inmediato", render: (e) => nombreJefe(e.laboral.jefeInmediatoId) },
+    { key: "jefe", header: "Jefe inmediato", render: (e) => nombreJefe(e.laboral?.jefeInmediatoId) },
     {
       key: "contrato",
       header: "Contrato",
       render: (e) => (
         <div>
-          <div className="text-foreground">{TIPO_CONTRATO_LABEL[e.laboral.tipoContrato]}</div>
+          <div className="text-foreground">{TIPO_CONTRATO_LABEL[e.laboral?.tipoContrato]}</div>
           <div className="tabular-nums text-xs text-muted-foreground">
-            Ingreso {e.laboral.fechaIngreso}
+            Ingreso {e.laboral?.fechaIngreso}
           </div>
         </div>
       ),
@@ -164,7 +164,7 @@ function Empleados() {
       render: (e) => (
         <span className="tabular-nums">
           {verSalario(e.id) ? (
-            formatCOP(e.laboral.salario)
+            formatCOP(e.laboral?.salario)
           ) : (
             <span className="text-muted-foreground">Restringido</span>
           )}
@@ -177,9 +177,9 @@ function Empleados() {
           header: "Retiro",
           render: (e) => (
             <div>
-              <div className="tabular-nums text-foreground">{e.laboral.fechaRetiro ?? "—"}</div>
+              <div className="tabular-nums text-foreground">{e.laboral?.fechaRetiro ?? "—"}</div>
               <div className="max-w-[220px] text-xs text-muted-foreground">
-                {e.laboral.motivoRetiro ?? "—"}
+                {e.laboral?.motivoRetiro ?? "—"}
               </div>
             </div>
           ),
@@ -228,18 +228,18 @@ function Empleados() {
       rows.map((e) => [
         e.documento,
         nombreEmpleado(e),
-        nombreCargo(e.laboral.cargoId),
-        nombreArea(e.laboral.areaId),
-        nombreCentroTrabajo(e.laboral.centroTrabajoId),
-        nombreCentroCosto(e.laboral.centroCostoId),
-        nombreJefe(e.laboral.jefeInmediatoId),
-        TIPO_CONTRATO_LABEL[e.laboral.tipoContrato],
-        e.laboral.fechaIngreso,
+        nombreCargo(e.laboral?.cargoId),
+        nombreArea(e.laboral?.areaId),
+        nombreCentroTrabajo(e.laboral?.centroTrabajoId),
+        nombreCentroCosto(e.laboral?.centroCostoId),
+        nombreJefe(e.laboral?.jefeInmediatoId),
+        TIPO_CONTRATO_LABEL[e.laboral?.tipoContrato],
+        e.laboral?.fechaIngreso,
         ESTADO_LABORAL_LABEL[e.estadoLaboral],
-        verSalario(e.id) ? e.laboral.salario : "Restringido",
+        verSalario(e.id) ? e.laboral?.salario : "Restringido",
         e.accesoHabilitado ? "Habilitado" : "Desactivado",
-        e.laboral.fechaRetiro ?? "",
-        e.laboral.motivoRetiro ?? "",
+        e.laboral?.fechaRetiro ?? "",
+        e.laboral?.motivoRetiro ?? "",
       ]),
     );
 
@@ -251,21 +251,21 @@ function Empleados() {
   }));
 
   const porArea = AREAS.map((a) => {
-    const rows = activos.filter((e) => e.laboral.areaId === a.id);
+    const rows = activos.filter((e) => e.laboral?.areaId === a.id);
     return {
       area: a.nombre,
       total: rows.length,
-      masa: rows.reduce((s, e) => s + e.laboral.salario, 0),
+      masa: rows.reduce((s, e) => s + e.laboral?.salario, 0),
       antiguedad: rows.length
         ? Math.round(
-            (rows.reduce((s, e) => s + antiguedadAnios(e.laboral.fechaIngreso), 0) / rows.length) * 10,
+            (rows.reduce((s, e) => s + antiguedadAnios(e.laboral?.fechaIngreso), 0) / rows.length) * 10,
           ) / 10
         : 0,
     };
   }).filter((r) => r.total > 0);
 
   const porContrato = (Object.keys(TIPO_CONTRATO_LABEL) as (keyof typeof TIPO_CONTRATO_LABEL)[]).map(
-    (t) => ({ tipo: t, total: activos.filter((e) => e.laboral.tipoContrato === t).length }),
+    (t) => ({ tipo: t, total: activos.filter((e) => e.laboral?.tipoContrato === t).length }),
   );
 
   return (
