@@ -11,7 +11,8 @@ import {
   type User,
 } from "firebase/auth";
 import { iniciales as inicialesDe } from "./formato";
-import { collection, doc, getDoc, getDocs, limit, query, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc,
+  getDocFromServer, getDocs, limit, query, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { RoleKey } from "@/types/entities";
 
@@ -88,7 +89,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsuario(u);
       if (u) {
         try {
-          const snap = await conLimite(getDoc(doc(db, COLECCION, u.uid)));
+          // Se lee del servidor: la caché local puede tener solo `ultimoAcceso`
+          // (escrito al ingresar) y dejar el perfil sin nombres ni roles.
+          const ref = doc(db, COLECCION, u.uid);
+          const snap = await conLimite(getDocFromServer(ref)).catch(() => conLimite(getDoc(ref)));
           if (snap.exists()) {
             const datos = snap.data() as PerfilUsuario;
             // Un perfil sin roles se normaliza a lista vacía para no romper pantallas.
