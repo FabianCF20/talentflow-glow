@@ -5,6 +5,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronsLeft, Lock } from "lucide-react";
 import { NAV_GROUPS } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import { can } from "@/config/roles";
+import { useAuth } from "@/lib/auth";
 
 export function AppSidebar({
   collapsed,
@@ -16,6 +18,13 @@ export function AppSidebar({
   onNavigate?: () => void;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  // Solo se muestran los módulos que el rol del usuario puede ver.
+  const grupos = NAV_GROUPS.map((g) => ({
+    ...g,
+    items: g.items.filter((i) => i.proximamente || can(roles, i.modulo, "ver")),
+  })).filter((g) => g.items.length > 0);
 
   return (
     <aside
@@ -37,7 +46,7 @@ export function AppSidebar({
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-        {NAV_GROUPS.map((group) => (
+        {grupos.map((group) => (
           <div key={group.label}>
             {!collapsed && (
               <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/45">
