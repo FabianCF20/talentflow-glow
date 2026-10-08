@@ -371,14 +371,14 @@ function PortalEmpleadoPage() {
         <div className="min-w-0 flex-1">
           <p className="font-display text-lg font-semibold text-foreground">{nombreEmpleado(empleado)}</p>
           <p className="text-sm text-muted-foreground">
-            {nombreCargo(empleado.laboral.cargoId)} · {nombreArea(empleado.laboral.areaId)} · CC{" "}
+            {nombreCargo(empleado.laboral?.cargoId)} · {nombreArea(empleado.laboral?.areaId)} · CC{" "}
             {empleado.documento}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <EstadoLaboralBadge estado={empleado.estadoLaboral} />
           <span className="text-sm text-muted-foreground">
-            Antigüedad {antiguedadAnios(empleado.laboral.fechaIngreso, empleado.laboral.fechaRetiro)} años
+            Antigüedad {antiguedadAnios(empleado.laboral?.fechaIngreso, empleado.laboral?.fechaRetiro)} años
           </span>
           <span className="text-sm text-muted-foreground">
             Solicitudes pendientes: {misSolicitudes.filter((s) => s.estado === "pendiente").length}
@@ -445,12 +445,12 @@ function PortalEmpleadoPage() {
         <TabsContent value="contrato" className="mt-4 space-y-4">
           <SeccionExpediente titulo="Contrato">
             <GridDatos>
-              <CampoDato label="Tipo de contrato" value={TIPO_CONTRATO_LABEL[empleado.laboral.tipoContrato]} />
-              <CampoDato label="Fecha de ingreso" value={empleado.laboral.fechaIngreso} />
-              <CampoDato label="Fin de contrato" value={empleado.laboral.fechaFinContrato ?? "No aplica"} />
+              <CampoDato label="Tipo de contrato" value={TIPO_CONTRATO_LABEL[empleado.laboral?.tipoContrato]} />
+              <CampoDato label="Fecha de ingreso" value={empleado.laboral?.fechaIngreso} />
+              <CampoDato label="Fin de contrato" value={empleado.laboral?.fechaFinContrato ?? "No aplica"} />
               <CampoDato label="Estado laboral" value={<EstadoLaboralBadge estado={empleado.estadoLaboral} />} />
-              <CampoDato label="Fecha de retiro" value={empleado.laboral.fechaRetiro ?? "—"} />
-              <CampoDato label="Motivo de retiro" value={empleado.laboral.motivoRetiro ?? "—"} />
+              <CampoDato label="Fecha de retiro" value={empleado.laboral?.fechaRetiro ?? "—"} />
+              <CampoDato label="Motivo de retiro" value={empleado.laboral?.motivoRetiro ?? "—"} />
             </GridDatos>
           </SeccionExpediente>
 
@@ -459,12 +459,12 @@ function PortalEmpleadoPage() {
             descripcion="Información de consulta. Cargo, salario, área, centro de costo y jefe inmediato solo los modifica Recursos Humanos."
           >
             <GridDatos>
-              <CampoDato label="Cargo" value={nombreCargo(empleado.laboral.cargoId)} />
-              <CampoDato label="Área" value={nombreArea(empleado.laboral.areaId)} />
-              <CampoDato label="Centro de costo" value={nombreCentroCosto(empleado.laboral.centroCostoId)} />
-              <CampoDato label="Centro de trabajo" value={nombreCentroTrabajo(empleado.laboral.centroTrabajoId)} />
-              <CampoDato label="Jefe inmediato" value={nombreJefe(empleado.laboral.jefeInmediatoId)} />
-              <CampoDato label="Salario" value={formatCOP(empleado.laboral.salario)} />
+              <CampoDato label="Cargo" value={nombreCargo(empleado.laboral?.cargoId)} />
+              <CampoDato label="Área" value={nombreArea(empleado.laboral?.areaId)} />
+              <CampoDato label="Centro de costo" value={nombreCentroCosto(empleado.laboral?.centroCostoId)} />
+              <CampoDato label="Centro de trabajo" value={nombreCentroTrabajo(empleado.laboral?.centroTrabajoId)} />
+              <CampoDato label="Jefe inmediato" value={nombreJefe(empleado.laboral?.jefeInmediatoId)} />
+              <CampoDato label="Salario" value={formatCOP(empleado.laboral?.salario)} />
             </GridDatos>
           </SeccionExpediente>
         </TabsContent>

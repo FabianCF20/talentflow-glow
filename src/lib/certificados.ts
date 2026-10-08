@@ -47,31 +47,31 @@ function cuerpo(
   incluyeSalario: boolean,
 ): string[] {
   const nombre = nombreEmpleado(empleado).toUpperCase();
-  const cargo = nombreCargo(empleado.laboral.cargoId);
-  const area = nombreArea(empleado.laboral.areaId);
-  const antig = antiguedadAnios(empleado.laboral.fechaIngreso, empleado.laboral.fechaRetiro);
+  const cargo = nombreCargo(empleado.laboral?.cargoId);
+  const area = nombreArea(empleado.laboral?.areaId);
+  const antig = antiguedadAnios(empleado.laboral?.fechaIngreso, empleado.laboral?.fechaRetiro);
   const vinculo =
     empleado.estadoLaboral === "retirado"
-      ? `estuvo vinculado(a) hasta el ${fechaLarga(empleado.laboral.fechaRetiro ?? "")}`
+      ? `estuvo vinculado(a) hasta el ${fechaLarga(empleado.laboral?.fechaRetiro ?? "")}`
       : "labora actualmente";
   const salario = incluyeSalario
-    ? ` con una asignación salarial mensual de ${formatCOP(empleado.laboral.salario)}`
+    ? ` con una asignación salarial mensual de ${formatCOP(empleado.laboral?.salario)}`
     : "";
 
   switch (tipo) {
     case "laboral":
       return [
-        `Que el(la) señor(a) ${nombre}, identificado(a) con cédula de ciudadanía No. ${empleado.documento}, ${vinculo} en ${EMPRESA.razonSocial} desde el ${fechaLarga(empleado.laboral.fechaIngreso)}, desempeñando el cargo de ${cargo} en el área de ${area}, mediante contrato de ${TIPO_CONTRATO_LABEL[empleado.laboral.tipoContrato].toLowerCase()}${salario}.`,
-        `El(la) trabajador(a) presta sus servicios en ${nombreCentroTrabajo(empleado.laboral.centroTrabajoId)} y se encuentra afiliado(a) al Sistema de Seguridad Social Integral conforme a la legislación colombiana vigente.`,
+        `Que el(la) señor(a) ${nombre}, identificado(a) con cédula de ciudadanía No. ${empleado.documento}, ${vinculo} en ${EMPRESA.razonSocial} desde el ${fechaLarga(empleado.laboral?.fechaIngreso)}, desempeñando el cargo de ${cargo} en el área de ${area}, mediante contrato de ${TIPO_CONTRATO_LABEL[empleado.laboral?.tipoContrato].toLowerCase()}${salario}.`,
+        `El(la) trabajador(a) presta sus servicios en ${nombreCentroTrabajo(empleado.laboral?.centroTrabajoId)} y se encuentra afiliado(a) al Sistema de Seguridad Social Integral conforme a la legislación colombiana vigente.`,
       ];
     case "antiguedad":
       return [
-        `Que el(la) señor(a) ${nombre}, identificado(a) con cédula de ciudadanía No. ${empleado.documento}, registra una antigüedad de ${antig} años en ${EMPRESA.razonSocial}, contados desde su fecha de ingreso el ${fechaLarga(empleado.laboral.fechaIngreso)}.`,
+        `Que el(la) señor(a) ${nombre}, identificado(a) con cédula de ciudadanía No. ${empleado.documento}, registra una antigüedad de ${antig} años en ${EMPRESA.razonSocial}, contados desde su fecha de ingreso el ${fechaLarga(empleado.laboral?.fechaIngreso)}.`,
         `Durante este periodo el(la) trabajador(a) ha mantenido continuidad en su vinculación laboral, sin interrupciones que afecten el cómputo de su tiempo de servicio${salario ? `,${salario}` : ""}.`,
       ];
     default:
       return [
-        `Que el(la) señor(a) ${nombre}, identificado(a) con cédula de ciudadanía No. ${empleado.documento}, ocupa el cargo de ${cargo}, adscrito al área de ${area} de ${EMPRESA.razonSocial}, desde el ${fechaLarga(empleado.laboral.fechaIngreso)}${salario}.`,
+        `Que el(la) señor(a) ${nombre}, identificado(a) con cédula de ciudadanía No. ${empleado.documento}, ocupa el cargo de ${cargo}, adscrito al área de ${area} de ${EMPRESA.razonSocial}, desde el ${fechaLarga(empleado.laboral?.fechaIngreso)}${salario}.`,
         `Las funciones asignadas corresponden al perfil del cargo aprobado en la estructura organizacional vigente de la compañía.`,
       ];
   }

@@ -25,8 +25,8 @@ export interface FiltroReportes {
 export const anioActual = () => new Date().getFullYear();
 
 export const aplicaFiltro = (e: EmpleadoRRHH, f: FiltroReportes) =>
-  (f.areaId === "todas" || e.laboral.areaId === f.areaId) &&
-  (f.centroCostoId === "todos" || e.laboral.centroCostoId === f.centroCostoId);
+  (f.areaId === "todas" || e.laboral?.areaId === f.areaId) &&
+  (f.centroCostoId === "todos" || e.laboral?.centroCostoId === f.centroCostoId);
 
 const vinculado = (e: EmpleadoRRHH) => ESTADOS_VINCULADOS.includes(e.estadoLaboral);
 
@@ -53,7 +53,7 @@ export function antiguedadDistribucion(empleados: EmpleadoRRHH[]): PuntoSerie[] 
   const hoy = Date.now();
   const conteo = [0, 0, 0, 0, 0];
   for (const e of empleados.filter(vinculado)) {
-    const anios = (hoy - new Date(`${e.laboral.fechaIngreso}T00:00:00`).getTime()) / 31_536_000_000;
+    const anios = (hoy - new Date(`${e.laboral?.fechaIngreso}T00:00:00`).getTime()) / 31_536_000_000;
     const idx = anios < 1 ? 0 : anios < 3 ? 1 : anios < 5 ? 2 : anios < 10 ? 3 : 4;
     conteo[idx] = (conteo[idx] ?? 0) + 1;
   }
@@ -174,7 +174,7 @@ export function horasExtrasReporte(
     .filter((h) => h.fecha.startsWith(String(anio)))
     .map((h) => {
       const emp = byEmp.get(h.empleadoId);
-      const salario = emp?.laboral.salario ?? 0;
+      const salario = emp?.laboral?.salario ?? 0;
       return { ...h, valor: valorRecargo(salario, h.tipo, h.horas), empleado: emp };
     });
 }
@@ -257,7 +257,7 @@ export const costosPorArea = (periodo: PeriodoNomina | undefined, empleados: Emp
     periodo,
     empleados,
     AREAS.map((a) => ({ id: a.id, nombre: a.nombre })),
-    (e) => e.laboral.areaId,
+    (e) => e.laboral?.areaId,
   );
 
 export const costosPorCentroCosto = (periodo: PeriodoNomina | undefined, empleados: EmpleadoRRHH[]) =>
@@ -265,7 +265,7 @@ export const costosPorCentroCosto = (periodo: PeriodoNomina | undefined, emplead
     periodo,
     empleados,
     CENTROS_COSTO.map((c) => ({ id: c.id, nombre: `${c.codigo} · ${c.nombre}` })),
-    (e) => e.laboral.centroCostoId,
+    (e) => e.laboral?.centroCostoId,
   );
 
 export const nombreAreaCorto = (id?: string) => areaById(id)?.nombre ?? "—";
@@ -299,7 +299,7 @@ export function indicadoresGlobales(input: {
   const hoy = Date.now();
   const antiguedad = activos.length
     ? activos.reduce(
-        (s, e) => s + (hoy - new Date(`${e.laboral.fechaIngreso}T00:00:00`).getTime()) / 31_536_000_000,
+        (s, e) => s + (hoy - new Date(`${e.laboral?.fechaIngreso}T00:00:00`).getTime()) / 31_536_000_000,
         0,
       ) / activos.length
     : 0;

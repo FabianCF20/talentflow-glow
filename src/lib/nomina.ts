@@ -107,7 +107,7 @@ export function calcularDetalle(input: {
 }): DetalleNomina {
   const { periodo, empleado, horasExtras, recurrentes } = input;
   const dias = input.diasLiquidados ?? 30;
-  const salario = empleado.laboral.salario;
+  const salario = empleado.laboral?.salario;
 
   const devengados: ConceptoLinea[] = [];
   const salarioProporcional = redondear(valorDia(salario) * dias);
@@ -217,8 +217,8 @@ export function calcularLiquidacionFinal(input: {
   consecutivo: string;
 }): LiquidacionFinal {
   const { empleado, motivo, fechaRetiro, diasVacacionesPendientes } = input;
-  const salario = empleado.laboral.salario;
-  const ingreso = empleado.laboral.fechaIngreso;
+  const salario = empleado.laboral?.salario;
+  const ingreso = empleado.laboral?.fechaIngreso;
   const diasTotales = diasBase360(ingreso, fechaRetiro);
   const anio = fechaRetiro.slice(0, 4);
   const diasAnio = diasBase360(`${anio}-01-01`, fechaRetiro);

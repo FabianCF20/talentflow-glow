@@ -87,8 +87,8 @@ function ReportesPage() {
     () =>
       empleados.filter(
         (e) =>
-          (filtro.areaId === "todas" || e.laboral.areaId === filtro.areaId) &&
-          (filtro.centroCostoId === "todos" || e.laboral.centroCostoId === filtro.centroCostoId),
+          (filtro.areaId === "todas" || e.laboral?.areaId === filtro.areaId) &&
+          (filtro.centroCostoId === "todos" || e.laboral?.centroCostoId === filtro.centroCostoId),
       ),
     [empleados, filtro],
   );

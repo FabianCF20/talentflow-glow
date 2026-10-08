@@ -129,7 +129,7 @@ function NominaPage() {
           <div>
             <p className="font-medium text-foreground">{e ? nombreEmpleado(e) : d.empleadoId}</p>
             <p className="text-xs text-muted-foreground">
-              {nombreCargo(e?.laboral.cargoId)} · {nombreArea(e?.laboral.areaId)}
+              {nombreCargo(e?.laboral?.cargoId)} · {nombreArea(e?.laboral?.areaId)}
             </p>
           </div>
         );
@@ -183,7 +183,7 @@ function NominaPage() {
           return [
             e ? nombreEmpleado(e) : d.empleadoId,
             e?.documento ?? "",
-            nombreArea(e?.laboral.areaId),
+            nombreArea(e?.laboral?.areaId),
             d.diasLiquidados,
             d.totalDevengado,
             d.totalDeducido,

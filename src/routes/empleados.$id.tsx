@@ -137,8 +137,8 @@ function ExpedienteEmpleadoPage() {
       return;
     }
     const n = actualizarInformacionLaboral(id, form);
-    if (cuenta && form.cargoId !== empleado.laboral.cargoId) {
-      const rolAnterior = rolJerarquicoPorNivel(nivelById(cargoById(empleado.laboral.cargoId)?.nivelId)?.nivel);
+    if (cuenta && form.cargoId !== empleado.laboral?.cargoId) {
+      const rolAnterior = rolJerarquicoPorNivel(nivelById(cargoById(empleado.laboral?.cargoId)?.nivelId)?.nivel);
       const rolNuevo = rolJerarquicoPorNivel(nivelById(cargoById(form.cargoId)?.nivelId)?.nivel);
       void actualizarCuentaUsuario(cuenta, {
         roles: [...new Set([...cuenta.roles.filter((rol) => rol !== rolAnterior), rolNuevo])],
@@ -172,7 +172,7 @@ function ExpedienteEmpleadoPage() {
       <PageHeader
         breadcrumb={["Talento Humano", "Empleados", nombreEmpleado(empleado)]}
         title={nombreEmpleado(empleado)}
-        description={`${nombreCargo(empleado.laboral.cargoId)} · ${nombreArea(empleado.laboral.areaId)} · CC ${empleado.documento}`}
+        description={`${nombreCargo(empleado.laboral?.cargoId)} · ${nombreArea(empleado.laboral?.areaId)} · CC ${empleado.documento}`}
         actions={
           <>
             <Button variant="outline" size="sm" asChild>
@@ -226,7 +226,7 @@ function ExpedienteEmpleadoPage() {
         <div className="flex flex-wrap items-center gap-3">
           <EstadoLaboralBadge estado={empleado.estadoLaboral} />
           <span className="text-sm text-muted-foreground">
-            Antigüedad {antiguedadAnios(empleado.laboral.fechaIngreso, empleado.laboral.fechaRetiro)} años
+            Antigüedad {antiguedadAnios(empleado.laboral?.fechaIngreso, empleado.laboral?.fechaRetiro)} años
           </span>
           <span className="text-sm text-muted-foreground">
             Cuenta: {cuenta ? cuenta.email : "sin usuario"}
@@ -235,7 +235,7 @@ function ExpedienteEmpleadoPage() {
             Acceso: {cuenta ? (accesoActivo ? "habilitado" : "desactivado") : "pendiente de creación"}
           </span>
           <span className="text-sm text-muted-foreground">
-            Salario: {verSalario ? formatCOP(empleado.laboral.salario) : "restringido por rol"}
+            Salario: {verSalario ? formatCOP(empleado.laboral?.salario) : "restringido por rol"}
           </span>
         </div>
       </div>
@@ -397,10 +397,10 @@ function ExpedienteEmpleadoPage() {
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                Vigente: {nombreCargo(empleado.laboral.cargoId)} · {nombreArea(empleado.laboral.areaId)} ·{" "}
-                {nombreCentroCosto(empleado.laboral.centroCostoId)} ·{" "}
-                {nombreCentroTrabajo(empleado.laboral.centroTrabajoId)} · Jefe:{" "}
-                {nombreJefe(empleado.laboral.jefeInmediatoId)}
+                Vigente: {nombreCargo(empleado.laboral?.cargoId)} · {nombreArea(empleado.laboral?.areaId)} ·{" "}
+                {nombreCentroCosto(empleado.laboral?.centroCostoId)} ·{" "}
+                {nombreCentroTrabajo(empleado.laboral?.centroTrabajoId)} · Jefe:{" "}
+                {nombreJefe(empleado.laboral?.jefeInmediatoId)}
               </p>
               <Button size="sm" disabled={!esRrhh} onClick={guardar}>
                 <Save className="size-4" /> Guardar cambios
@@ -446,7 +446,7 @@ function ExpedienteEmpleadoPage() {
             </div>
             {empleado.estadoLaboral === "retirado" && (
               <p className="mt-3 text-sm text-muted-foreground">
-                Retirado el {empleado.laboral.fechaRetiro} · {empleado.laboral.motivoRetiro}
+                Retirado el {empleado.laboral?.fechaRetiro} · {empleado.laboral?.motivoRetiro}
               </p>
             )}
           </SeccionExpediente>
