@@ -84,12 +84,16 @@ service cloud.firestore {
       // Alta propia: solo como 'empleado', salvo el primer administrador del
       // sistema (antes de que exista configuracion/inicializacion).
       // RRHH puede crear cuentas con cualquier rol.
-      allow create: if esRrhh()
+      // Talento Humano gestiona cuentas, pero solo un Administrador otorga
+      // el rol 'administrador'.
+      allow create: if esAdmin()
+        || (esRrhh() && !('administrador' in request.resource.data.get('roles', [])))
         || (autenticado() && request.auth.uid == uid
             && (request.resource.data.roles == ['empleado']
                 || !exists(/databases/$(database)/documents/configuracion/inicializacion)));
       // El propio usuario no puede escalar sus roles ni reactivarse solo.
-      allow update: if esRrhh()
+      allow update: if esAdmin()
+        || (esRrhh() && !('administrador' in request.resource.data.get('roles', [])))
         || (request.auth.uid == uid
             && request.resource.data.roles == resource.data.roles
             && request.resource.data.get('estado', 'activo') == resource.data.get('estado', 'activo'));
