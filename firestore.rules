@@ -234,9 +234,10 @@ service cloud.firestore {
 
     /* --------------------------- Cierre por defecto ------------------------ */
     // Cualquier colección no declarada arriba queda restringida a administración.
+    // OJO: en Firestore las reglas se SUMAN; si aquí se permitiera leer a todo
+    // autenticado, se abrirían también las colecciones protegidas de arriba.
     match /{coleccion}/{docId} {
-      allow read: if autenticado();
-      allow write: if esAdmin() && activo();
+      allow read, write: if esAdmin() && activo();
     }
   }
 }
