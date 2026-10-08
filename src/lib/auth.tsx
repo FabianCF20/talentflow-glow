@@ -12,7 +12,7 @@ import {
 } from "firebase/auth";
 import { iniciales as inicialesDe } from "./formato";
 import { collection, doc, getDoc,
-  getDocFromServer, getDocs, limit, query, setDoc } from "firebase/firestore";
+  getDocFromServer, getDocs, onSnapshot, limit, query, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { RoleKey } from "@/types/entities";
 
@@ -125,6 +125,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, []);
 
+
+  // Mantiene el perfil al día con el servidor: corrige lecturas parciales
+  // tras el ingreso y refleja al instante cambios de roles o estado.
+  useEffect(() => {
+    if (!usuario) return;
+    return onSnapshot(
+      doc(db, COLECCION, usuario.uid),
+      (snap) => {
+        const datos = snap.data() as PerfilUsuario | undefined;
+        if (!datos || !Array.isArray(datos.roles)) return;
+        setPerfil({ ...datos, id: usuario.uid });
+      },
+      (error) => console.error("[auth] no se pudo escuchar el perfil", error),
+    );
+  }, [usuario]);
 
   const ingresar = useCallback(async (email: string, password: string) => {
     const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
