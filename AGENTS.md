@@ -16,3 +16,4 @@
 - Cada archivo inicia con un comentario `/** */` de propósito y los comentarios se escriben en español. Por qué: facilitar correcciones manuales del equipo.
 - Las funciones de formato deben tolerar campos faltantes. Por qué: los registros de Firestore pueden llegar incompletos y romper pantallas.
 - La arquitectura se documenta en `docs/ARQUITECTURA.md`; actualícelo al crear un módulo. Por qué: mantener la guía vigente.
+- El menú lateral y el acceso a cada pantalla se derivan de la matriz de permisos (`can(roles, modulo, "ver")`). Por qué: una sola fuente de verdad para lo que ve cada rol; la seguridad real la imponen las reglas de Firestore.
