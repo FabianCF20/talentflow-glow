@@ -1,7 +1,9 @@
 /**
  * Barra superior: buscador, tema claro/oscuro, notificaciones y menú del usuario.
  */
+import { useState } from "react";
 import { Menu, Moon, Sun, LogOut, User, KeyRound } from "lucide-react";
+import { CambiarClaveDialog } from "@/components/usuarios/CambiarClaveDialog";
 import { GlobalSearch } from "./GlobalSearch";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { useTheme } from "@/lib/theme";
@@ -19,6 +21,7 @@ import {
 export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
   const { theme, toggleTheme } = useTheme();
   const { perfil, usuario, iniciales, salir } = useAuth();
+  const [cambiarClave, setCambiarClave] = useState(false);
   const nombre = perfil ? `${perfil.nombres} ${perfil.apellidos}`.trim() : (usuario?.email ?? "Sin sesión");
   const rol = perfil?.roles?.[0] ? ROLE_LABEL[perfil.roles[0]] : "Sin rol asignado";
 
@@ -71,7 +74,7 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           <DropdownMenuItem>
             <User className="size-4" /> Mi perfil
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setCambiarClave(true)}>
             <KeyRound className="size-4" /> Cambiar contraseña
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -80,6 +83,7 @@ export function TopBar({ onOpenMobileNav }: { onOpenMobileNav: () => void }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      <CambiarClaveDialog open={cambiarClave} onOpenChange={setCambiarClave} />
     </header>
   );
 }

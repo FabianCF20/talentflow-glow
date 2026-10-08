@@ -51,6 +51,7 @@ import {
 } from "@/lib/usuarios-admin";
 import { usePermisos, guardarPermisos } from "@/lib/permisos";
 import { mensajeAuth, useAuth } from "@/lib/auth";
+import { CambiarClaveDialog } from "@/components/usuarios/CambiarClaveDialog";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
 import { EstadoUsuarioBadge } from "@/components/usuarios/EstadoUsuarioBadge";
@@ -115,6 +116,8 @@ function Usuarios() {
 
   const esAdmin = perfil?.roles.includes("administrador") ?? false;
   const puedeGestionar = esAdmin || (perfil?.roles.includes("talento_humano") ?? false);
+  // Cuenta a la que el Administrador le está cambiando la contraseña.
+  const [claveDe, setClaveDe] = useState<{ uid: string; email: string } | null>(null);
 
   const usuarios: UsuarioSistema[] = useMemo(() => cuentas.map(aUsuarioSistema), [cuentas]);
 
@@ -383,13 +386,22 @@ function Usuarios() {
             >
               {u.estadoUsuario === "activo" ? "Inactivar" : "Activar"}
             </Button>
+            {esAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setClaveDe({ uid: u.id, email: u.email })}
+              >
+                Cambiar clave
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
               disabled={!u.email}
               onClick={() => restablecer(u.email)}
             >
-              Restablecer clave
+              Enviar correo de clave
             </Button>
           </div>
         );
@@ -399,6 +411,11 @@ function Usuarios() {
 
   return (
     <AppShell>
+      <CambiarClaveDialog
+        open={!!claveDe}
+        onOpenChange={(v) => !v && setClaveDe(null)}
+        cuenta={claveDe}
+      />
       <PageHeader
         breadcrumb={["Administración", "Usuarios, roles y permisos"]}
         title="Usuarios, roles y permisos"
