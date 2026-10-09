@@ -82,7 +82,7 @@ async function verificarAdmin(idToken: string): Promise<void> {
 
 /** Establece una nueva contraseña para la cuenta indicada. */
 export const cambiarClaveComoAdmin = createServerFn({ method: "POST" })
-  .inputValidator((d: Entrada) => {
+  .validator((d: Entrada) => {
     if (!d?.idToken || !d?.uid) throw new Error("Datos incompletos.");
     if (typeof d.password !== "string" || d.password.length < 6)
       throw new Error("La contraseña debe tener al menos 6 caracteres.");
