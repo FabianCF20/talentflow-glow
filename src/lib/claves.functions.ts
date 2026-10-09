@@ -27,7 +27,17 @@ function b64url(datos: ArrayBuffer | string): string {
 async function tokenServicio(): Promise<string> {
   const crudo = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!crudo) throw new Error("Falta configurar la cuenta de servicio de Firebase.");
-  const cuenta = JSON.parse(crudo) as { client_email: string; private_key: string };
+  // Tolera que el JSON se haya pegado sin las llaves exteriores o con texto extra.
+  let texto = crudo.trim();
+  const ini = texto.indexOf("{");
+  const fin = texto.lastIndexOf("}");
+  texto = ini === 0 && fin > 0 ? texto.slice(0, fin + 1) : `{${texto.replace(/^[^"]*/, "").replace(/,?\s*$/, "")}}`;
+  let cuenta: { client_email: string; private_key: string };
+  try {
+    cuenta = JSON.parse(texto);
+  } catch {
+    throw new Error("La cuenta de servicio de Firebase guardada no tiene un formato válido.");
+  }
   const ahora = Math.floor(Date.now() / 1000);
   const cabecera = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const cuerpo = b64url(
