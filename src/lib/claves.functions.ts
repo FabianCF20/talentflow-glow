@@ -29,9 +29,8 @@ async function tokenServicio(): Promise<string> {
   if (!crudo) throw new Error("Falta configurar la cuenta de servicio de Firebase.");
   // Tolera que el JSON se haya pegado sin las llaves exteriores o con texto extra.
   let texto = crudo.trim();
-  const ini = texto.indexOf("{");
-  const fin = texto.lastIndexOf("}");
-  texto = ini === 0 && fin > 0 ? texto.slice(0, fin + 1) : `{${texto.replace(/^[^"]*/, "").replace(/,?\s*$/, "")}}`;
+  if (!texto.startsWith("{")) texto = `{${texto}`;
+  if (!texto.endsWith("}")) texto = `${texto}}`;
   let cuenta: { client_email: string; private_key: string };
   try {
     cuenta = JSON.parse(texto);
