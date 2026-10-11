@@ -69,7 +69,7 @@ function Configuracion() {
             <div className="min-w-0">
               <h2 className="text-base font-semibold">Plantillas de documentos y firma</h2>
               <p className="text-xs text-muted-foreground">
-                Estos datos aparecen en certificados laborales, desprendibles de nómina y
+                Estos datos aparecen en certificados laborales y
                 liquidaciones.
               </p>
             </div>

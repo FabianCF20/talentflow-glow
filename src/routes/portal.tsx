@@ -74,7 +74,7 @@ export const Route = createFileRoute("/portal")({
       {
         name: "description",
         content:
-          "Autoconsulta de perfil, contrato, vacaciones, incapacidades, nómina, dotación e historial, con solicitudes de actualización aprobadas por RRHH y certificados en PDF.",
+          "Autoconsulta de perfil, contrato, vacaciones, incapacidades, dotación e historial, con solicitudes de actualización aprobadas por RRHH y certificados en PDF.",
       },
       { property: "og:title", content: "Portal del Empleado | SIGTH" },
       {
