@@ -10,7 +10,7 @@ consulta la [guia de edicion manual](../docs/GUIA-DE-EDICION.md) y la
 | --- | --- | --- |
 | Una pantalla o URL | `routes/` | Entrada de cada pagina y composicion de la vista. Los nombres determinan las rutas. |
 | La estructura global, navegacion o inicio de sesion | `routes/__root.tsx`, `components/layout/`, `config/navigation.ts` | Marco de la aplicacion y navegacion compartida. |
-| Un componente de un modulo | `components/rrhh/`, `components/nomina/`, `components/sst/`, `components/operaciones/`, `components/portal/`, `components/maestros/` o `components/disciplinario/` | UI especifica de cada area. |
+| Un componente de un modulo | `components/rrhh/`, `components/sst/`, `components/operaciones/`, `components/portal/`, `components/maestros/` o `components/disciplinario/` | UI especifica de cada area. |
 | Un componente compartido | `components/common/` o `components/layout/` | Elementos reutilizados entre pantallas. |
 | Un control visual base | `components/ui/` | Primitivas visuales reutilizables. |
 | Datos iniciales o de demostracion | `data/` | Colecciones y datos compartidos; los archivos suelen agruparse por dominio. |
