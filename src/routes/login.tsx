@@ -95,7 +95,7 @@ function Login() {
             Toda la gestión del talento humano en una sola plataforma.
           </h1>
           <p className="text-sm text-sidebar-foreground/70">
-            Documentación, solicitudes, nómina, SST, evaluaciones y control operativo con
+            Documentación, solicitudes, horas extras, SST, evaluaciones y control operativo con
             trazabilidad y auditoría completa.
           </p>
         </div>

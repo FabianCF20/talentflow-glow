@@ -24,7 +24,6 @@ import { PortalProvider } from "../store/portal";
 import { OperacionesProvider } from "../store/operaciones";
 import { SstProvider } from "../store/sst";
 import { DisciplinarioProvider } from "../store/disciplinario";
-import { NominaProvider } from "../store/nomina";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { DatosMaestrosProvider } from "../lib/datos-live";
 import { NAV_GROUPS } from "../config/navigation";
@@ -100,13 +99,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Plataforma empresarial para centralizar talento humano, nómina, SST y control operativo.",
+          "Plataforma empresarial para centralizar talento humano, horas extras, SST y control operativo.",
       },
       { property: "og:title", content: "SIGTH — Gestión de Talento Humano" },
       {
         property: "og:description",
         content:
-          "Plataforma empresarial para centralizar talento humano, nómina, SST y control operativo.",
+          "Plataforma empresarial para centralizar talento humano, horas extras, SST y control operativo.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -206,10 +205,8 @@ function RootComponent() {
             <OperacionesProvider>
               <SstProvider>
                 <DisciplinarioProvider>
-                  <NominaProvider>
                     {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                     <Outlet />
-                  </NominaProvider>
                 </DisciplinarioProvider>
               </SstProvider>
             </OperacionesProvider>

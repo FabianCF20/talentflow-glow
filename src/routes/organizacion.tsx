@@ -28,7 +28,7 @@ import {
 } from "@/lib/maestros";
 import { useAuth } from "@/lib/auth";
 import { can, NIVELES_JERARQUICOS } from "@/config/roles";
-import { formatCOP, nombreCompleto } from "@/types/organizacion";
+import { nombreCompleto } from "@/types/organizacion";
 import type {
   AreaOrg,
   CargoOrg,
@@ -149,14 +149,6 @@ function Organizacion() {
       requerido: true,
       render: (r) => nombreArea(r.areaId),
     },
-    {
-      key: "presupuestoAnual",
-      label: "Presupuesto anual",
-      tipo: "numero",
-      render: (r) => (
-        <span className="tabular-nums">{formatCOP(Number(r.presupuestoAnual ?? 0))}</span>
-      ),
-    },
   ];
 
   const camposCargo: CampoDef<CargoOrg>[] = [
@@ -182,12 +174,6 @@ function Organizacion() {
           nivelesLegados.find((x) => x.id === r.nivelId);
         return n ? `${n.nivel} · ${n.nombre}` : "—";
       },
-    },
-    {
-      key: "salarioBase",
-      label: "Salario base",
-      tipo: "numero",
-      render: (r) => <span className="tabular-nums">{formatCOP(Number(r.salarioBase ?? 0))}</span>,
     },
   ];
 
@@ -302,7 +288,7 @@ function Organizacion() {
             campos={camposCentroCosto}
             items={centrosCosto}
             setItems={setCentrosCosto}
-            valoresIniciales={{ codigo: "", nombre: "", areaId: "", presupuestoAnual: 0 }}
+            valoresIniciales={{ codigo: "", nombre: "", areaId: "" }}
             puedeEditar={puedeEditar}
             filtro={query}
           />
@@ -314,7 +300,7 @@ function Organizacion() {
             campos={camposCargo}
             items={cargos}
             setItems={setCargos}
-            valoresIniciales={{ codigo: "", nombre: "", areaId: "", nivelId: "", salarioBase: 0 }}
+            valoresIniciales={{ codigo: "", nombre: "", areaId: "", nivelId: "" }}
             puedeEditar={puedeEditar}
             filtro={query}
           />

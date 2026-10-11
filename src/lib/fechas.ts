@@ -37,3 +37,9 @@ export function diasEntre(desde: string, hasta: string) {
   if (Number.isNaN(d) || Number.isNaN(h) || h < d) return 0;
   return Math.round((h - d) / 86_400_000) + 1;
 }
+
+/** Nombres de los meses del año en español. */
+export const MESES_LABEL = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];

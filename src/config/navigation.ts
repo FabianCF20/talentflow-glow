@@ -77,7 +77,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: "Horas extras", to: "/horas-extras", icon: Timer, modulo: "horas_extras" },
       { label: "Historial de novedades", to: "/novedades", icon: ListChecks, modulo: "novedades" },
       { label: "SST", to: "/sst", icon: HardHat, modulo: "sst" },
-      { label: "Nómina", to: "/nomina", icon: Wallet, modulo: "nomina" },
       { label: "Proyectos y áreas", icon: FolderKanban, modulo: "areas", proximamente: true },
     ],
   },

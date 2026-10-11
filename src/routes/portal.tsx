@@ -14,7 +14,6 @@ import {
   Send,
   Shirt,
   Upload,
-  Wallet,
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -38,7 +37,7 @@ import {
 import { toast } from "sonner";
 import { useRrhh } from "@/store/rrhh";
 import { usePortal } from "@/store/portal";
-import { dotacionDe, incapacidadesDe, nominaDe, vacacionesDe } from "@/data/portal";
+import { dotacionDe, incapacidadesDe, vacacionesDe } from "@/data/portal";
 import {
   antiguedadAnios,
   nombreArea,
@@ -59,7 +58,6 @@ import {
   TIPO_INCAPACIDAD_LABEL,
   type CampoAutogestion,
   type CategoriaDocumento,
-  type DesprendibleNomina,
   type EntregaDotacion,
   type PeriodoVacaciones,
   type RegistroIncapacidad,
@@ -76,7 +74,7 @@ export const Route = createFileRoute("/portal")({
       {
         name: "description",
         content:
-          "Autoconsulta de perfil, contrato, vacaciones, incapacidades, nómina, dotación e historial, con solicitudes de actualización aprobadas por RRHH y certificados en PDF.",
+          "Autoconsulta de perfil, contrato, vacaciones, incapacidades, dotación e historial, con solicitudes de actualización aprobadas por RRHH y certificados en PDF.",
       },
       { property: "og:title", content: "Portal del Empleado | SIGTH" },
       {
@@ -144,7 +142,6 @@ function PortalEmpleadoPage() {
 
   const vacaciones = useMemo(() => vacacionesDe(id), [id]);
   const incapacidades = useMemo(() => incapacidadesDe(id), [id]);
-  const nomina = useMemo(() => nominaDe(id), [id]);
   const dotacion = useMemo(() => dotacionDe(id), [id]);
 
   /* ------------------------- Formulario de actualización ------------------------- */
@@ -302,18 +299,6 @@ function PortalEmpleadoPage() {
     },
   ];
 
-  const colNom: Column<DesprendibleNomina>[] = [
-    { key: "p", header: "Periodo", render: (r) => r.periodo },
-    { key: "d", header: "Devengado", render: (r) => formatCOP(r.devengado) },
-    { key: "de", header: "Deducciones", render: (r) => formatCOP(r.deducciones) },
-    {
-      key: "n",
-      header: "Neto pagado",
-      render: (r) => <span className="font-medium text-foreground">{formatCOP(r.neto)}</span>,
-    },
-    { key: "f", header: "Fecha de pago", render: (r) => r.fechaPago },
-  ];
-
   const colDot: Column<EntregaDotacion>[] = [
     { key: "e", header: "Elemento", render: (r) => r.elemento },
     { key: "t", header: "Talla", render: (r) => r.talla },
@@ -391,7 +376,6 @@ function PortalEmpleadoPage() {
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
           <TabsTrigger value="contrato">Contrato e info. laboral</TabsTrigger>
           <TabsTrigger value="ausencias">Vacaciones e incapacidades</TabsTrigger>
-          <TabsTrigger value="nomina">Nómina</TabsTrigger>
           <TabsTrigger value="dotacion">Dotación</TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
           <TabsTrigger value="actualizar">Actualizar datos</TabsTrigger>
@@ -480,16 +464,6 @@ function PortalEmpleadoPage() {
               rows={incapacidades}
               emptyMessage="Sin incapacidades registradas."
             />
-          </SeccionExpediente>
-        </TabsContent>
-
-        {/* ---------------------------------- Nómina ---------------------------------- */}
-        <TabsContent value="nomina" className="mt-4">
-          <SeccionExpediente
-            titulo="Desprendibles de nómina"
-            descripcion="Consulta de los últimos periodos liquidados."
-          >
-            <DataTable columns={colNom} rows={nomina} emptyMessage="Sin liquidaciones registradas." />
           </SeccionExpediente>
         </TabsContent>
 
@@ -785,11 +759,7 @@ function PortalEmpleadoPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <ResumenMini icon={CalendarDays} label="Saldo de vacaciones" valor={`${vacaciones.reduce((a, v) => a + (v.diasCausados - v.diasTomados), 0)} días`} />
         <ResumenMini icon={HeartPulse} label="Incapacidades registradas" valor={String(incapacidades.length)} />
-        <ResumenMini
-          icon={Wallet}
-          label="Último neto pagado"
-          valor={nomina[0] ? formatCOP(nomina[0].neto) : "—"}
-        />
+        <ResumenMini icon={Shirt} label="Dotación entregada" valor={`${dotacion.length} elementos`} />
       </div>
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Shirt className="size-3.5" /> Dotación vigente: {dotacion.length} elementos entregados.

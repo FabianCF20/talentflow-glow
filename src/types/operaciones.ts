@@ -146,7 +146,7 @@ export const JORNADA = {
 
 /* -------------------------------- Horas extras ------------------------------ */
 
-/** Flujo: Supervisor → Jefe → Nómina. */
+/** Flujo: Supervisor → Jefe → validación final. Solo se registra tiempo, sin costos. */
 export type TipoHoraExtra =
   | "diurna"
   | "nocturna"
@@ -155,19 +155,11 @@ export type TipoHoraExtra =
   | "recargo_nocturno";
 
 export const TIPO_HORA_EXTRA_LABEL: Record<TipoHoraExtra, string> = {
-  diurna: "Extra diurna (25%)",
-  nocturna: "Extra nocturna (75%)",
-  dominical_diurna: "Dominical/festiva diurna (100%)",
-  dominical_nocturna: "Dominical/festiva nocturna (150%)",
-  recargo_nocturno: "Recargo nocturno (35%)",
-};
-
-export const RECARGO_HORA_EXTRA: Record<TipoHoraExtra, number> = {
-  diurna: 0.25,
-  nocturna: 0.75,
-  dominical_diurna: 1,
-  dominical_nocturna: 1.5,
-  recargo_nocturno: 0.35,
+  diurna: "Extra diurna",
+  nocturna: "Extra nocturna",
+  dominical_diurna: "Dominical/festiva diurna",
+  dominical_nocturna: "Dominical/festiva nocturna",
+  recargo_nocturno: "Trabajo nocturno",
 };
 
 export type EstadoHoraExtra =
@@ -178,8 +170,8 @@ export type EstadoHoraExtra =
 
 export const ESTADO_HORA_EXTRA_LABEL: Record<EstadoHoraExtra, string> = {
   pendiente_jefe: "Pendiente jefe inmediato",
-  pendiente_nomina: "Pendiente Nómina",
-  liquidada: "Liquidada en nómina",
+  pendiente_nomina: "Pendiente validación final",
+  liquidada: "Validada",
   rechazada: "Rechazada",
 };
 

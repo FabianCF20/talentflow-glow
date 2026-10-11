@@ -5,7 +5,6 @@ import type { RoleKey } from "@/types/entities";
 import { empleadoById } from "@/data/organizacion";
 import {
   JORNADA,
-  RECARGO_HORA_EXTRA,
   type CalculoAsistencia,
   type RegistroAsistencia,
   type TipoHoraExtra,

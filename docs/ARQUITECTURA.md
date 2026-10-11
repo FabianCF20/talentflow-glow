@@ -40,7 +40,6 @@ Principios aplicados:
 | RRHH | `empleados`, `empleados.$id` | `lib/rrhh.ts` | `store/rrhh.tsx` | `types/rrhh.ts` |
 | Portal | `portal`, `solicitudes`, `documentos` | `lib/documentos.ts`, `lib/certificados.ts` | `store/portal.tsx` | `types/portal.ts` |
 | Operaciones | `ausencias`, `asistencia`, `horas-extras`, `novedades` | `lib/operaciones.ts` | `store/operaciones.tsx` | `types/operaciones.ts` |
-| Nómina | `nomina` | `lib/nomina.ts`, `lib/desprendible.ts` | `store/nomina.tsx` | `types/nomina.ts` |
 | SST | `sst`, `dotacion` | `lib/sst.ts` | `store/sst.tsx` | `types/sst.ts` |
 | Disciplinario | `disciplinario` | `lib/disciplinario.ts` | `store/disciplinario.tsx` | `types/disciplinario.ts` |
 | Evaluaciones | `evaluaciones`, `formularios` | — | — | — |
@@ -80,7 +79,7 @@ Principios aplicados:
 
 Cuando una pantalla tiene pestañas, la ruta solo arma el encabezado y las
 pestañas; cada pestaña vive en `components/<dominio>/<Nombre>Tab.tsx` (ver
-`components/sst/` y `components/nomina/`). Así cada archivo tiene una sola tarea.
+`components/sst/`). Así cada archivo tiene una sola tarea.
 
 ## 6. Convenciones de documentación
 
@@ -92,3 +91,6 @@ pestañas; cada pestaña vive en `components/<dominio>/<Nombre>Tab.tsx` (ver
 ## 7. Etapas de mejora
 
 Ver [`roadmap.md`](../roadmap.md) para el plan de reorganización por etapas.
+
+## Alcance sin dinero
+El sistema no maneja nómina, presupuestos ni costos. El salario base solo se guarda en la ficha del empleado como dato informativo y las horas extras registran únicamente tiempo. Los reportes PDF genéricos viven en `lib/reporte-pdf.ts`.

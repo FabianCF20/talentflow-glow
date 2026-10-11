@@ -36,7 +36,7 @@ import {
 import { toast } from "sonner";
 import { useRrhh } from "@/store/rrhh";
 import { usePortal } from "@/store/portal";
-import { dotacionDe, incapacidadesDe, nominaDe, vacacionesDe } from "@/data/portal";
+import { dotacionDe, incapacidadesDe, vacacionesDe } from "@/data/portal";
 import {
   antiguedadAnios,
   nombreArea,
@@ -57,7 +57,6 @@ import {
   TIPO_INCAPACIDAD_LABEL,
   type CampoAutogestion,
   type CategoriaDocumento,
-  type DesprendibleNomina,
   type EntregaDotacion,
   type PeriodoVacaciones,
   type RegistroIncapacidad,

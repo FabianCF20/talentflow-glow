@@ -46,7 +46,8 @@ export interface CentroCostoOrg {
   codigo: string;
   nombre: string;
   areaId: string;
-  presupuestoAnual: number;
+  /** Obsoleto: el sistema ya no maneja presupuestos. */
+  presupuestoAnual?: number;
   estado: RecordStatus;
 }
 
@@ -56,7 +57,8 @@ export interface CargoOrg {
   nombre: string;
   areaId: string;
   nivelId: string;
-  salarioBase: number;
+  /** Obsoleto: el salario solo se registra en la ficha del empleado. */
+  salarioBase?: number;
   estado: RecordStatus;
 }
 

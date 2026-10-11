@@ -1,5 +1,5 @@
 /**
- * Pantalla: Registro, autorización y liquidación de horas extras.
+ * Pantalla: Registro y autorización del tiempo de horas extras (sin costos).
  * Ruta: /horas-extras
  */
 import { createFileRoute } from "@tanstack/react-router";
@@ -33,12 +33,12 @@ export const Route = createFileRoute("/horas-extras")({
       {
         name: "description",
         content:
-          "Registro y aprobación de horas extras con flujo Supervisor → Jefe → Nómina y trazabilidad de cada etapa.",
+          "Registro y aprobación de horas extras con flujo Supervisor → Jefe → validación final y trazabilidad de cada etapa.",
       },
       { property: "og:title", content: "Horas extras | SIGTH" },
       {
         property: "og:description",
-        content: "Flujo de horas extras Supervisor → Jefe → Nómina con registro de horas y trazabilidad.",
+        content: "Flujo de horas extras Supervisor → Jefe → validación final con registro de tiempo y trazabilidad.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -91,7 +91,7 @@ function HorasExtrasPage() {
       <PageHeader
         breadcrumb={["Operación", "Horas extras"]}
         title="Horas extras"
-        description="El supervisor registra las horas, el jefe inmediato las autoriza y Nómina las liquida. Cada paso queda en el historial de novedades."
+        description="El supervisor registra las horas, el jefe inmediato las autoriza y se validan al final. Solo se registra tiempo, sin costos. Cada paso queda en el historial de novedades."
         actions={
           <Button size="sm" variant="outline" onClick={exportar}>
             Exportar
@@ -107,13 +107,13 @@ function HorasExtrasPage() {
           hint="Autorización operativa"
         />
         <StatCard
-          label="Pendientes nómina"
+          label="Pendientes validación"
           value={String(op.horasExtras.filter((h) => h.estado === "pendiente_nomina").length)}
           icon={Timer}
-          hint="Por liquidar"
+          hint="Por validar"
         />
         <StatCard
-          label="Liquidado"
+          label="Validadas"
           value={String(op.horasExtras.filter((h) => h.estado === "liquidada").length)}
           icon={Check}
           hint="Registros cerrados"
@@ -239,7 +239,7 @@ function HorasExtrasPage() {
                   disabled={!jefe || h.estado !== "pendiente_jefe"}
                   onClick={() => {
                     op.aprobarHoraExtraJefe(h.id, actor, comentario(h.id));
-                    toast.success("Aprobadas por el jefe. Pasan a Nómina.");
+                    toast.success("Aprobadas por el jefe. Pasan a validación final.");
                   }}
                 >
                   <Check className="size-4" /> Aprobar (jefe)
@@ -250,10 +250,10 @@ function HorasExtrasPage() {
                   disabled={!nomina || h.estado !== "pendiente_nomina"}
                   onClick={() => {
                     op.liquidarHoraExtra(h.id, actor, comentario(h.id));
-                    toast.success("Horas extras liquidadas en nómina.");
+                    toast.success("Horas extras validadas.");
                   }}
                 >
-                    <Timer className="size-4" /> Liquidar (nómina)
+                    <Timer className="size-4" /> Validar
                 </Button>
                 <Button
                   size="sm"

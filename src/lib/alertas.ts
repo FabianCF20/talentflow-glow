@@ -180,7 +180,7 @@ export function useAlertasCumplimiento(): AlertaCumplimiento[] {
         tipo: "licencia",
         nivel: "por_vencer",
         titulo: `${TIPO_SOLICITUD_LABEL[s.tipo]} finaliza pronto`,
-        detalle: `${s.consecutivo} · del ${s.desde} al ${s.hasta} (${s.dias} días). Confirme el reintegro y la novedad a nómina.`,
+        detalle: `${s.consecutivo} · del ${s.desde} al ${s.hasta} (${s.dias} días). Confirme el reintegro.`,
         empleadoId: s.empleadoId,
         empleadoNombre: nombre(s.empleadoId),
         fecha: s.hasta,

@@ -4,7 +4,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { BarChart3, FileDown, FileText, Users, Wallet, HardHat } from "lucide-react";
+import { BarChart3, FileDown, FileText, Users, Timer, HardHat } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/AppShell";
@@ -20,27 +20,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useRrhh } from "@/store/rrhh";
 import { useOperaciones } from "@/store/operaciones";
 import { useSst } from "@/store/sst";
-import { useNomina } from "@/store/nomina";
 import {
   accidentalidadMensual,
   antiguedadDistribucion,
   ausentismo,
   capacitacionesResumen,
-  costosLaborales,
-  costosPorArea,
-  costosPorCentroCosto,
+  personalPorArea,
+  personalPorCentroCosto,
   horasExtrasReporte,
   indicadoresGlobales,
-  prestacionesPorEmpleado,
   reporteVacaciones,
   rotacionMensual,
   type FiltroReportes,
 } from "@/lib/reportes";
 import { downloadExcel, type HojaExcel } from "@/lib/excel";
-import { descargarReportePdf } from "@/lib/desprendible";
+import { descargarReportePdf } from "@/lib/reporte-pdf";
 import { nombreArea, nombreCentroCosto } from "@/lib/rrhh";
 import { AREAS, CENTROS_COSTO } from "@/data/organizacion";
-import { formatCOP } from "@/types/organizacion";
 import { ESTADOS_VINCULADOS, nombreEmpleado } from "@/types/rrhh";
 import { TIPO_HORA_EXTRA_LABEL } from "@/types/operaciones";
 import { GRAVEDAD_LABEL, TIPO_EVENTO_SST_LABEL } from "@/types/sst";
@@ -52,13 +48,13 @@ export const Route = createFileRoute("/reportes")({
       {
         name: "description",
         content:
-          "Reportes de rotación, antigüedad, ausentismo, vacaciones, costos laborales, prestaciones, horas extras, SST y costos por área con exportación a Excel y PDF.",
+          "Reportes de rotación, antigüedad, ausentismo, vacaciones, horas extras, SST y personal por área con exportación a Excel y PDF.",
       },
       { property: "og:title", content: "Dashboards ejecutivos y reportes | SIGTH" },
       {
         property: "og:description",
         content:
-          "Indicadores globales y reportes gerenciales de talento humano, nómina y SST con filtros avanzados y exportación.",
+          "Indicadores globales y reportes gerenciales de talento humano, horas extras y SST con filtros avanzados y exportación.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -71,12 +67,14 @@ function ReportesPage() {
   const { empleados } = useRrhh();
   const { solicitudes, incapacidades, asistencia, horasExtras } = useOperaciones();
   const { accidentes, capacitaciones } = useSst();
-  const { periodos, vacacionesPendientes } = useNomina();
+  // Saldos de vacaciones: aún no se calculan automáticamente.
+  const vacacionesPendientes: Record<string, number> = {};
 
-  const anios = useMemo(
-    () => Array.from(new Set(periodos.map((p) => p.anio))).sort((a, b) => b - a),
-    [periodos],
-  );
+  const anios = useMemo(() => {
+    const actual = new Date().getFullYear();
+    const deHoras = horasExtras.map((h) => Number(h.fecha?.slice(0, 4))).filter(Boolean);
+    return Array.from(new Set([actual, ...deHoras])).sort((a, b) => b - a);
+  }, [horasExtras]);
   const [filtro, setFiltro] = useState<FiltroReportes>({
     anio: anios[0] ?? new Date().getFullYear(),
     areaId: "todas",
@@ -102,28 +100,25 @@ function ReportesPage() {
     () =>
       indicadoresGlobales({
         empleados: filtrados,
-        periodos,
+        horasExtras,
         incapacidades,
         asistencia,
         accidentes,
         capacitaciones,
         anio: filtro.anio,
       }),
-    [filtrados, periodos, incapacidades, asistencia, accidentes, capacitaciones, filtro.anio],
+    [filtrados, horasExtras, incapacidades, asistencia, accidentes, capacitaciones, filtro.anio],
   );
 
   const rotacion = rotacionMensual(filtrados, filtro.anio);
   const antiguedad = antiguedadDistribucion(filtrados);
   const aus = ausentismo(activos, incapacidades, asistencia);
   const vac = reporteVacaciones(activos, solicitudes, vacacionesPendientes);
-  const costos = costosLaborales(periodos, filtro.anio);
-  const prest = prestacionesPorEmpleado(periodos, filtro.anio);
   const he = horasExtrasReporte(horasExtras, empleados, filtro.anio);
   const accMes = accidentalidadMensual(accidentes, filtro.anio);
   const cap = capacitacionesResumen(capacitaciones, filtro.anio);
-  const ultimoLiquidado = [...periodos].reverse().find((p) => (p.detalles?.length ?? 0) > 0);
-  const porArea = costosPorArea(ultimoLiquidado, filtrados);
-  const porCC = costosPorCentroCosto(ultimoLiquidado, filtrados);
+  const porArea = personalPorArea(filtrados, horasExtras, filtro.anio);
+  const porCC = personalPorCentroCosto(filtrados, horasExtras, filtro.anio);
 
   const filtrosTexto = [
     `Año ${filtro.anio}`,
@@ -153,19 +148,9 @@ function ReportesPage() {
       rows: vac.map((v) => [nombre(v.empleadoId), v.diasTomados, v.diasPendientes, v.solicitudesPendientes]),
     },
     {
-      nombre: "Costos laborales",
-      headers: ["Mes", "Devengado", "Prestaciones", "Costo total", "Neto pagado"],
-      rows: costos.map((c) => [c.label, c.devengado, c.prestaciones, c.costoTotal, c.neto]),
-    },
-    {
-      nombre: "Prestaciones",
-      headers: ["Empleado", "Prima", "Cesantías", "Intereses", "Vacaciones"],
-      rows: [...prest.entries()].map(([id, p]) => [nombre(id), p.prima, p.cesantias, p.intereses, p.vacaciones]),
-    },
-    {
       nombre: "Horas extras",
-      headers: ["Consecutivo", "Empleado", "Fecha", "Tipo", "Horas", "Valor"],
-      rows: he.map((h) => [h.consecutivo, nombre(h.empleadoId), h.fecha, TIPO_HORA_EXTRA_LABEL[h.tipo], h.horas, h.valor]),
+      headers: ["Consecutivo", "Empleado", "Fecha", "Tipo", "Horas"],
+      rows: he.map((h) => [h.consecutivo, nombre(h.empleadoId), h.fecha, TIPO_HORA_EXTRA_LABEL[h.tipo], h.horas]),
     },
     {
       nombre: "Accidentes",
@@ -194,14 +179,14 @@ function ReportesPage() {
       ]),
     },
     {
-      nombre: "Costos por área",
-      headers: ["Área", "Empleados", "Devengado", "Prestaciones", "Costo total"],
-      rows: porArea.map((a) => [a.nombre, a.empleados, a.devengado, a.prestaciones, a.costoTotal]),
+      nombre: "Personal por área",
+      headers: ["Área", "Empleados", "Horas extras"],
+      rows: porArea.map((a) => [a.nombre, a.empleados, a.horasExtras]),
     },
     {
-      nombre: "Costos por CC",
-      headers: ["Centro de costo", "Empleados", "Devengado", "Prestaciones", "Costo total"],
-      rows: porCC.map((a) => [a.nombre, a.empleados, a.devengado, a.prestaciones, a.costoTotal]),
+      nombre: "Personal por CC",
+      headers: ["Centro de costo", "Empleados", "Horas extras"],
+      rows: porCC.map((a) => [a.nombre, a.empleados, a.horasExtras]),
     },
   ];
 
@@ -212,17 +197,11 @@ function ReportesPage() {
 
   const exportarPdf = () => {
     descargarReportePdf({
-      titulo: "Indicadores globales y costos por área",
-      subtitulo: `Periodo de referencia ${ultimoLiquidado?.codigo ?? filtro.anio}`,
+      titulo: "Personal y horas extras por área",
+      subtitulo: `Año ${filtro.anio}`,
       filtros: filtrosTexto,
-      headers: ["Área", "Emp.", "Devengado", "Prestaciones", "Costo total"],
-      rows: porArea.map((a) => [
-        a.nombre,
-        a.empleados,
-        formatCOP(a.devengado),
-        formatCOP(a.prestaciones),
-        formatCOP(a.costoTotal),
-      ]),
+      headers: ["Área", "Empleados", "Horas extras"],
+      rows: porArea.map((a) => [a.nombre, a.empleados, a.horasExtras]),
       nombreArchivo: `reporte-gerencial-${filtro.anio}`,
     });
     toast.success("Reporte gerencial exportado a PDF");
@@ -233,7 +212,7 @@ function ReportesPage() {
       <div className="space-y-6">
         <PageHeader
           title="Dashboards ejecutivos"
-          description="Indicadores y reportes consolidados de talento humano, nómina, SST y gerencia con filtros avanzados y exportación."
+          description="Indicadores y reportes consolidados de talento humano, horas extras, SST y gerencia con filtros avanzados y exportación."
           breadcrumb={["Administración", "Reportes"]}
           actions={
             <>
@@ -304,10 +283,10 @@ function ReportesPage() {
           <StatCard label="Headcount" value={String(ind.headcount)} hint={`Antigüedad ${ind.antiguedadPromedio} años`} icon={Users} />
           <StatCard label="Rotación anual" value={`${ind.rotacionAnual}%`} hint="Retiros / personal vinculado" icon={BarChart3} />
           <StatCard
-            label="Costo nómina mes"
-            value={formatCOP(ind.costoNominaMes)}
-            hint={`Promedio ${formatCOP(ind.costoPromedioEmpleado)}`}
-            icon={Wallet}
+            label="Horas extras del año"
+            value={`${ind.horasExtrasAnio} h`}
+            hint="Solo tiempo registrado"
+            icon={Timer}
           />
           <StatCard
             label="Ausentismo / SST"
@@ -320,7 +299,7 @@ function ReportesPage() {
         <Tabs defaultValue="rrhh" className="space-y-4">
           <TabsList className="flex-wrap">
             <TabsTrigger value="rrhh">RRHH</TabsTrigger>
-            <TabsTrigger value="nomina">Nómina</TabsTrigger>
+            <TabsTrigger value="horas">Horas extras</TabsTrigger>
             <TabsTrigger value="sst">SST</TabsTrigger>
             <TabsTrigger value="gerencia">Gerencia</TabsTrigger>
           </TabsList>
@@ -360,34 +339,7 @@ function ReportesPage() {
             />
           </TabsContent>
 
-          <TabsContent value="nomina" className="space-y-4">
-            <div className="surface-panel p-5">
-              <h3 className="text-sm font-semibold text-foreground">Costos laborales por mes</h3>
-              <BarrasChart
-                datos={costos.map((c) => ({ label: c.label, valor: c.costoTotal }))}
-                formato={(v) => `${Math.round(v / 1_000_000)}M`}
-              />
-            </div>
-            <DataTable
-              rows={costos.map((c) => ({ ...c, id: c.label }))}
-              columns={[
-                { key: "mes", header: "Mes", render: (r) => r.label },
-                { key: "dev", header: "Devengado", render: (r) => formatCOP(r.devengado) },
-                { key: "pres", header: "Prestaciones", render: (r) => formatCOP(r.prestaciones) },
-                { key: "neto", header: "Neto pagado", render: (r) => formatCOP(r.neto) },
-                { key: "tot", header: "Costo total", render: (r) => formatCOP(r.costoTotal) },
-              ]}
-            />
-            <DataTable
-              rows={[...prest.entries()].map(([id, p]) => ({ id, ...p }))}
-              columns={[
-                { key: "emp", header: "Empleado", render: (r) => nombre(r.id) },
-                { key: "prima", header: "Prima", render: (r) => formatCOP(r.prima) },
-                { key: "ces", header: "Cesantías", render: (r) => formatCOP(r.cesantias) },
-                { key: "int", header: "Intereses", render: (r) => formatCOP(r.intereses) },
-                { key: "vac", header: "Vacaciones", render: (r) => formatCOP(r.vacaciones) },
-              ]}
-            />
+          <TabsContent value="horas" className="space-y-4">
             <DataTable
               rows={he}
               emptyMessage="Sin horas extras registradas en el año."
@@ -397,7 +349,6 @@ function ReportesPage() {
                 { key: "fecha", header: "Fecha", render: (r) => r.fecha },
                 { key: "tipo", header: "Tipo", render: (r) => TIPO_HORA_EXTRA_LABEL[r.tipo] },
                 { key: "horas", header: "Horas", render: (r) => r.horas },
-                { key: "valor", header: "Valor", render: (r) => formatCOP(r.valor) },
               ]}
             />
           </TabsContent>
@@ -438,18 +389,12 @@ function ReportesPage() {
           <TabsContent value="gerencia" className="space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
               <div className="surface-panel p-5">
-                <h3 className="text-sm font-semibold text-foreground">Costo por área</h3>
-                <BarrasChart
-                  datos={porArea.map((a) => ({ label: a.nombre.slice(0, 8), valor: a.costoTotal }))}
-                  formato={(v) => `${Math.round(v / 1_000_000)}M`}
-                />
+                <h3 className="text-sm font-semibold text-foreground">Personal por área</h3>
+                <BarrasChart datos={porArea.map((a) => ({ label: a.nombre.slice(0, 8), valor: a.empleados }))} />
               </div>
               <div className="surface-panel p-5">
-                <h3 className="text-sm font-semibold text-foreground">Costo por centro de costo</h3>
-                <BarrasChart
-                  datos={porCC.map((a) => ({ label: a.nombre.slice(0, 8), valor: a.costoTotal }))}
-                  formato={(v) => `${Math.round(v / 1_000_000)}M`}
-                />
+                <h3 className="text-sm font-semibold text-foreground">Horas extras por área</h3>
+                <BarrasChart datos={porArea.map((a) => ({ label: a.nombre.slice(0, 8), valor: a.horasExtras }))} />
               </div>
             </div>
             <DataTable
@@ -457,9 +402,7 @@ function ReportesPage() {
               columns={[
                 { key: "area", header: "Área", render: (r) => r.nombre },
                 { key: "emp", header: "Empleados", render: (r) => r.empleados },
-                { key: "dev", header: "Devengado", render: (r) => formatCOP(r.devengado) },
-                { key: "pres", header: "Prestaciones", render: (r) => formatCOP(r.prestaciones) },
-                { key: "tot", header: "Costo total", render: (r) => formatCOP(r.costoTotal) },
+                { key: "he", header: "Horas extras", render: (r) => r.horasExtras },
               ]}
             />
             <DataTable
@@ -467,9 +410,7 @@ function ReportesPage() {
               columns={[
                 { key: "cc", header: "Centro de costo", render: (r) => r.nombre },
                 { key: "emp", header: "Empleados", render: (r) => r.empleados },
-                { key: "dev", header: "Devengado", render: (r) => formatCOP(r.devengado) },
-                { key: "pres", header: "Prestaciones", render: (r) => formatCOP(r.prestaciones) },
-                { key: "tot", header: "Costo total", render: (r) => formatCOP(r.costoTotal) },
+                { key: "he", header: "Horas extras", render: (r) => r.horasExtras },
               ]}
             />
           </TabsContent>
