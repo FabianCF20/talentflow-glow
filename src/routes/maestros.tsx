@@ -92,7 +92,6 @@ function Maestros() {
     { key: "codigo", label: "Código", requerido: true },
     { key: "nombre", label: "Centro de costo", requerido: true },
     { key: "areaId", label: "Área imputable", tipo: "select", opciones: opcAreas, requerido: true },
-    { key: "presupuestoAnual", label: "Presupuesto anual", tipo: "numero" },
   ];
 
   const camposCargo: CampoDef<CargoOrg>[] = [
@@ -100,7 +99,6 @@ function Maestros() {
     { key: "nombre", label: "Cargo", requerido: true },
     { key: "areaId", label: "Área", tipo: "select", opciones: opcAreas, requerido: true },
     { key: "nivelId", label: "Nivel jerárquico", tipo: "select", opciones: opcNiveles, requerido: true },
-    { key: "salarioBase", label: "Salario base", tipo: "numero" },
   ];
 
   return (
@@ -177,7 +175,7 @@ function Maestros() {
             campos={camposCentroCosto}
             items={centrosCosto}
             setItems={setCentrosCosto}
-            valoresIniciales={{ codigo: "", nombre: "", areaId: "", presupuestoAnual: 0 }}
+            valoresIniciales={{ codigo: "", nombre: "", areaId: "" }}
             puedeEditar={puedeEditar}
             filtro={query}
           />
@@ -189,7 +187,7 @@ function Maestros() {
             campos={camposCargo}
             items={cargos}
             setItems={setCargos}
-            valoresIniciales={{ codigo: "", nombre: "", areaId: "", nivelId: "", salarioBase: 0 }}
+            valoresIniciales={{ codigo: "", nombre: "", areaId: "", nivelId: "" }}
             puedeEditar={puedeEditar}
             filtro={query}
           />
