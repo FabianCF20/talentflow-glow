@@ -1,11 +1,10 @@
 /**
- * Motor de reportes ejecutivos: RRHH, nómina, SST y gerencia.
+ * Motor de reportes ejecutivos: RRHH, horas extras (solo tiempo), SST y gerencia.
  * Todos los cálculos son puros para permitir exportación a Excel y PDF.
  */
 
 import { AREAS, CENTROS_COSTO, areaById, centroCostoById } from "@/data/organizacion";
 import { calcularAsistencia } from "@/lib/operaciones";
-import { totalesPeriodo, valorRecargo } from "@/lib/nomina";
 import type { AccidenteLaboral, CapacitacionSST } from "@/types/sst";
 import type {
   HoraExtra,
@@ -14,7 +13,7 @@ import type {
   SolicitudOperativa,
 } from "@/types/operaciones";
 import { ESTADOS_VINCULADOS, type EmpleadoRRHH } from "@/types/rrhh";
-import { MESES_LABEL, type PeriodoNomina } from "@/types/nomina";
+import { MESES_LABEL } from "@/lib/fechas";
 
 export interface FiltroReportes {
   anio: number;
@@ -118,52 +117,9 @@ export function reporteVacaciones(
   });
 }
 
-/* -------------------------------- Nómina --------------------------------- */
+/* ------------------------------ Horas extras ------------------------------ */
 
-export interface CostoMensual {
-  label: string;
-  devengado: number;
-  prestaciones: number;
-  costoTotal: number;
-  neto: number;
-}
-
-export function costosLaborales(periodos: PeriodoNomina[], anio: number): CostoMensual[] {
-  return periodos
-    .filter((p) => p.anio === anio && (p.detalles?.length ?? 0) > 0)
-    .map((p) => {
-      const t = totalesPeriodo(p);
-      const prestaciones =
-        t.provisiones.prima +
-        t.provisiones.cesantias +
-        t.provisiones.interesesCesantias +
-        t.provisiones.vacaciones;
-      return {
-        label: MESES_LABEL[p.mes - 1]?.slice(0, 3) ?? "",
-        devengado: t.devengado,
-        prestaciones,
-        costoTotal: t.costoTotal,
-        neto: t.neto,
-      };
-    });
-}
-
-export function prestacionesPorEmpleado(periodos: PeriodoNomina[], anio: number) {
-  const acc = new Map<string, { prima: number; cesantias: number; intereses: number; vacaciones: number }>();
-  for (const p of periodos.filter((x) => x.anio === anio)) {
-    for (const d of p.detalles ?? []) {
-      const prev = acc.get(d.empleadoId) ?? { prima: 0, cesantias: 0, intereses: 0, vacaciones: 0 };
-      acc.set(d.empleadoId, {
-        prima: prev.prima + d.provisiones.prima,
-        cesantias: prev.cesantias + d.provisiones.cesantias,
-        intereses: prev.intereses + d.provisiones.interesesCesantias,
-        vacaciones: prev.vacaciones + d.provisiones.vacaciones,
-      });
-    }
-  }
-  return acc;
-}
-
+/** Horas extras del año: solo tiempo registrado, sin valores monetarios. */
 export function horasExtrasReporte(
   horasExtras: HoraExtra[],
   empleados: EmpleadoRRHH[],
@@ -172,11 +128,7 @@ export function horasExtrasReporte(
   const byEmp = new Map(empleados.map((e) => [e.id, e]));
   return horasExtras
     .filter((h) => h.fecha.startsWith(String(anio)))
-    .map((h) => {
-      const emp = byEmp.get(h.empleadoId);
-      const salario = emp?.laboral?.salario ?? 0;
-      return { ...h, valor: valorRecargo(salario, h.tipo, h.horas), empleado: emp };
-    });
+    .map((h) => ({ ...h, empleado: byEmp.get(h.empleadoId) }));
 }
 
 /* ---------------------------------- SST ---------------------------------- */
@@ -207,63 +159,47 @@ export function capacitacionesResumen(capacitaciones: CapacitacionSST[], anio: n
 
 /* -------------------------------- Gerencia -------------------------------- */
 
-export interface CostoAgrupado {
+/** Personal vinculado y horas extras agrupados por una clave (área o centro). */
+export interface FilaAgrupada {
   id: string;
   nombre: string;
   empleados: number;
-  devengado: number;
-  prestaciones: number;
-  costoTotal: number;
+  horasExtras: number;
 }
 
 function agrupar(
-  periodo: PeriodoNomina | undefined,
   empleados: EmpleadoRRHH[],
+  horasExtras: HoraExtra[],
+  anio: number,
   claves: { id: string; nombre: string }[],
-  selector: (e: EmpleadoRRHH) => string,
-): CostoAgrupado[] {
+  selector: (e: EmpleadoRRHH) => string | undefined,
+): FilaAgrupada[] {
   const byEmp = new Map(empleados.map((e) => [e.id, e]));
   return claves
-    .map((k) => {
-      const detalles = (periodo?.detalles ?? []).filter((d) => {
-        const emp = byEmp.get(d.empleadoId);
-        return emp ? selector(emp) === k.id : false;
-      });
-      const devengado = detalles.reduce((s, d) => s + d.totalDevengado, 0);
-      const prestaciones = detalles.reduce(
-        (s, d) =>
-          s +
-          d.provisiones.prima +
-          d.provisiones.cesantias +
-          d.provisiones.interesesCesantias +
-          d.provisiones.vacaciones,
-        0,
-      );
-      return {
-        id: k.id,
-        nombre: k.nombre,
-        empleados: detalles.length,
-        devengado,
-        prestaciones,
-        costoTotal: devengado + prestaciones,
-      };
-    })
-    .filter((x) => x.empleados > 0)
-    .sort((a, b) => b.costoTotal - a.costoTotal);
+    .map((k) => ({
+      id: k.id,
+      nombre: k.nombre,
+      empleados: empleados.filter((e) => vinculado(e) && selector(e) === k.id).length,
+      horasExtras: horasExtras
+        .filter((h) => h.fecha?.startsWith(String(anio)) && h.estado !== "rechazada")
+        .filter((h) => {
+          const e = byEmp.get(h.empleadoId);
+          return e ? selector(e) === k.id : false;
+        })
+        .reduce((s, h) => s + (Number(h.horas) || 0), 0),
+    }))
+    .filter((x) => x.empleados > 0 || x.horasExtras > 0)
+    .sort((a, b) => b.empleados - a.empleados);
 }
 
-export const costosPorArea = (periodo: PeriodoNomina | undefined, empleados: EmpleadoRRHH[]) =>
-  agrupar(
-    periodo,
-    empleados,
-    AREAS.map((a) => ({ id: a.id, nombre: a.nombre })),
-    (e) => e.laboral?.areaId,
-  );
+export const personalPorArea = (empleados: EmpleadoRRHH[], horasExtras: HoraExtra[], anio: number) =>
+  agrupar(empleados, horasExtras, anio, AREAS.map((a) => ({ id: a.id, nombre: a.nombre })), (e) => e.laboral?.areaId);
 
-export const costosPorCentroCosto = (periodo: PeriodoNomina | undefined, empleados: EmpleadoRRHH[]) =>
+export const personalPorCentroCosto = (empleados: EmpleadoRRHH[], horasExtras: HoraExtra[], anio: number) =>
   agrupar(
-    periodo,
     empleados,
+    horasExtras,
+    anio,
     CENTROS_COSTO.map((c) => ({ id: c.id, nombre: `${c.codigo} · ${c.nombre}` })),
     (e) => e.laboral?.centroCostoId,
   );
@@ -275,8 +211,7 @@ export interface IndicadoresGlobales {
   headcount: number;
   rotacionAnual: number;
   antiguedadPromedio: number;
-  costoNominaMes: number;
-  costoPromedioEmpleado: number;
+  horasExtrasAnio: number;
   tasaAusentismo: number;
   accidentesAnio: number;
   coberturaCapacitacion: number;
@@ -284,18 +219,16 @@ export interface IndicadoresGlobales {
 
 export function indicadoresGlobales(input: {
   empleados: EmpleadoRRHH[];
-  periodos: PeriodoNomina[];
+  horasExtras: HoraExtra[];
   incapacidades: IncapacidadOperativa[];
   asistencia: RegistroAsistencia[];
   accidentes: AccidenteLaboral[];
   capacitaciones: CapacitacionSST[];
   anio: number;
 }): IndicadoresGlobales {
-  const { empleados, periodos, anio } = input;
+  const { empleados, anio } = input;
   const activos = empleados.filter(vinculado);
   const retirosAnio = empleados.filter((e) => e.laboral?.fechaRetiro?.startsWith(String(anio))).length;
-  const ultimo = [...periodos].reverse().find((p) => (p.detalles?.length ?? 0) > 0);
-  const totales = ultimo ? totalesPeriodo(ultimo) : null;
   const hoy = Date.now();
   const antiguedad = activos.length
     ? activos.reduce(
@@ -310,8 +243,9 @@ export function indicadoresGlobales(input: {
     headcount: activos.length,
     rotacionAnual: activos.length ? Number(((retirosAnio / activos.length) * 100).toFixed(2)) : 0,
     antiguedadPromedio: Number(antiguedad.toFixed(1)),
-    costoNominaMes: totales?.costoTotal ?? 0,
-    costoPromedioEmpleado: totales && totales.empleados ? Math.round(totales.costoTotal / totales.empleados) : 0,
+    horasExtrasAnio: input.horasExtras
+      .filter((h) => h.fecha?.startsWith(String(anio)) && h.estado !== "rechazada")
+      .reduce((s, h) => s + (Number(h.horas) || 0), 0),
     tasaAusentismo: aus.length
       ? Number((aus.reduce((s, a) => s + a.tasa, 0) / aus.length).toFixed(2))
       : 0,

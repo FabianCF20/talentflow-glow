@@ -28,7 +28,7 @@ import {
 } from "@/lib/maestros";
 import { useAuth } from "@/lib/auth";
 import { can, NIVELES_JERARQUICOS } from "@/config/roles";
-import { formatCOP, nombreCompleto } from "@/types/organizacion";
+import { nombreCompleto } from "@/types/organizacion";
 import type {
   AreaOrg,
   CargoOrg,
