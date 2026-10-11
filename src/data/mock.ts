@@ -25,7 +25,6 @@ export const SEARCH_INDEX: SearchEntry[] = [
   { id: "nav-organizacion", titulo: "Organización", detalle: "Áreas, cargos y centros de costo", categoria: "Configuración", to: "/organizacion" },
   { id: "nav-organigrama", titulo: "Organigrama", detalle: "Estructura jerárquica", categoria: "Configuración", to: "/organigrama" },
   { id: "nav-usuarios", titulo: "Usuarios", detalle: "Cuentas y roles del sistema", categoria: "Seguridad", to: "/usuarios" },
-  { id: "nav-nomina", titulo: "Nómina", detalle: "Periodos y liquidaciones", categoria: "Nómina", to: "/nomina" },
   { id: "nav-solicitudes", titulo: "Solicitudes", detalle: "Permisos, vacaciones y cambios", categoria: "Operación", to: "/solicitudes" },
   { id: "nav-asistencia", titulo: "Asistencia", detalle: "Registro y control de jornada", categoria: "Operación", to: "/asistencia" },
   { id: "nav-horas-extras", titulo: "Horas extras", detalle: "Autorización y liquidación", categoria: "Operación", to: "/horas-extras" },

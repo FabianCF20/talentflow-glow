@@ -24,7 +24,6 @@ import { PortalProvider } from "../store/portal";
 import { OperacionesProvider } from "../store/operaciones";
 import { SstProvider } from "../store/sst";
 import { DisciplinarioProvider } from "../store/disciplinario";
-import { NominaProvider } from "../store/nomina";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { DatosMaestrosProvider } from "../lib/datos-live";
 import { NAV_GROUPS } from "../config/navigation";
@@ -206,10 +205,8 @@ function RootComponent() {
             <OperacionesProvider>
               <SstProvider>
                 <DisciplinarioProvider>
-                  <NominaProvider>
                     {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
                     <Outlet />
-                  </NominaProvider>
                 </DisciplinarioProvider>
               </SstProvider>
             </OperacionesProvider>
