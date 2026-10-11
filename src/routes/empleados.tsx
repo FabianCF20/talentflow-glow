@@ -105,7 +105,6 @@ function Empleados() {
     [empleadosPermitidos],
   );
 
-  const nomina = activos.reduce((s, e) => s + e.laboral?.salario, 0);
 
   const columnas = (mostrarRetiro: boolean): Column<EmpleadoRRHH>[] => [
     {
@@ -255,7 +254,6 @@ function Empleados() {
     return {
       area: a.nombre,
       total: rows.length,
-      masa: rows.reduce((s, e) => s + e.laboral?.salario, 0),
       antiguedad: rows.length
         ? Math.round(
             (rows.reduce((s, e) => s + antiguedadAnios(e.laboral?.fechaIngreso), 0) / rows.length) * 10,
@@ -300,12 +298,6 @@ function Empleados() {
           hint="usuarios habilitados"
         />
         <StatCard label="Retirados" value={String(retirados.length)} icon={UserMinus} hint="históricos conservados" />
-        <StatCard
-          label="Masa salarial"
-          value={verSalario(empleadoAsignadoId) && ["administrador", "gerente_general", "director", "nomina", "contabilidad"].includes(rolActivo) ? formatCOP(nomina) : "Restringido"}
-          icon={FileSpreadsheet}
-          hint="personal vinculado"
-        />
       </div>
 
       <div className="surface-panel flex flex-wrap items-end gap-3 p-4">
@@ -475,8 +467,8 @@ function Empleados() {
                 onClick={() =>
                   downloadCsv(
                     "reporte-areas.csv",
-                    ["Área", "Empleados", "Masa salarial", "Antigüedad promedio (años)"],
-                    porArea.map((r) => [r.area, r.total, r.masa, r.antiguedad]),
+                    ["Área", "Empleados", "Antigüedad promedio (años)"],
+                    porArea.map((r) => [r.area, r.total, r.antiguedad]),
                   )
                 }
               >
@@ -489,7 +481,6 @@ function Empleados() {
                   <tr className="border-b border-border bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="px-5 py-3 text-left">Área</th>
                     <th className="px-5 py-3 text-right">Empleados</th>
-                    <th className="px-5 py-3 text-right">Masa salarial</th>
                     <th className="px-5 py-3 text-right">Antigüedad prom.</th>
                   </tr>
                 </thead>
@@ -498,13 +489,6 @@ function Empleados() {
                     <tr key={r.area} className="border-b border-border/70 last:border-0">
                       <td className="px-5 py-3 text-foreground">{r.area}</td>
                       <td className="px-5 py-3 text-right tabular-nums">{r.total}</td>
-                      <td className="px-5 py-3 text-right tabular-nums">
-                        {["administrador", "gerente_general", "director", "nomina", "contabilidad"].includes(
-                          rolActivo,
-                        )
-                          ? formatCOP(r.masa)
-                          : "Restringido"}
-                      </td>
                       <td className="px-5 py-3 text-right tabular-nums">{r.antiguedad} años</td>
                     </tr>
                   ))}
