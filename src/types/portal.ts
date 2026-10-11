@@ -129,15 +129,6 @@ export interface RegistroIncapacidad {
   estado: "radicada" | "en_tramite" | "pagada";
 }
 
-export interface DesprendibleNomina {
-  id: string;
-  periodo: string;
-  devengado: number;
-  deducciones: number;
-  neto: number;
-  fechaPago: string;
-}
-
 export interface EntregaDotacion {
   id: string;
   elemento: string;

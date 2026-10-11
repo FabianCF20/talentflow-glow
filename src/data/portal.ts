@@ -2,7 +2,6 @@
  * Arreglos compartidos del Portal del Empleado (se llenan desde Firestore).
  */
 import type {
-  DesprendibleNomina,
   DocumentoEmpleado,
   EntregaDotacion,
   PeriodoVacaciones,
@@ -21,10 +20,6 @@ export function vacacionesDe(empleadoId: string): PeriodoVacaciones[] {
 }
 
 export function incapacidadesDe(_empleadoId: string): RegistroIncapacidad[] {
-  return [];
-}
-
-export function nominaDe(_empleadoId: string): DesprendibleNomina[] {
   return [];
 }
 
