@@ -106,7 +106,6 @@ function Dashboard() {
             {[
               ["Núcleo / Arquitectura", "Disponible"],
               ["Empleados", "Pendiente"],
-              ["Nómina", "Pendiente"],
               ["SST", "Pendiente"],
               ["Evaluaciones", "Pendiente"],
               ["Disciplinario", "Pendiente"],
