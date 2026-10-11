@@ -99,13 +99,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Plataforma empresarial para centralizar talento humano, nómina, SST y control operativo.",
+          "Plataforma empresarial para centralizar talento humano, horas extras, SST y control operativo.",
       },
       { property: "og:title", content: "SIGTH — Gestión de Talento Humano" },
       {
         property: "og:description",
         content:
-          "Plataforma empresarial para centralizar talento humano, nómina, SST y control operativo.",
+          "Plataforma empresarial para centralizar talento humano, horas extras, SST y control operativo.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
