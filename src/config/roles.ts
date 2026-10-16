@@ -309,7 +309,27 @@ export const PERMISSION_MATRIX: PermissionMatrix = {
   },
 };
 
+/**
+ * Módulos que un usuario con rol únicamente "empleado" puede usar. Es un tope
+ * fijo: aunque la matriz guardada en Firestore conceda más, el empleado solo
+ * accede a su autogestión (panel personal, portal y sus solicitudes).
+ */
+export const MODULOS_EMPLEADO = new Set([
+  "dashboard",
+  "portal",
+  "ausencias",
+  "certificados",
+  "hoja_vida",
+  "salarios",
+]);
+
+/** Indica si el usuario solo tiene el rol de empleado (sin roles de gestión). */
+export function esSoloEmpleado(roles: RoleKey[]): boolean {
+  return roles.length === 0 || roles.every((r) => r === "empleado");
+}
+
 export function can(roles: RoleKey[], modulo: string, accion: PermissionAction): boolean {
+  if (esSoloEmpleado(roles) && !MODULOS_EMPLEADO.has(modulo)) return false;
   const modulePerms = PERMISSION_MATRIX[modulo];
   if (!modulePerms) return false;
   return roles.some((role) => modulePerms[role]?.includes(accion) ?? false);
