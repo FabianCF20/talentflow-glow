@@ -21,7 +21,8 @@ import { BarraDistribucion } from "@/components/sst/SstBadges";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { useRrhh } from "@/store/rrhh";
 import { useSst } from "@/store/sst";
-import { destinatariosDe, estadisticasFormulario, hoyISO, puedeGestionarSST } from "@/lib/sst";
+import { destinatariosDe, estadisticasFormulario, formulariosPara, hoyISO, puedeGestionarSST } from "@/lib/sst";
+import { ResponderFormulario } from "@/components/sst/ResponderFormulario";
 import { downloadCsv } from "@/lib/export";
 import { AREAS, CARGOS } from "@/data/organizacion";
 import { nombreEmpleado, ESTADOS_VINCULADOS } from "@/types/rrhh";
@@ -123,20 +124,13 @@ function FormulariosPage() {
   /* --------------------------- Diligenciar --------------------------- */
   const [activoId, setActivoId] = useState(formularios[0]?.id ?? "");
   const activo = formularios.find((f) => f.id === activoId) ?? formularios[0];
-  const [respuesta, setRespuesta] = useState<Record<string, ValorRespuesta>>({});
-
-  const enviar = () => {
-    if (!activo) return;
-    const faltante = activo.campos.find((c) => {
-      if (!c.requerido) return false;
-      const v = respuesta[c.id];
-      return v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
-    });
-    if (faltante) return toast.error(`Responda la pregunta obligatoria: ${faltante.etiqueta}`);
-    responderFormulario(activo.id, empleadoActuandoId, respuesta);
-    setRespuesta({});
-    toast.success("Respuesta registrada.");
-  };
+  // En "Diligenciar" solo aparecen los formularios dirigidos al empleado actuante.
+  const misFormularios = useMemo(
+    () => formulariosPara(empleadoActuandoId, formularios, empleados),
+    [empleadoActuandoId, formularios, empleados],
+  );
+  const [diligenciarId, setDiligenciarId] = useState("");
+  const aDiligenciar = misFormularios.find((f) => f.id === diligenciarId) ?? misFormularios[0];
 
   const totalRespuestas = respuestas.length;
 
@@ -151,7 +145,7 @@ function FormulariosPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard label="Formularios" value={String(formularios.length)} icon={ClipboardList} hint={`${formularios.filter((f) => f.estado === "activo").length} activos`} />
         <StatCard label="Respuestas totales" value={String(totalRespuestas)} icon={BarChart3} hint="Acumuladas por todos los formularios" />
-        <StatCard label="Destinatarios del activo" value={String(activo ? destinatariosDe(activo).length : 0)} icon={Users} hint={activo ? TIPO_ASIGNACION_LABEL[activo.asignacion.tipo] : "—"} />
+        <StatCard label="Destinatarios del activo" value={String(activo ? destinatariosDe(activo, empleados).length : 0)} icon={Users} hint={activo ? TIPO_ASIGNACION_LABEL[activo.asignacion.tipo] : "—"} />
       </div>
 
       <Tabs defaultValue="listado" className="space-y-4">
@@ -165,7 +159,7 @@ function FormulariosPage() {
         {/* ----------------------------- Listado ----------------------------- */}
         <TabsContent value="listado" className="grid gap-4 lg:grid-cols-2">
           {formularios.map((f) => {
-            const destinatarios = destinatariosDe(f);
+            const destinatarios = destinatariosDe(f, empleados);
             const contestadas = respuestas.filter((r) => r.formularioId === f.id).length;
             return (
               <div key={f.id} className="surface-panel space-y-3 p-5">
