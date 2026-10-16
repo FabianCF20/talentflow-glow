@@ -400,6 +400,14 @@ function PortalEmpleadoPage() {
           <TabsTrigger value="actualizar">Actualizar datos</TabsTrigger>
           <TabsTrigger value="documentos">Mis documentos</TabsTrigger>
           <TabsTrigger value="certificados">Certificados</TabsTrigger>
+          <TabsTrigger value="formularios">
+            Formularios
+            {misFormularios.filter((f) => !yaRespondio(f.id)).length > 0 && (
+              <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                {misFormularios.filter((f) => !yaRespondio(f.id)).length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* ---------------------------------- Perfil ---------------------------------- */}
