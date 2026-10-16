@@ -781,6 +781,57 @@ function PortalEmpleadoPage() {
             </div>
           </SeccionExpediente>
         </TabsContent>
+
+        {/* ---------------- Formularios dirigidos al empleado ---------------- */}
+        <TabsContent value="formularios" className="mt-4 space-y-4">
+          {misFormularios.length === 0 ? (
+            <div className="surface-panel p-5 text-sm text-muted-foreground">
+              No tiene formularios asignados. Aquí aparecerán las encuestas y formularios
+              dirigidos a usted, a su cargo, a su área o a toda la empresa.
+            </div>
+          ) : (
+            misFormularios.map((f) => {
+              const respondido = yaRespondio(f.id);
+              const abierto = formularioAbiertoId === f.id;
+              return (
+                <div key={f.id} className="surface-panel space-y-3 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-base font-semibold text-foreground">{f.titulo}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {f.codigo} · {TIPO_ASIGNACION_LABEL[f.asignacion.tipo]} · {f.campos.length} pregunta(s)
+                      </p>
+                    </div>
+                    {respondido ? (
+                      <span className="flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary">
+                        <BadgeCheck className="size-3.5" /> Ya respondió
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant={abierto ? "outline" : "default"}
+                        onClick={() => setFormularioAbiertoId(abierto ? "" : f.id)}
+                      >
+                        {abierto ? "Cerrar" : "Responder"}
+                      </Button>
+                    )}
+                  </div>
+                  {f.descripcion && <p className="text-sm text-muted-foreground">{f.descripcion}</p>}
+                  {abierto && !respondido && (
+                    <ResponderFormulario
+                      formulario={f}
+                      onEnviar={(valores) => {
+                        responderFormulario(f.id, id, valores);
+                        setFormularioAbiertoId("");
+                        toast.success("Respuesta enviada. Gracias por su participación.");
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </TabsContent>
       </Tabs>
 
       <div className="grid gap-4 sm:grid-cols-3">
