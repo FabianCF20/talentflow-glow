@@ -28,6 +28,8 @@ import {
 import { toast } from "sonner";
 import { useRrhh } from "@/store/rrhh";
 import { useOperaciones } from "@/store/operaciones";
+import { useAuth } from "@/lib/auth";
+import { esSoloEmpleado } from "@/config/roles";
 import { diasEntre, esJefeOp, esRrhhOp, hoyISO, supervisorDe } from "@/lib/operaciones";
 import { downloadCsv } from "@/lib/export";
 import { nombreEmpleado } from "@/types/rrhh";
