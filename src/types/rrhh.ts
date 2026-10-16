@@ -207,8 +207,10 @@ export interface EmpleadoRRHH {
   laboral: InformacionLaboral;
 }
 
-export const nombreEmpleado = (e: { nombres: string; apellidos: string }) =>
-  `${e.nombres} ${e.apellidos}`;
+/** Nombre completo; tolera nombres o apellidos ausentes (registros incompletos). */
+export const nombreEmpleado = (e?: { nombres?: string; apellidos?: string } | null) =>
+  `${e?.nombres ?? ""} ${e?.apellidos ?? ""}`.trim() || "Sin nombre";
 
-export const iniciales = (e: { nombres: string; apellidos: string }) =>
-  `${e.nombres[0] ?? ""}${e.apellidos[0] ?? ""}`.toUpperCase();
+/** Iniciales para avatares; tolera campos ausentes. */
+export const iniciales = (e?: { nombres?: string; apellidos?: string } | null) =>
+  `${e?.nombres?.[0] ?? ""}${e?.apellidos?.[0] ?? ""}`.toUpperCase() || "?";
