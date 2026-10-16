@@ -14,14 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarraDistribucion } from "@/components/sst/SstBadges";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { useRrhh } from "@/store/rrhh";
 import { useSst } from "@/store/sst";
-import { destinatariosDe, estadisticasFormulario, hoyISO, puedeGestionarSST } from "@/lib/sst";
+import { destinatariosDe, estadisticasFormulario, formulariosPara, hoyISO, puedeGestionarSST } from "@/lib/sst";
+import { ResponderFormulario } from "@/components/sst/ResponderFormulario";
 import { downloadCsv } from "@/lib/export";
 import { AREAS, CARGOS } from "@/data/organizacion";
 import { nombreEmpleado, ESTADOS_VINCULADOS } from "@/types/rrhh";
@@ -31,7 +31,6 @@ import {
   type CampoFormulario,
   type TipoAsignacion,
   type TipoCampo,
-  type ValorRespuesta,
 } from "@/types/sst";
 
 export const Route = createFileRoute("/formularios")({
@@ -123,20 +122,13 @@ function FormulariosPage() {
   /* --------------------------- Diligenciar --------------------------- */
   const [activoId, setActivoId] = useState(formularios[0]?.id ?? "");
   const activo = formularios.find((f) => f.id === activoId) ?? formularios[0];
-  const [respuesta, setRespuesta] = useState<Record<string, ValorRespuesta>>({});
-
-  const enviar = () => {
-    if (!activo) return;
-    const faltante = activo.campos.find((c) => {
-      if (!c.requerido) return false;
-      const v = respuesta[c.id];
-      return v === undefined || v === "" || (Array.isArray(v) && v.length === 0);
-    });
-    if (faltante) return toast.error(`Responda la pregunta obligatoria: ${faltante.etiqueta}`);
-    responderFormulario(activo.id, empleadoActuandoId, respuesta);
-    setRespuesta({});
-    toast.success("Respuesta registrada.");
-  };
+  // En "Diligenciar" solo aparecen los formularios dirigidos al empleado actuante.
+  const misFormularios = useMemo(
+    () => formulariosPara(empleadoActuandoId, formularios, empleados),
+    [empleadoActuandoId, formularios, empleados],
+  );
+  const [diligenciarId, setDiligenciarId] = useState("");
+  const aDiligenciar = misFormularios.find((f) => f.id === diligenciarId) ?? misFormularios[0];
 
   const totalRespuestas = respuestas.length;
 
@@ -151,7 +143,7 @@ function FormulariosPage() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard label="Formularios" value={String(formularios.length)} icon={ClipboardList} hint={`${formularios.filter((f) => f.estado === "activo").length} activos`} />
         <StatCard label="Respuestas totales" value={String(totalRespuestas)} icon={BarChart3} hint="Acumuladas por todos los formularios" />
-        <StatCard label="Destinatarios del activo" value={String(activo ? destinatariosDe(activo).length : 0)} icon={Users} hint={activo ? TIPO_ASIGNACION_LABEL[activo.asignacion.tipo] : "—"} />
+        <StatCard label="Destinatarios del activo" value={String(activo ? destinatariosDe(activo, empleados).length : 0)} icon={Users} hint={activo ? TIPO_ASIGNACION_LABEL[activo.asignacion.tipo] : "—"} />
       </div>
 
       <Tabs defaultValue="listado" className="space-y-4">
@@ -165,7 +157,7 @@ function FormulariosPage() {
         {/* ----------------------------- Listado ----------------------------- */}
         <TabsContent value="listado" className="grid gap-4 lg:grid-cols-2">
           {formularios.map((f) => {
-            const destinatarios = destinatariosDe(f);
+            const destinatarios = destinatariosDe(f, empleados);
             const contestadas = respuestas.filter((r) => r.formularioId === f.id).length;
             return (
               <div key={f.id} className="surface-panel space-y-3 p-5">
@@ -360,10 +352,10 @@ function FormulariosPage() {
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Formulario</Label>
-                <Select value={activo?.id ?? ""} onValueChange={(v) => { setActivoId(v); setRespuesta({}); }}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select value={aDiligenciar?.id ?? ""} onValueChange={setDiligenciarId}>
+                  <SelectTrigger><SelectValue placeholder="Seleccione un formulario" /></SelectTrigger>
                   <SelectContent>
-                    {formularios.filter((f) => f.estado === "activo").map((f) => (
+                    {misFormularios.map((f) => (
                       <SelectItem key={f.id} value={f.id}>{f.titulo}</SelectItem>
                     ))}
                   </SelectContent>
@@ -374,88 +366,21 @@ function FormulariosPage() {
               </div>
             </div>
 
-            {activo?.campos.map((c) => (
-              <div key={c.id} className="space-y-2 rounded-lg border border-border p-4">
-                <Label>
-                  {c.etiqueta} {c.requerido && <span className="text-destructive">*</span>}
-                </Label>
-
-                {c.tipo === "texto" && (
-                  <Textarea
-                    maxLength={500}
-                    value={String(respuesta[c.id] ?? "")}
-                    onChange={(e) => setRespuesta({ ...respuesta, [c.id]: e.target.value })}
-                  />
-                )}
-
-                {c.tipo === "seleccion_unica" && (
-                  <Select value={String(respuesta[c.id] ?? "")} onValueChange={(v) => setRespuesta({ ...respuesta, [c.id]: v })}>
-                    <SelectTrigger><SelectValue placeholder="Seleccione" /></SelectTrigger>
-                    <SelectContent>
-                      {(c.opciones ?? []).map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {c.tipo === "seleccion_multiple" && (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {(c.opciones ?? []).map((o) => {
-                      const actuales = (respuesta[c.id] as string[] | undefined) ?? [];
-                      return (
-                        <label key={o} className="flex items-center gap-2 text-sm text-foreground">
-                          <Checkbox
-                            checked={actuales.includes(o)}
-                            onCheckedChange={(v) =>
-                              setRespuesta({
-                                ...respuesta,
-                                [c.id]: v ? [...actuales, o] : actuales.filter((x) => x !== o),
-                              })
-                            }
-                          />
-                          {o}
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {c.tipo === "booleano" && (
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      checked={Boolean(respuesta[c.id])}
-                      onCheckedChange={(v) => setRespuesta({ ...respuesta, [c.id]: v })}
-                    />
-                    <span className="text-sm text-muted-foreground">
-                      {respuesta[c.id] ? "Verdadero" : "Falso"}
-                    </span>
-                  </div>
-                )}
-
-                {c.tipo === "escala" && (
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from(
-                      { length: (c.escalaMax ?? 5) - (c.escalaMin ?? 1) + 1 },
-                      (_, i) => (c.escalaMin ?? 1) + i,
-                    ).map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => setRespuesta({ ...respuesta, [c.id]: n })}
-                        className={
-                          respuesta[c.id] === n
-                            ? "size-9 rounded-md border border-primary bg-primary text-sm font-semibold text-primary-foreground"
-                            : "size-9 rounded-md border border-border text-sm text-muted-foreground hover:bg-muted"
-                        }
-                      >
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {activo && <Button size="sm" onClick={enviar}>Enviar respuesta</Button>}
+            {!aDiligenciar ? (
+              <p className="text-sm text-muted-foreground">
+                No hay formularios dirigidos a este empleado. Solo aparecen los asignados a su
+                persona, cargo, área o a toda la empresa.
+              </p>
+            ) : (
+              <ResponderFormulario
+                key={aDiligenciar.id}
+                formulario={aDiligenciar}
+                onEnviar={(valores) => {
+                  responderFormulario(aDiligenciar.id, empleadoActuandoId, valores);
+                  toast.success("Respuesta registrada.");
+                }}
+              />
+            )}
           </div>
         </TabsContent>
 

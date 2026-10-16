@@ -66,6 +66,10 @@ import {
 import { TIPO_CONTRATO_LABEL, iniciales, nombreEmpleado } from "@/types/rrhh";
 import { can } from "@/config/roles";
 import { ResumenMini } from "@/components/portal/ResumenMini";
+import { ResponderFormulario } from "@/components/sst/ResponderFormulario";
+import { useSst } from "@/store/sst";
+import { formulariosPara } from "@/lib/sst";
+import { TIPO_ASIGNACION_LABEL } from "@/types/sst";
 
 export const Route = createFileRoute("/portal")({
   head: () => ({
@@ -147,6 +151,17 @@ function PortalEmpleadoPage() {
   const vacaciones = useMemo(() => vacacionesDe(id), [id]);
   const incapacidades = useMemo(() => incapacidadesDe(id), [id]);
   const dotacion = useMemo(() => dotacionDe(id), [id]);
+
+  /* --------------------- Formularios dirigidos al empleado --------------------- */
+  const { formularios, respuestas, responderFormulario } = useSst();
+  // Solo los formularios asignados a esta persona (por empleado, cargo, área o empresa).
+  const misFormularios = useMemo(
+    () => (id ? formulariosPara(id, formularios, empleados) : []),
+    [id, formularios, empleados],
+  );
+  const yaRespondio = (formularioId: string) =>
+    respuestas.some((r) => r.formularioId === formularioId && r.empleadoId === id);
+  const [formularioAbiertoId, setFormularioAbiertoId] = useState("");
 
   /* ------------------------- Formulario de actualización ------------------------- */
   const [campo, setCampo] = useState<CampoAutogestion>("direccion");
@@ -385,6 +400,14 @@ function PortalEmpleadoPage() {
           <TabsTrigger value="actualizar">Actualizar datos</TabsTrigger>
           <TabsTrigger value="documentos">Mis documentos</TabsTrigger>
           <TabsTrigger value="certificados">Certificados</TabsTrigger>
+          <TabsTrigger value="formularios">
+            Formularios
+            {misFormularios.filter((f) => !yaRespondio(f.id)).length > 0 && (
+              <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                {misFormularios.filter((f) => !yaRespondio(f.id)).length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* ---------------------------------- Perfil ---------------------------------- */}
@@ -757,6 +780,57 @@ function PortalEmpleadoPage() {
               ))}
             </div>
           </SeccionExpediente>
+        </TabsContent>
+
+        {/* ---------------- Formularios dirigidos al empleado ---------------- */}
+        <TabsContent value="formularios" className="mt-4 space-y-4">
+          {misFormularios.length === 0 ? (
+            <div className="surface-panel p-5 text-sm text-muted-foreground">
+              No tiene formularios asignados. Aquí aparecerán las encuestas y formularios
+              dirigidos a usted, a su cargo, a su área o a toda la empresa.
+            </div>
+          ) : (
+            misFormularios.map((f) => {
+              const respondido = yaRespondio(f.id);
+              const abierto = formularioAbiertoId === f.id;
+              return (
+                <div key={f.id} className="surface-panel space-y-3 p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-base font-semibold text-foreground">{f.titulo}</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {f.codigo} · {TIPO_ASIGNACION_LABEL[f.asignacion.tipo]} · {f.campos.length} pregunta(s)
+                      </p>
+                    </div>
+                    {respondido ? (
+                      <span className="flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary">
+                        <BadgeCheck className="size-3.5" /> Ya respondió
+                      </span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant={abierto ? "outline" : "default"}
+                        onClick={() => setFormularioAbiertoId(abierto ? "" : f.id)}
+                      >
+                        {abierto ? "Cerrar" : "Responder"}
+                      </Button>
+                    )}
+                  </div>
+                  {f.descripcion && <p className="text-sm text-muted-foreground">{f.descripcion}</p>}
+                  {abierto && !respondido && (
+                    <ResponderFormulario
+                      formulario={f}
+                      onEnviar={(valores) => {
+                        responderFormulario(f.id, id, valores);
+                        setFormularioAbiertoId("");
+                        toast.success("Respuesta enviada. Gracias por su participación.");
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })
+          )}
         </TabsContent>
       </Tabs>
 

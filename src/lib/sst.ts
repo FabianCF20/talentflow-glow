@@ -1,7 +1,8 @@
 /**
  * Reglas de SST: exámenes, vencimientos, consecutivos e indicadores.
  */
-import { CARGOS, EMPLEADOS, areasDeDireccion } from "@/data/organizacion";
+import { CARGOS, areasDeDireccion } from "@/data/organizacion";
+import { ESTADOS_VINCULADOS, type EmpleadoRRHH } from "@/types/rrhh";
 import type {
   AccidenteLaboral,
   CampoFormulario,
@@ -100,21 +101,36 @@ export function calcularIndicadores(
 
 /* ---------------------- Alcance de los formularios ---------------------- */
 
-export function destinatariosDe(f: Formulario): string[] {
-  const activos = EMPLEADOS.filter((e) => e.estado === "activo");
+/**
+ * Ids de empleados a los que va dirigido un formulario, calculados con la
+ * lista en vivo de RRHH (vinculados). Tolera registros sin datos laborales.
+ */
+export function destinatariosDe(f: Formulario, empleados: EmpleadoRRHH[]): string[] {
+  const activos = empleados.filter((e) => ESTADOS_VINCULADOS.includes(e.estadoLaboral));
   switch (f.asignacion.tipo) {
     case "empleado":
       return f.asignacion.valores;
     case "cargo":
-      return activos.filter((e) => f.asignacion.valores.includes(e.cargoId)).map((e) => e.id);
+      return activos.filter((e) => f.asignacion.valores.includes(e.laboral?.cargoId ?? "")).map((e) => e.id);
     case "area": {
       const areas = new Set(f.asignacion.valores.flatMap((a) => areasDeDireccion(a)));
-      return activos.filter((e) => areas.has(e.areaId)).map((e) => e.id);
+      return activos.filter((e) => areas.has(e.laboral?.areaId ?? "")).map((e) => e.id);
     }
     case "empresa":
     default:
       return activos.map((e) => e.id);
   }
+}
+
+/** Formularios activos dirigidos a un empleado (por empleado, cargo, área o empresa). */
+export function formulariosPara(
+  empleadoId: string,
+  formularios: Formulario[],
+  empleados: EmpleadoRRHH[],
+): Formulario[] {
+  return formularios.filter(
+    (f) => f.estado === "activo" && destinatariosDe(f, empleados).includes(empleadoId),
+  );
 }
 
 export const cargoNombre = (id?: string) => CARGOS.find((c) => c.id === id)?.nombre ?? "—";
