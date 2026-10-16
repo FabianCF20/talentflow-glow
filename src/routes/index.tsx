@@ -2,7 +2,8 @@
  * Pantalla: Dashboard inicial según el rol.
  * Ruta: /
  */
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { esSoloEmpleado } from "@/config/roles";
 import { Users, FileWarning, Inbox, ShieldAlert, LayoutGrid } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -38,6 +39,55 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  const { perfil } = useAuth();
+  if (esSoloEmpleado(perfil?.roles ?? [])) return <DashboardEmpleado />;
+  return <DashboardGestion />;
+}
+
+/** Panel personal del empleado: solo muestra información propia. */
+function DashboardEmpleado() {
+  const { perfil } = useAuth();
+  const { solicitudes } = useOperaciones();
+  const { documentos } = usePortal();
+  const miId = perfil?.empleadoId ?? "";
+  const mias = solicitudes.filter((s) => s.empleadoId === miId);
+  const pendientes = mias.filter((s) => s.estado === "pendiente_jefe" || s.estado === "pendiente_rrhh").length;
+  const misDocs = documentos.filter((d) => d.empleadoId === miId);
+  const porVencer = misDocs.filter((d) => {
+    const v = estadoVigencia(d);
+    return v === "por_vencer" || v === "vencido";
+  }).length;
+
+  return (
+    <AppShell>
+      <PageHeader
+        breadcrumb={["Inicio"]}
+        title={`Buen día${perfil?.nombres ? `, ${perfil.nombres}` : ""}`}
+        description="Su panel personal: sus solicitudes, documentos y accesos rápidos."
+      />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Mis solicitudes" value={String(mias.length)} icon={Inbox} hint="radicadas" />
+        <StatCard label="Pendientes" value={String(pendientes)} icon={Inbox} hint="en espera de aprobación" />
+        <StatCard label="Mis documentos por vencer" value={String(porVencer)} icon={FileWarning} hint="próximos 30 días" />
+      </div>
+      <section className="surface-panel p-5">
+        <h2 className="text-base font-semibold">Accesos rápidos</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button asChild variant="outline" size="sm"><Link to="/portal">Mi portal</Link></Button>
+          <Button asChild variant="outline" size="sm"><Link to="/ausencias">Solicitar vacaciones o permisos</Link></Button>
+        </div>
+        {!miId && (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Su usuario aún no está vinculado a una ficha de empleado. Contacte a Talento Humano.
+          </p>
+        )}
+      </section>
+    </AppShell>
+  );
+}
+
+/** Panel general para roles de gestión. */
+function DashboardGestion() {
   const { perfil } = useAuth();
   const { empleados } = useRrhh();
   const { solicitudes } = useOperaciones();

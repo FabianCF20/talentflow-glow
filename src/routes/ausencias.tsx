@@ -28,6 +28,8 @@ import {
 import { toast } from "sonner";
 import { useRrhh } from "@/store/rrhh";
 import { useOperaciones } from "@/store/operaciones";
+import { useAuth } from "@/lib/auth";
+import { esSoloEmpleado } from "@/config/roles";
 import { diasEntre, esJefeOp, esRrhhOp, hoyISO, supervisorDe } from "@/lib/operaciones";
 import { downloadCsv } from "@/lib/export";
 import { nombreEmpleado } from "@/types/rrhh";
@@ -66,14 +68,33 @@ export const Route = createFileRoute("/ausencias")({
 });
 
 function AusenciasPage() {
-  const { empleados, rolActivo, empleadoActuandoId } = useRrhh();
-  const op = useOperaciones();
+  const { empleados, rolActivo, empleadoActuandoId: actuandoBase } = useRrhh();
+  const opBase = useOperaciones();
+  const { perfil } = useAuth();
 
-  const rrhh = esRrhhOp(rolActivo);
-  const jefe = esJefeOp(rolActivo);
+  // Un usuario solo empleado únicamente ve y radica sus propias solicitudes.
+  const soloEmpleado = esSoloEmpleado(perfil?.roles ?? []);
+  const miId = perfil?.empleadoId ?? "";
+  const empleadoActuandoId = soloEmpleado ? miId : actuandoBase;
+  const op = useMemo(
+    () =>
+      soloEmpleado
+        ? {
+            ...opBase,
+            solicitudes: opBase.solicitudes.filter((s) => s.empleadoId === miId),
+            incapacidades: opBase.incapacidades.filter((i) => i.empleadoId === miId),
+          }
+        : opBase,
+    [opBase, soloEmpleado, miId],
+  );
+
+  const rrhh = !soloEmpleado && esRrhhOp(rolActivo);
+  const jefe = !soloEmpleado && esJefeOp(rolActivo);
   const actor = useMemo(() => `Usuario (${rolActivo})`, [rolActivo]);
 
-  const vinculados = empleados.filter(esVinculado);
+  const vinculados = empleados.filter(
+    (e) => esVinculado(e) && (!soloEmpleado || e.id === miId),
+  );
   const nombrePor = useMemo(
     () => Object.fromEntries(empleados.map((e) => [e.id, nombreEmpleado(e)])),
     [empleados],

@@ -118,10 +118,14 @@ function PortalEmpleadoPage() {
   } = usePortal();
 
   const empleadoSesionId = perfil?.empleadoId ?? empleadoActuandoId;
-  const empleado =
-    empleados.find((e) => e.id === (puedeCambiarEmpleado ? empleadoActuandoId : empleadoSesionId)) ??
-    empleados.find((e) => e.id === empleadoSesionId) ??
-    empleados[0];
+  // Un empleado sin ficha asociada nunca debe ver la ficha de otra persona.
+  const empleado = puedeCambiarEmpleado
+    ? (empleados.find((e) => e.id === empleadoActuandoId) ??
+      empleados.find((e) => e.id === empleadoSesionId) ??
+      empleados[0])
+    : perfil?.empleadoId
+      ? empleados.find((e) => e.id === perfil.empleadoId)
+      : undefined;
   const id = empleado?.id ?? perfil?.empleadoId ?? "";
   const personales = datosVigentes(id);
   const familiares = familiaresVigentes(id);
