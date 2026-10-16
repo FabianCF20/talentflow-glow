@@ -66,6 +66,10 @@ import {
 import { TIPO_CONTRATO_LABEL, iniciales, nombreEmpleado } from "@/types/rrhh";
 import { can } from "@/config/roles";
 import { ResumenMini } from "@/components/portal/ResumenMini";
+import { ResponderFormulario } from "@/components/sst/ResponderFormulario";
+import { useSst } from "@/store/sst";
+import { formulariosPara } from "@/lib/sst";
+import { TIPO_ASIGNACION_LABEL } from "@/types/sst";
 
 export const Route = createFileRoute("/portal")({
   head: () => ({
@@ -147,6 +151,17 @@ function PortalEmpleadoPage() {
   const vacaciones = useMemo(() => vacacionesDe(id), [id]);
   const incapacidades = useMemo(() => incapacidadesDe(id), [id]);
   const dotacion = useMemo(() => dotacionDe(id), [id]);
+
+  /* --------------------- Formularios dirigidos al empleado --------------------- */
+  const { formularios, respuestas, responderFormulario } = useSst();
+  // Solo los formularios asignados a esta persona (por empleado, cargo, área o empresa).
+  const misFormularios = useMemo(
+    () => (id ? formulariosPara(id, formularios, empleados) : []),
+    [id, formularios, empleados],
+  );
+  const yaRespondio = (formularioId: string) =>
+    respuestas.some((r) => r.formularioId === formularioId && r.empleadoId === id);
+  const [formularioAbiertoId, setFormularioAbiertoId] = useState("");
 
   /* ------------------------- Formulario de actualización ------------------------- */
   const [campo, setCampo] = useState<CampoAutogestion>("direccion");
