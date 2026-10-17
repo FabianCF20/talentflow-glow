@@ -149,6 +149,29 @@ function Empleados() {
     },
     { key: "jefe", header: "Jefe inmediato", render: (e) => nombreJefe(e.laboral?.jefeInmediatoId) },
     {
+      key: "expediente",
+      header: "Expediente",
+      render: (e) => {
+        const pct = completitudExpediente(EXPEDIENTES[e.id]);
+        return (
+          <div className="w-28">
+            <div className="flex items-center justify-between text-xs">
+              <span className={pct < 80 ? "font-medium text-warning" : "font-medium text-success"}>
+                {pct}%
+              </span>
+              {pct < 80 && <span className="text-muted-foreground">incompleto</span>}
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full ${pct < 80 ? "bg-warning" : "bg-success"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
       key: "contrato",
       header: "Contrato",
       render: (e) => (
@@ -342,6 +365,18 @@ function Empleados() {
                   {ESTADO_LABORAL_LABEL[e]}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full sm:w-52">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Expediente</label>
+          <Select value={expFiltro} onValueChange={(v) => setExpFiltro(v as typeof expFiltro)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="incompletos">Incompletos (&lt; 80%)</SelectItem>
             </SelectContent>
           </Select>
         </div>
