@@ -12,6 +12,12 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { DocumentoCard } from "@/components/portal/DocumentoCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RegistrosFirma } from "@/components/portal/RegistrosFirma";
+import { useDocumentosFirmados } from "@/lib/firma-digital";
+import { useAuth } from "@/lib/auth";
+import { categoriasGestionables } from "@/lib/acceso-documental";
+import { can } from "@/config/roles";
 import {
   Select,
   SelectContent,
@@ -23,7 +29,6 @@ import { toast } from "sonner";
 import { useRrhh } from "@/store/rrhh";
 import { usePortal } from "@/store/portal";
 import { estadoVigencia } from "@/lib/documentos";
-import { puedeEditarCamposSensibles } from "@/lib/rrhh";
 import { downloadCsv } from "@/lib/export";
 import {
   CATEGORIAS_DOC,
@@ -56,9 +61,16 @@ export const Route = createFileRoute("/documentos")({
 });
 
 function GestionDocumentalPage() {
-  const { empleados, rolActivo } = useRrhh();
+  const { empleados } = useRrhh();
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
   const { documentos, cargarDocumento, nuevaVersion } = usePortal();
-  const esRrhh = puedeEditarCamposSensibles([rolActivo]);
+  const categoriasPermitidas = categoriasGestionables(roles);
+  const puedeCargar = can(roles, "documentacion", "crear");
+  const puedeEditar = can(roles, "documentacion", "editar");
+  const firmas = useDocumentosFirmados();
+  const [buscaFirma, setBuscaFirma] = useState("");
+  const firmasFiltradas = firmas.filter((f) => `${f.codigo} ${f.descripcion} ${f.empleadoNombre}`.toLowerCase().includes(buscaFirma.trim().toLowerCase()));
 
   const [q, setQ] = useState("");
   const [categoria, setCategoria] = useState<CategoriaDocumento | "todas">("todas");
@@ -66,7 +78,7 @@ function GestionDocumentalPage() {
   const [vigencia, setVigencia] = useState<"todas" | "por_vencer" | "vencido">("todas");
 
   const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevaCategoria, setNuevaCategoria] = useState<CategoriaDocumento>("contractuales");
+  const [nuevaCategoria, setNuevaCategoria] = useState<CategoriaDocumento>(categoriasPermitidas[0] ?? "sst");
   const [nuevoEmpleado, setNuevoEmpleado] = useState(empleados[0]?.id ?? "");
   const [nuevoVence, setNuevoVence] = useState("");
 
@@ -100,13 +112,13 @@ function GestionDocumentalPage() {
       "documentos-expediente.csv",
       ["Empleado", "Documento", "Categoría", "Versiones", "Última carga", "Vencimiento", "Vigencia"],
       filtrados.map((d) => {
-        const ult = d.versiones[d.versiones.length - 1]!;
+         const ult = d.versiones?.[d.versiones.length - 1];
         return [
           nombrePor[d.empleadoId] ?? d.empleadoId,
           d.nombre,
           CATEGORIA_DOC_LABEL[d.categoria],
           d.versiones.length,
-          `v${ult.version} · ${ult.fecha}`,
+           ult ? `v${ult.version} · ${ult.fecha}` : "Sin versiones",
           d.fechaVencimiento ?? "No aplica",
           VIGENCIA_LABEL[estadoVigencia(d)],
         ];
@@ -114,6 +126,10 @@ function GestionDocumentalPage() {
     );
 
   const subir = () => {
+    if (!puedeCargar || !categoriasPermitidas.includes(nuevaCategoria)) {
+      toast.error("Su rol no puede cargar documentos de esta categoría.");
+      return;
+    }
     const nombre = nuevoNombre.trim();
     if (nombre.length < 4 || nombre.length > 120) {
       toast.error("El nombre del documento debe tener entre 4 y 120 caracteres.");
@@ -145,6 +161,7 @@ function GestionDocumentalPage() {
         title="Gestión documental"
         description="Expediente digital por categorías con carga, descarga, versionamiento, historial y control de vencimientos. Ningún archivo se elimina físicamente."
         actions={
+          can(roles, "documentacion", "exportar") &&
           <Button variant="outline" size="sm" onClick={exportar}>
             <FileStack className="size-4" /> Exportar inventario
           </Button>
@@ -164,7 +181,17 @@ function GestionDocumentalPage() {
         <StatCard label="Vencidos" value={String(vencidos)} icon={AlertTriangle} hint="Requieren renovación" />
       </div>
 
-      {esRrhh && (
+      <Tabs defaultValue="expediente" className="gap-4">
+        <TabsList className="max-w-full justify-start overflow-x-auto">
+          <TabsTrigger value="expediente">Documentos del expediente</TabsTrigger>
+          <TabsTrigger value="firmas">Registros de firma ({firmas.length})</TabsTrigger>
+        </TabsList>
+        <TabsContent value="firmas" className="space-y-4">
+          <Input aria-label="Buscar registros de firma" placeholder="Buscar código, documento o titular…" value={buscaFirma} onChange={(e) => setBuscaFirma(e.target.value)} className="max-w-sm" />
+          <RegistrosFirma firmas={firmasFiltradas} />
+        </TabsContent>
+        <TabsContent value="expediente" className="space-y-4">
+      {puedeCargar && (
         <div className="surface-panel p-5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             Cargar documento al expediente
@@ -187,7 +214,7 @@ function GestionDocumentalPage() {
             <Select value={nuevaCategoria} onValueChange={(v) => setNuevaCategoria(v as CategoriaDocumento)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIAS_DOC.map((c) => (
+                 {categoriasPermitidas.map((c) => (
                   <SelectItem key={c} value={c}>{CATEGORIA_DOC_LABEL[c]}</SelectItem>
                 ))}
               </SelectContent>
@@ -212,7 +239,7 @@ function GestionDocumentalPage() {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas las categorías</SelectItem>
-            {CATEGORIAS_DOC.map((c) => (
+             {categoriasPermitidas.map((c) => (
               <SelectItem key={c} value={c}>{CATEGORIA_DOC_LABEL[c]}</SelectItem>
             ))}
           </SelectContent>
@@ -251,13 +278,14 @@ function GestionDocumentalPage() {
               empleado={empleados.find((e) => e.id === doc.empleadoId)}
               subtitulo={nombrePor[doc.empleadoId]}
               onNuevaVersion={
-                esRrhh
-                  ? (nota) =>
+                puedeEditar && categoriasPermitidas.includes(doc.categoria)
+                  ? (nota, fechaVencimiento) =>
                       nuevaVersion(doc.id, {
                         nombreArchivo: `${doc.nombre.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v${doc.versiones.length + 1}.pdf`,
                         tamanoKb: 300,
                         subidoPor: "Talento Humano",
                         nota,
+                        fechaVencimiento,
                       })
                   : undefined
               }
@@ -265,6 +293,8 @@ function GestionDocumentalPage() {
           ))}
         </div>
       )}
+        </TabsContent>
+      </Tabs>
     </AppShell>
   );
 }

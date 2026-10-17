@@ -65,6 +65,7 @@ import {
 } from "@/types/portal";
 import { TIPO_CONTRATO_LABEL, iniciales, nombreEmpleado } from "@/types/rrhh";
 import { can } from "@/config/roles";
+import { gestionaDocumentacion } from "@/lib/acceso-documental";
 import { ResumenMini } from "@/components/portal/ResumenMini";
 import { ResponderFormulario } from "@/components/sst/ResponderFormulario";
 import { useSst } from "@/store/sst";
@@ -106,9 +107,7 @@ function PortalEmpleadoPage() {
     ? `${perfil.nombres} ${perfil.apellidos}`.trim()
     : (usuario?.email ?? "sistema");
   const { empleados, eventos, empleadoActuandoId, setEmpleadoActuandoId } = useRrhh();
-  const puedeCambiarEmpleado =
-    (perfil?.roles ?? []).some((rol) => rol !== "empleado" && can([rol], "empleados", "ver")) ??
-    false;
+  const puedeCambiarEmpleado = gestionaDocumentacion(perfil?.roles ?? []);
   const {
     solicitudes,
     documentos,
@@ -712,12 +711,12 @@ function PortalEmpleadoPage() {
               <p className="text-sm text-muted-foreground">Sin documentos en tu expediente.</p>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          {can(perfil?.roles ?? [], "documentacion", "ver") && <p className="text-xs text-muted-foreground">
             ¿Necesitas la vista completa del expediente documental?{" "}
             <Link to="/documentos" className="text-primary underline-offset-2 hover:underline">
               Gestión documental
             </Link>
-          </p>
+          </p>}
         </TabsContent>
 
         {/* ------------------------------- Certificados ------------------------------- */}

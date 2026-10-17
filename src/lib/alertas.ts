@@ -22,6 +22,8 @@ import {
 } from "@/lib/rrhh";
 import { TIPO_EXAMEN_LABEL } from "@/types/sst";
 import { TIPO_SOLICITUD_LABEL } from "@/types/operaciones";
+import { useAuth } from "@/lib/auth";
+import { gestionaDocumentacion } from "@/lib/acceso-documental";
 
 export type TipoAlerta =
   | "contrato"
@@ -74,6 +76,7 @@ const nivelPor = (dias: number, umbral: number): NivelAlerta =>
 
 /** Todas las alertas de cumplimiento, ordenadas por urgencia. */
 export function useAlertasCumplimiento(): AlertaCumplimiento[] {
+  const { perfil } = useAuth();
   const { empleados } = useRrhh();
   const { documentos } = usePortal();
   const { examenes, entregas } = useSst();
@@ -302,8 +305,13 @@ export function useAlertasCumplimiento(): AlertaCumplimiento[] {
     }
 
     const orden: Record<NivelAlerta, number> = { vencido: 0, por_vencer: 1, informativo: 2 };
-    return alertas.sort(
+    const propias = perfil?.empleadoId ?? "";
+    const roles = perfil?.roles ?? [];
+    const permitidas = alertas.filter((a) => gestionaDocumentacion(roles)
+      || (propias && a.empleadoId === propias)
+      || (roles.includes("sst") && ["documento", "retencion", "examen", "dotacion"].includes(a.tipo)));
+    return permitidas.sort(
       (a, b) => orden[a.nivel] - orden[b.nivel] || (a.dias ?? 9999) - (b.dias ?? 9999),
     );
-  }, [empleados, documentos, examenes, entregas, solicitudes]);
+  }, [empleados, documentos, examenes, entregas, solicitudes, perfil]);
 }
