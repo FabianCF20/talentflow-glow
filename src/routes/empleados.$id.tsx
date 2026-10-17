@@ -124,7 +124,17 @@ function ExpedienteEmpleadoPage() {
     finalidad: "consulta_expediente",
     modulo: "Expediente del empleado",
   });
-  if (!empleado) throw notFound();
+  // Mientras Firestore carga, la lista llega vacía: mostrar espera en vez de 404.
+  if (!empleado) {
+    if (empleados.length === 0) {
+      return (
+        <div className="grid place-items-center py-24 text-sm text-muted-foreground">
+          Cargando expediente…
+        </div>
+      );
+    }
+    throw notFound();
+  }
 
   const exp = EXPEDIENTES[id];
   const esRrhh = puedeEditarCamposSensibles([rolActivo]);
