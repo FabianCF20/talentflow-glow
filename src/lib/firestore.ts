@@ -10,6 +10,9 @@ import {
   onSnapshot,
   setDoc,
   writeBatch,
+  query,
+  where,
+  or,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "./firebase";
@@ -96,34 +99,52 @@ async function persistirDiff<T extends object>(
 export function useFirestoreState<T extends object>(
   coleccion: string,
   campoId = "id",
+  opciones: { enabled?: boolean; filtros?: { campo: string; valor: string | string[] }[] } = {},
 ): [T[], (accion: SetStateAction<T[]>) => void] {
   const [items, setItems] = useState<T[]>([]);
   const ref = useRef<T[]>([]);
   ref.current = items;
 
   const uid = useUidSesion();
+  const habilitado = opciones.enabled !== false;
+  const filtrosClave = JSON.stringify(opciones.filtros ?? []);
+  const clave = `${uid}|${coleccion}|${campoId}|${habilitado}|${filtrosClave}`;
+  const [claveLeida, setClaveLeida] = useState("");
 
   useEffect(() => {
     // Sin sesión no se escucha nada: evita lecturas rechazadas y tráfico inútil.
-    if (!uid) {
+    ref.current = [];
+    setItems([]);
+    setClaveLeida("");
+    if (!uid || !habilitado) {
       ref.current = [];
       setItems([]);
       return;
     }
+    const filtros = JSON.parse(filtrosClave) as { campo: string; valor: string | string[] }[];
+    const condiciones = filtros.map((f) => where(f.campo, Array.isArray(f.valor) ? "in" : "==", f.valor));
+    const origen = collection(db, coleccion);
+    const consulta = condiciones.length ? query(origen, or(...condiciones)) : origen;
     const unsub = onSnapshot(
-      collection(db, coleccion),
+      consulta,
       (snap) => {
         const docs = snap.docs.map((d) => ({ ...(d.data() as T), [campoId]: d.id }) as T);
         ref.current = docs;
         setItems(docs);
+        setClaveLeida(clave);
       },
-      (error) => console.error(`[firestore:${coleccion}] no se pudo leer`, error),
+      (error) => {
+        ref.current = [];
+        setItems([]);
+        console.error(`[firestore:${coleccion}] no se pudo leer`, error);
+      },
     );
     return unsub;
-  }, [coleccion, campoId, uid]);
+  }, [coleccion, campoId, uid, habilitado, filtrosClave, clave]);
 
   const actualizar = useCallback(
     (accion: SetStateAction<T[]>) => {
+      if (!auth.currentUser) return;
       const previo = ref.current;
       const siguiente =
         typeof accion === "function" ? (accion as (p: T[]) => T[])(previo) : accion;
@@ -134,5 +155,5 @@ export function useFirestoreState<T extends object>(
     [coleccion, campoId],
   );
 
-  return [items, actualizar];
+  return [claveLeida === clave ? items : [], actualizar];
 }

@@ -15,7 +15,9 @@ import { EMPRESA } from "@/lib/empresa";
 export const DIAS_ALERTA_VENCIMIENTO = 60;
 
 export const ultimaVersion = (doc: DocumentoEmpleado): VersionDocumento =>
-  doc.versiones.reduce((a, v) => (v.version > a.version ? v : a), doc.versiones[0]!);
+  (doc.versiones ?? []).reduce((a, v) => (v.version > a.version ? v : a), {
+    version: 0, nombreArchivo: "Sin archivo", tamanoKb: 0, subidoPor: "—", fecha: "",
+  });
 
 export function estadoVigencia(doc: DocumentoEmpleado, hoy = new Date()): EstadoVigencia {
   if (!doc.fechaVencimiento) return "sin_vencimiento";

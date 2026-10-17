@@ -21,8 +21,11 @@ import {
   type AlertaCumplimiento,
   type NivelAlerta,
 } from "@/lib/alertas";
-import { selloLegible, useDocumentosFirmados, verificarDocumento, type RegistroFirma } from "@/lib/firma-digital";
+import { selloLegible, useDocumentosFirmados, verificarDocumento } from "@/lib/firma-digital";
 import { FINALIDAD_LABEL, useAccesosDatos, type AccesoDatos } from "@/lib/habeas-data";
+import { useAuth } from "@/lib/auth";
+import { gestionaDocumentacion } from "@/lib/acceso-documental";
+import { RegistrosFirma } from "@/components/portal/RegistrosFirma";
 
 export const Route = createFileRoute("/cumplimiento")({
   head: () => ({
@@ -59,6 +62,8 @@ const NIVEL_LABEL: Record<NivelAlerta, string> = {
 };
 
 function CumplimientoPage() {
+  const { perfil } = useAuth();
+  const verBitacora = gestionaDocumentacion(perfil?.roles ?? []);
   const alertas = useAlertasCumplimiento();
   const firmas = useDocumentosFirmados();
   const accesos = useAccesosDatos();
@@ -108,12 +113,23 @@ function CumplimientoPage() {
         `${registro.descripcion} · ${registro.empleadoNombre} · emitido ${registro.emitidoEn.slice(0, 10)}`,
         { description: `Huella ${selloLegible(registro.hash)}` },
       );
+    } catch {
+      toast.error("No fue posible consultar el documento; compruebe su acceso y conexión.");
     } finally {
       setVerificando(false);
     }
   };
 
   const colAlertas: Column<AlertaCumplimiento>[] = [
+    {
+      key: "gestionar", header: "Gestionar", render: (r) => {
+        if (r.ruta === "/documentos") return <Link to="/documentos" className="text-primary hover:underline">Ver documento</Link>;
+        if (r.ruta === "/sst") return <Link to="/sst" className="text-primary hover:underline">Ver examen</Link>;
+        if (r.ruta === "/dotacion") return <Link to="/dotacion" className="text-primary hover:underline">Ver entrega</Link>;
+        if (r.ruta === "/ausencias") return <Link to="/ausencias" className="text-primary hover:underline">Ver solicitud</Link>;
+        return <Link to="/empleados/$id" params={{ id: r.empleadoId }} className="text-primary hover:underline">Ver ficha</Link>;
+      },
+    },
     {
       key: "nivel",
       header: "Estado",
@@ -138,12 +154,12 @@ function CumplimientoPage() {
       key: "empleado",
       header: "Empleado",
       render: (r) =>
-        r.empleadoId ? (
+        r.empleadoId && verBitacora ? (
           <Link to="/empleados/$id" params={{ id: r.empleadoId }} className="text-primary hover:underline">
             {r.empleadoNombre}
           </Link>
         ) : (
-          "—"
+          r.empleadoNombre || "—"
         ),
     },
     { key: "fecha", header: "Fecha", render: (r) => r.fecha },
@@ -153,15 +169,6 @@ function CumplimientoPage() {
       render: (r) =>
         r.dias === null ? "—" : r.dias < 0 ? `${Math.abs(r.dias)} vencidos` : `${r.dias} restantes`,
     },
-  ];
-
-  const colFirmas: Column<RegistroFirma>[] = [
-    { key: "codigo", header: "Código", render: (r) => <span className="font-mono text-xs">{r.codigo}</span> },
-    { key: "desc", header: "Documento", render: (r) => r.descripcion },
-    { key: "empleado", header: "Titular", render: (r) => r.empleadoNombre },
-    { key: "hash", header: "Huella SHA-256", render: (r) => <span className="font-mono text-xs">{selloLegible(r.hash)}</span> },
-    { key: "por", header: "Emitido por", render: (r) => r.emitidoPor },
-    { key: "en", header: "Fecha", render: (r) => r.emitidoEn.slice(0, 16).replace("T", " ") },
   ];
 
   const colAccesos: Column<AccesoDatos>[] = [
@@ -185,14 +192,14 @@ function CumplimientoPage() {
         <StatCard label="Vencidos" value={String(vencidas)} icon={AlertTriangle} hint="Requieren acción inmediata" />
         <StatCard label="Por vencer" value={String(porVencer)} icon={CalendarClock} hint="Dentro del umbral de alerta" />
         <StatCard label="Documentos firmados" value={String(firmas.length)} icon={FileCheck2} hint="Con huella SHA-256" />
-        <StatCard label="Accesos registrados" value={String(accesos.length)} icon={Eye} hint="Bitácora de habeas data" />
+        {verBitacora && <StatCard label="Accesos registrados" value={String(accesos.length)} icon={Eye} hint="Bitácora de habeas data" />}
       </div>
 
       <Tabs defaultValue="alertas" className="gap-4">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="alertas">Alertas de vencimiento</TabsTrigger>
           <TabsTrigger value="firmas">Documentos firmados</TabsTrigger>
-          <TabsTrigger value="accesos">Acceso a datos personales</TabsTrigger>
+          {verBitacora && <TabsTrigger value="accesos">Acceso a datos personales</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="alertas" className="space-y-4">
@@ -230,14 +237,11 @@ function CumplimientoPage() {
               <ShieldCheck className="size-4" /> {verificando ? "Verificando…" : "Verificar"}
             </Button>
           </div>
-          <DataTable
-            columns={colFirmas}
-            rows={firmas}
-            emptyMessage="Aún no se han emitido documentos con firma electrónica."
-          />
+          <Link to="/documentos" className="inline-block text-sm text-primary hover:underline">Ver en Gestión documental</Link>
+          <RegistrosFirma firmas={firmas} />
         </TabsContent>
 
-        <TabsContent value="accesos" className="space-y-4">
+        {verBitacora && <TabsContent value="accesos" className="space-y-4">
           <Input
             placeholder="Buscar por usuario, titular o finalidad…"
             className="max-w-sm"
@@ -249,7 +253,7 @@ function CumplimientoPage() {
             rows={accesosFiltrados}
             emptyMessage="No hay consultas registradas sobre datos personales."
           />
-        </TabsContent>
+        </TabsContent>}
       </Tabs>
     </AppShell>
   );

@@ -11,6 +11,9 @@
 
 ## Reglas de arquitectura
 
+- Document access is defined in `lib/acceso-documental.ts` and enforced by filtered Firestore queries and Firebase rules; module access alone must never grant access to every record.
+- Signature records are displayed through a shared component in Compliance and Document Management without fabricating archived originals; signatures and file versions remain distinct sources.
+
 - Capas por dominio: pantallas en `src/routes`, reglas en `src/lib/<dominio>.ts`, estado en `src/store`, modelos en `src/types`. Por qué: localizar cada responsabilidad sin leer pantallas enteras.
 - Utilidades de fecha y formato viven solo en `src/lib/fechas.ts` y `src/lib/formato.ts`; los demás módulos las re-exportan, nunca las duplican. Por qué: una sola fuente de verdad.
 - Cada archivo inicia con un comentario `/** */` de propósito y los comentarios se escriben en español. Por qué: facilitar correcciones manuales del equipo.

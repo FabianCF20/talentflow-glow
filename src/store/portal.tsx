@@ -23,6 +23,8 @@ import type {
 } from "@/types/portal";
 import type { DatosPersonales, Familiar } from "@/types/rrhh";
 import { hoyISO as hoy } from "@/lib/fechas";
+import { useAuth } from "@/lib/auth";
+import { alcanceConsultaDocumental, puedeLeerDocumento, categoriasGestionables, gestionaDocumentacion } from "@/lib/acceso-documental";
 
 /**
  * Estado del Portal del Empleado.
@@ -77,9 +79,14 @@ const PortalContext = createContext<PortalContextValue | null>(null);
 
 
 export function PortalProvider({ children }: { children: ReactNode }) {
-  const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudCambio>("portal_solicitudes");
-  const [documentos, setDocumentos] = useFirestoreState<DocumentoEmpleado>("portal_documentos");
-  const [certificados, setCertificados] = useFirestoreState<CertificadoEmitido>("portal_certificados");
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  const propioId = perfil?.empleadoId ?? "";
+  const propio = alcanceConsultaDocumental(roles, propioId);
+  const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudCambio>("portal_solicitudes", "id", propio);
+  const [documentosLeidos, setDocumentos] = useFirestoreState<DocumentoEmpleado>("portal_documentos", "id", alcanceConsultaDocumental(roles, propioId, true));
+  const documentos = documentosLeidos.filter((d) => puedeLeerDocumento(roles, propioId, d));
+  const [certificados, setCertificados] = useFirestoreState<CertificadoEmitido>("portal_certificados", "id", propio);
   const [aprobados, setAprobados] = useState<Record<string, Partial<CamposPersonalesEditables>>>({});
   const [familiaresExtra, setFamiliaresExtra] = useState<Record<string, Familiar[]>>({});
 
@@ -115,7 +122,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         ...prev,
       ]);
     },
-    [],
+    [setSolicitudes],
   );
 
   const aprobarSolicitud = useCallback<PortalContextValue["aprobarSolicitud"]>(
@@ -156,7 +163,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         );
       });
     },
-    [],
+    [setSolicitudes],
   );
 
   const rechazarSolicitud = useCallback<PortalContextValue["rechazarSolicitud"]>(
@@ -175,10 +182,11 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         ),
       );
     },
-    [],
+    [setSolicitudes],
   );
 
   const cargarDocumento = useCallback<PortalContextValue["cargarDocumento"]>((input) => {
+    if (!gestionaDocumentacion(roles) && input.empleadoId !== propioId && !categoriasGestionables(roles).includes(input.categoria)) return;
     setDocumentos((prev) => [
       {
         id: `doc-${Date.now()}`,
@@ -199,12 +207,13 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       },
       ...prev,
     ]);
-  }, []);
+  }, [roles, propioId, setDocumentos]);
 
   const nuevaVersion = useCallback<PortalContextValue["nuevaVersion"]>((documentoId, input) => {
     setDocumentos((prev) =>
       prev.map((d) => {
         if (d.id !== documentoId) return d;
+        if (!gestionaDocumentacion(roles) && d.empleadoId !== propioId && !categoriasGestionables(roles).includes(d.categoria)) return d;
         const siguiente = Math.max(...d.versiones.map((v) => v.version)) + 1;
         return {
           ...d,
@@ -223,7 +232,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         };
       }),
     );
-  }, []);
+  }, [roles, propioId, setDocumentos]);
 
   const emitirCertificado = useCallback<PortalContextValue["emitirCertificado"]>(
     (tipo, empleadoId, solicitadoPor, incluyeSalario) => {
@@ -239,7 +248,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       setCertificados((prev) => [cert, ...prev]);
       return cert;
     },
-    [],
+    [setCertificados],
   );
 
   const value = useMemo<PortalContextValue>(

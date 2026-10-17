@@ -330,6 +330,10 @@ export function esSoloEmpleado(roles: RoleKey[]): boolean {
 
 export function can(roles: RoleKey[], modulo: string, accion: PermissionAction): boolean {
   if (esSoloEmpleado(roles) && !MODULOS_EMPLEADO.has(modulo)) return false;
+  // La matriz editable no puede abrir expedientes fuera de las funciones del rol.
+  if (["documentacion", "cumplimiento"].includes(modulo)) {
+    roles = roles.filter((rol) => ["administrador", "talento_humano", "sst"].includes(rol));
+  }
   const modulePerms = PERMISSION_MATRIX[modulo];
   if (!modulePerms) return false;
   return roles.some((role) => modulePerms[role]?.includes(accion) ?? false);

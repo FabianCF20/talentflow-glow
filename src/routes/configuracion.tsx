@@ -25,6 +25,8 @@ export const Route = createFileRoute("/configuracion")({
         content: "Parámetros globales de seguridad, sesiones, notificaciones y ciclo de vida de registros.",
       },
       { property: "og:title", content: "Configuración | SIGTH" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Ajustes corporativos de seguridad y comportamiento del sistema.",

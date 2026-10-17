@@ -166,6 +166,10 @@ function SesionRequerida({ children }: { children: ReactNode }) {
     );
   }
 
+  if (!perfil || perfil.estado !== "activo" || ["inactivo", "bloqueado"].includes((perfil as { estadoUsuario?: string }).estadoUsuario ?? "activo")) {
+    return <div className="grid min-h-screen place-items-center bg-background"><p className="text-sm text-muted-foreground">Cuenta sin acceso autorizado. Contacte a administración.</p></div>;
+  }
+
   // Bloquea la entrada directa por dirección a módulos que el rol no puede ver.
   const item = NAV_GROUPS.flatMap((g) => g.items)
     .filter((i) => i.to && (i.to === "/" ? pathname === "/" : pathname.startsWith(i.to)))

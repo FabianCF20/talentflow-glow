@@ -8,6 +8,8 @@ import { useEffect, useMemo } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { limpiarUndefined, useFirestoreState } from "./firestore";
+import { useAuth } from "./auth";
+import { gestionaDocumentacion } from "./acceso-documental";
 
 export type FinalidadAcceso =
   | "consulta_expediente"
@@ -98,7 +100,8 @@ export function useRegistroAcceso(
 
 /** Bitácora de accesos a datos personales, del más reciente al más antiguo. */
 export function useAccesosDatos(): AccesoDatos[] {
-  const [items] = useFirestoreState<AccesoDatos>("accesos_datos");
+  const { perfil } = useAuth();
+  const [items] = useFirestoreState<AccesoDatos>("accesos_datos", "id", { enabled: gestionaDocumentacion(perfil?.roles ?? []) });
   return useMemo(
     () =>
       [...items].sort((a, b) =>

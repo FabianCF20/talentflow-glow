@@ -52,11 +52,12 @@ export function DocumentoCard({
 }: {
   documento: DocumentoEmpleado;
   empleado?: EmpleadoRRHH;
-  onNuevaVersion?: (nota: string) => void;
+  onNuevaVersion?: (nota: string, fechaVencimiento?: string) => void;
   subtitulo?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [nota, setNota] = useState("");
+  const [vence, setVence] = useState(documento.fechaVencimiento ?? "");
   const ultima = ultimaVersion(documento);
 
   return (
@@ -119,12 +120,16 @@ export function DocumentoCard({
               <Button
                 size="sm"
                 onClick={() => {
-                  onNuevaVersion(nota.trim() || `Nueva versión v${documento.versiones.length + 1}`);
+                  onNuevaVersion(nota.trim() || `Nueva versión v${documento.versiones.length + 1}`, vence || undefined);
                   setNota("");
                 }}
               >
                 <Upload className="size-4" /> Cargar nueva versión
               </Button>
+              <div className="w-full space-y-1">
+                <label htmlFor={`vence-${documento.id}`} className="text-xs text-muted-foreground">Nueva fecha de vencimiento</label>
+                <Input id={`vence-${documento.id}`} type="date" value={vence} onChange={(e) => setVence(e.target.value)} className="max-w-xs" />
+              </div>
             </div>
           )}
         </div>
