@@ -4,7 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
 import { EMPLEADOS_RRHH, EVENTOS_HV } from "@/data/rrhh";
-import type { EmpleadoRRHH, EstadoLaboral, EventoHojaVida, InformacionLaboral } from "@/types/rrhh";
+import type { ChecklistsEmpleado, EmpleadoRRHH, EstadoLaboral, EventoHojaVida, InformacionLaboral } from "@/types/rrhh";
 import { eventoPorEstado, generarEventosPorCambio } from "@/lib/rrhh";
 import { ESTADO_LABORAL_LABEL } from "@/types/rrhh";
 import type { RoleKey } from "@/types/entities";
@@ -20,6 +20,8 @@ interface RrhhContextValue {
   empleadoActuandoId: string;
   setEmpleadoActuandoId: (id: string) => void;
   actualizarInformacionLaboral: (id: string, cambios: Partial<InformacionLaboral>) => number;
+  /** Guarda el avance de las listas de chequeo (ingreso/retiro) y registra el cierre en la hoja de vida. */
+  actualizarChecklist: (id: string, tipo: keyof ChecklistsEmpleado, checklist: ChecklistsEmpleado) => void;
   cambiarEstadoLaboral: (id: string, estado: EstadoLaboral, motivo?: string) => void;
   toggleAcceso: (id: string) => void;
 }
