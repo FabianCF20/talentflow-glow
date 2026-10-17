@@ -77,6 +77,18 @@ service cloud.firestore {
       return empleadoId != '' && empleadoId == miEmpleadoId();
     }
 
+    // Lectura documental por función y titular, nunca por jerarquía genérica.
+    function documentoPermitido(datos) {
+      return activo() && (esRrhh()
+        || esMiEmpleado(datos.get('empleadoId', ''))
+        || (tieneRol('sst') && datos.get('categoria', '') in ['sst', 'incapacidades']));
+    }
+
+    function puedeGestionarDocumento(datos) {
+      return activo() && (esRrhh()
+        || (tieneRol('sst') && datos.get('categoria', '') in ['sst', 'incapacidades']));
+    }
+
     /* ------------------------------- Cuentas ------------------------------- */
 
     match /usuarios/{uid} {
@@ -89,14 +101,15 @@ service cloud.firestore {
       allow create: if esAdmin()
         || (esRrhh() && !('administrador' in request.resource.data.get('roles', [])))
         || (autenticado() && request.auth.uid == uid
+            && request.resource.data.get('empleadoId', '') == ''
             && (request.resource.data.roles == ['empleado']
                 || !exists(/databases/$(database)/documents/configuracion/inicializacion)));
       // El propio usuario no puede escalar sus roles ni reactivarse solo.
       allow update: if esAdmin()
         || (esRrhh() && !('administrador' in request.resource.data.get('roles', [])))
         || (request.auth.uid == uid
-            && request.resource.data.roles == resource.data.roles
-            && request.resource.data.get('estado', 'activo') == resource.data.get('estado', 'activo'));
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['nombres', 'apellidos', 'ultimoAcceso', 'telefono', 'celular', 'direccion']));
       allow delete: if esAdmin();
     }
 
@@ -119,15 +132,15 @@ service cloud.firestore {
     // Firma electrónica: el registro es inmutable una vez creado (Ley 527/1999).
 
     match /firmas_documentos/{codigo} {
-      allow read: if autenticado();
-      allow create: if autenticado() && activo();
+      allow read: if documentoPermitido(resource.data);
+      allow create: if documentoPermitido(request.resource.data);
       allow update, delete: if false;
     }
 
     // Bitácora de acceso a datos personales: solo lectura para control interno.
 
     match /accesos_datos/{docId} {
-      allow read: if esAdmin() || esRrhh() || tieneRol('gerente_general');
+      allow read: if esRrhh() && activo();
       allow create: if autenticado();
       allow update, delete: if false;
     }
@@ -229,7 +242,19 @@ service cloud.firestore {
       allow update: if (esRrhh() || esMando()) && activo();
       allow delete: if false;
     }
-    match /portal_documentos/{docId}   { allow read: if esRrhh() || esMiEmpleado(resource.data.get('empleadoId', '')); allow write: if esRrhh() && activo(); }
+    match /portal_documentos/{docId} {
+      allow read: if documentoPermitido(resource.data);
+      allow create: if puedeGestionarDocumento(request.resource.data)
+        || (activo() && esMiEmpleado(request.resource.data.get('empleadoId', '')));
+      // Impide cambiar de titular o reclasificar para saltarse la categoría autorizada.
+      allow update: if (puedeGestionarDocumento(resource.data)
+          && puedeGestionarDocumento(request.resource.data)
+          && request.resource.data.empleadoId == resource.data.empleadoId)
+        || (activo() && esMiEmpleado(resource.data.get('empleadoId', ''))
+          && request.resource.data.empleadoId == resource.data.empleadoId
+          && request.resource.data.categoria == resource.data.categoria);
+      allow delete: if false;
+    }
     match /portal_certificados/{docId} {
       allow read: if esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''));
       allow create: if activo();

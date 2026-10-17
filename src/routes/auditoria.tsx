@@ -21,6 +21,8 @@ export const Route = createFileRoute("/auditoria")({
         content: "Trazabilidad completa: usuario, fecha, hora, IP, navegador, acción y valores modificados.",
       },
       { property: "og:title", content: "Auditoría | SIGTH" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Registro inalterable de todas las acciones realizadas en la plataforma.",

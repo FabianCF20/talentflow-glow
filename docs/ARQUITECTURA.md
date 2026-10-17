@@ -93,6 +93,14 @@ pestañas; cada pestaña vive en `components/<dominio>/<Nombre>Tab.tsx` (ver
 Ver [`roadmap.md`](../roadmap.md) para el plan de reorganización por etapas.
 
 ## Alcance sin dinero
+
+## Acceso documental por función
+- `lib/acceso-documental.ts` define las categorías y la titularidad permitidas. Administración y Talento Humano gestionan expedientes; SST solo soportes ocupacionales e incapacidades; el resto conserva autoconsulta propia en el Portal.
+- `useFirestoreState` admite condiciones OR y deshabilitación; Portal, firmas y bitácora consultan solo su alcance y limpian datos al cambiar identidad, permisos o ante denegación.
+- Gestión documental y Cumplimiento reutilizan `RegistrosFirma`. Una firma es un registro de verificación, no un PDF archivado; no se inventan versiones ni archivos originales.
+- Las alertas enlazan al módulo responsable: documentos, SST, dotación, ausencias o ficha. Al renovar un documento se puede actualizar su vencimiento.
+- `firestore.rules` protege titular y categoría y evita que el usuario cambie su propia vinculación o privilegios. `storage.rules` deniega por defecto y autoriza PDF inmutables bajo `documentos/{documentoId}/{archivo}` según su documento asociado. Las reglas deben publicarse en Firebase para que la protección se aplique fuera de la interfaz.
+
 El sistema no maneja nómina, presupuestos ni costos. El salario base solo se guarda en la ficha del empleado como dato informativo y las horas extras registran únicamente tiempo. Los reportes PDF genéricos viven en `lib/reporte-pdf.ts`.
 
 ## Talento Humano fortalecido (oct 2026)

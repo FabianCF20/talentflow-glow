@@ -30,6 +30,8 @@ export const Route = createFileRoute("/")({
           "Panel configurable con indicadores de personal, solicitudes, SST y trazabilidad del sistema SIGTH.",
       },
       { property: "og:title", content: "Dashboard | SIGTH" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
       {
         property: "og:description",
         content: "Indicadores de talento humano, solicitudes pendientes y auditoría en tiempo real.",
