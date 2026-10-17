@@ -648,6 +648,65 @@ function ExpedienteEmpleadoPage() {
           </SeccionExpediente>
         </TabsContent>
 
+        {/* --------------------- Vinculación y retiro (checklists) --------------------- */}
+        <TabsContent value="vinculacion" className="mt-4 space-y-4">
+          <div className="surface-panel flex items-start gap-3 p-4 text-sm text-muted-foreground">
+            <ListChecks className="mt-0.5 size-4 shrink-0 text-primary" />
+            <p>
+              Listas de chequeo del ciclo de vida: la vinculación se considera completa cuando todos
+              los ítems de ingreso están marcados, y el retiro cuando se completan los de salida.
+              Al completarse una lista queda registrado en la hoja de vida.
+            </p>
+          </div>
+
+          {(["ingreso", "retiro"] as const).map((tipo) => {
+            const items = checklist[tipo];
+            const avance = avanceChecklist(items);
+            return (
+              <SeccionExpediente
+                key={tipo}
+                titulo={tipo === "ingreso" ? "Listado de vinculación" : "Listado de retiro"}
+                descripcion={`Avance: ${avance}% (${items.filter((i) => i.hecho).length} de ${items.length} ítems)`}
+                soloRrhh
+              >
+                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full ${avance === 100 ? "bg-success" : "bg-primary"}`}
+                    style={{ width: `${avance}%` }}
+                  />
+                </div>
+                <ul className="space-y-2">
+                  {items.map((item) => (
+                    <li key={item.id}>
+                      <label
+                        className={`flex items-center gap-3 rounded-md border border-border p-3 text-sm ${
+                          esRrhh ? "cursor-pointer hover:bg-muted/50" : "opacity-80"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.hecho}
+                          disabled={!esRrhh}
+                          onChange={() => toggleItem(tipo, item.id)}
+                          className="size-4 accent-primary"
+                        />
+                        <span className={item.hecho ? "text-muted-foreground line-through" : "text-foreground"}>
+                          {item.etiqueta}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                {avance === 100 && (
+                  <p className="mt-3 text-sm font-medium text-success">
+                    Listado completado. El cierre quedó registrado en la hoja de vida.
+                  </p>
+                )}
+              </SeccionExpediente>
+            );
+          })}
+        </TabsContent>
+
         {/* -------------------------- Hoja de vida digital -------------------------- */}
         <TabsContent value="hoja" className="mt-4 space-y-4">
           <div className="surface-panel flex items-start gap-3 p-4 text-sm text-muted-foreground">
@@ -658,7 +717,25 @@ function ExpedienteEmpleadoPage() {
               laboral agrega un evento trazable.
             </p>
           </div>
-          <TimelineLaboral eventos={misEventos} />
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="w-full sm:w-64">
+              <Campo label="Filtrar por tipo de evento">
+                <Select value={filtroEvento} onValueChange={(v) => setFiltroEvento(v as typeof filtroEvento)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los eventos</SelectItem>
+                    {(Object.keys(TIPO_EVENTO_LABEL) as TipoEventoHV[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_EVENTO_LABEL[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            </div>
+            <Button variant="outline" size="sm" onClick={exportarHojaVida} disabled={!misEventosFiltrados.length}>
+              <FileText className="size-4" /> Exportar hoja de vida (PDF)
+            </Button>
+          </div>
+          <TimelineLaboral eventos={misEventosFiltrados} />
         </TabsContent>
       </Tabs>
     </AppShell>
