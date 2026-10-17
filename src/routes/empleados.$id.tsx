@@ -126,7 +126,7 @@ function ExpedienteEmpleadoPage() {
   });
   const misEventos = useMemo(() => eventos.filter((ev) => ev.empleadoId === id), [eventos, id]);
 
-  const [form, setForm] = useState<InformacionLaboral>(empleado?.laboral ?? {});
+  const [form, setForm] = useState<InformacionLaboral>(empleado?.laboral ?? ({} as InformacionLaboral));
   const [motivoRetiro, setMotivoRetiro] = useState("");
   const [filtroEvento, setFiltroEvento] = useState<"todos" | TipoEventoHV>("todos");
 
