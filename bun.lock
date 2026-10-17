@@ -61,7 +61,6 @@
       },
       "devDependencies": {
         "@eslint/js": "^9.32.0",
-        "@firebase/rules-unit-testing": "^6.0.0",
         "@lovable.dev/vite-tanstack-config": "2.26.5",
         "@types/node": "^22.16.5",
         "@types/react": "^19.2.0",
@@ -226,8 +225,6 @@
     "@firebase/remote-config-compat": ["@firebase/remote-config-compat@0.2.28", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@firebase/remote-config-compat/-/remote-config-compat-0.2.28.tgz", { "dependencies": { "@firebase/component": "0.7.4", "@firebase/logger": "0.5.1", "@firebase/remote-config": "0.9.1", "@firebase/remote-config-types": "0.5.1", "@firebase/util": "1.15.2", "tslib": "^2.1.0" }, "peerDependencies": { "@firebase/app": "0.x", "@firebase/app-compat": "0.x" } }, "sha512-kEO9Gn6fbmVj7eNUtZ6d59mLgUDUD0qo7aCicGOWNfuRWTaUv3CF9DMYychO61zaEQ3cfA+CEny4V1E8A1gRGA=="],
 
     "@firebase/remote-config-types": ["@firebase/remote-config-types@0.5.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@firebase/remote-config-types/-/remote-config-types-0.5.1.tgz", {}, "sha512-cX/1LT6KQwkXzck2eSzeKnuvXZCyr8qaPpDcikoJs7jmI+oBOXixpDLeDtWj1U6GNMkIoXrEDNoyT2Ypcyp5/A=="],
-
-    "@firebase/rules-unit-testing": ["@firebase/rules-unit-testing@6.0.0", "", { "peerDependencies": { "firebase": "^13.0.0" } }, "sha512-BsBqAoClN55cj9rVIruzA1vHzxl2WyS2+G/r93hjp7wM0UatlVHblvp5SPLCKylWBFMHWL4/JdFnFnYwrLdJjg=="],
 
     "@firebase/storage": ["@firebase/storage@0.14.4", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@firebase/storage/-/storage-0.14.4.tgz", { "dependencies": { "@firebase/component": "0.7.4", "@firebase/util": "1.15.2", "tslib": "^2.1.0" }, "peerDependencies": { "@firebase/app": "0.x" } }, "sha512-jfzEWZb3Fpsq3FwAB2ifoc8mcSh935qXdDou3TpyjDWa45hhNcZUv8/w28/10njByhfK7snbakKN30nwnzQ3/w=="],
 
