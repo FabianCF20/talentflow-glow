@@ -25,12 +25,16 @@ import {
   antiguedadDistribucion,
   ausentismo,
   capacitacionesResumen,
+  distribucionContrato,
+  distribucionEdad,
+  distribucionGenero,
   personalPorArea,
   personalPorCentroCosto,
   horasExtrasReporte,
   indicadoresGlobales,
   reporteVacaciones,
   rotacionMensual,
+  rotacionPorArea,
   type FiltroReportes,
 } from "@/lib/reportes";
 import { downloadExcel, type HojaExcel } from "@/lib/excel";
@@ -119,6 +123,10 @@ function ReportesPage() {
   const cap = capacitacionesResumen(capacitaciones, filtro.anio);
   const porArea = personalPorArea(filtrados, horasExtras, filtro.anio);
   const porCC = personalPorCentroCosto(filtrados, horasExtras, filtro.anio);
+  const porGenero = distribucionGenero(filtrados);
+  const porContrato = distribucionContrato(filtrados);
+  const porEdad = distribucionEdad(filtrados);
+  const rotacionArea = rotacionPorArea(filtrados, filtro.anio);
 
   const filtrosTexto = [
     `Año ${filtro.anio}`,
