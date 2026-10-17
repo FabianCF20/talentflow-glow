@@ -196,6 +196,26 @@ function ReportesPage() {
       headers: ["Centro de costo", "Empleados", "Horas extras"],
       rows: porCC.map((a) => [a.nombre, a.empleados, a.horasExtras]),
     },
+    {
+      nombre: "Género",
+      headers: ["Género", "Empleados"],
+      rows: porGenero.map((g) => [g.label, g.valor]),
+    },
+    {
+      nombre: "Tipo de contrato",
+      headers: ["Tipo de contrato", "Empleados"],
+      rows: porContrato.map((c) => [c.label, c.valor]),
+    },
+    {
+      nombre: "Rango de edad",
+      headers: ["Rango", "Empleados"],
+      rows: porEdad.map((e) => [e.label, e.valor]),
+    },
+    {
+      nombre: "Rotación por área",
+      headers: ["Área", "Vinculados", "Retiros del año", "Rotación %"],
+      rows: rotacionArea.map((r) => [r.area, r.vinculados, r.retiros, r.rotacion]),
+    },
   ];
 
   const exportarExcel = () => {
@@ -307,6 +327,7 @@ function ReportesPage() {
         <Tabs defaultValue="rrhh" className="space-y-4">
           <TabsList className="flex-wrap">
             <TabsTrigger value="rrhh">RRHH</TabsTrigger>
+            <TabsTrigger value="talento">Talento Humano</TabsTrigger>
             <TabsTrigger value="horas">Horas extras</TabsTrigger>
             <TabsTrigger value="sst">SST</TabsTrigger>
             <TabsTrigger value="gerencia">Gerencia</TabsTrigger>
