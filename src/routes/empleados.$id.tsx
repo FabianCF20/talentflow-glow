@@ -283,6 +283,18 @@ function ExpedienteEmpleadoPage() {
           <span className="text-sm text-muted-foreground">
             Salario: {verSalario ? formatCOP(empleado.laboral?.salario) : "restringido por rol"}
           </span>
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            Expediente:
+            <span className={`font-medium ${pctExpediente < 80 ? "text-warning" : "text-success"}`}>
+              {pctExpediente}% completo
+            </span>
+            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+              <span
+                className={`block h-full rounded-full ${pctExpediente < 80 ? "bg-warning" : "bg-success"}`}
+                style={{ width: `${pctExpediente}%` }}
+              />
+            </span>
+          </span>
         </div>
       </div>
 
@@ -293,6 +305,7 @@ function ExpedienteEmpleadoPage() {
           <TabsTrigger value="familia">Familia y emergencia</TabsTrigger>
           <TabsTrigger value="formacion">Formación y experiencia</TabsTrigger>
           <TabsTrigger value="pagos">Bancarios y seguridad social</TabsTrigger>
+          <TabsTrigger value="vinculacion">Vinculación y retiro</TabsTrigger>
           <TabsTrigger value="hoja">Hoja de vida digital</TabsTrigger>
         </TabsList>
 
