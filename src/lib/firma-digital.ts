@@ -8,6 +8,7 @@
 import { useMemo } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { auth } from "./firebase";
 import { EMPRESA } from "./empresa";
 import { limpiarUndefined, useFirestoreState } from "./firestore";
 import { useAuth } from "./auth";
@@ -102,7 +103,12 @@ export async function verificarDocumento(codigo: string): Promise<RegistroFirma 
   const limpio = codigo.trim().toUpperCase();
   if (!limpio) return null;
   const snap = await getDoc(doc(db, "firmas_documentos", limpio));
-  return snap.exists() ? ({ ...(snap.data() as RegistroFirma), id: snap.id }) : null;
+  if (!snap.exists() || !auth.currentUser) return null;
+  const perfil = await getDoc(doc(db, "usuarios", auth.currentUser.uid));
+  const datos = perfil.data();
+  const registro = { ...(snap.data() as RegistroFirma), id: snap.id };
+  if (!datos || datos.estado !== "activo" || !puedeLeerDocumento(datos.roles ?? [], datos.empleadoId ?? "", registro)) return null;
+  return registro;
 }
 
 /** Registro de documentos firmados electrónicamente, del más reciente al más antiguo. */
