@@ -368,6 +368,48 @@ function ReportesPage() {
             />
           </TabsContent>
 
+          <TabsContent value="talento" className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Distribución por género</h3>
+                <DonaChart
+                  datos={porGenero.map((g, i) => ({
+                    label: g.label,
+                    valor: g.valor,
+                    clase: i % 2 === 0 ? "stroke-primary" : "stroke-success",
+                  }))}
+                />
+              </div>
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Distribución por tipo de contrato</h3>
+                <BarrasChart datos={porContrato} />
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Distribución por rango de edad</h3>
+                <BarrasChart datos={porEdad} />
+              </div>
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Rotación por área (%)</h3>
+                <BarrasChart
+                  datos={rotacionArea.map((r) => ({ label: r.area.slice(0, 10), valor: r.rotacion }))}
+                  formato={(v) => `${v}%`}
+                />
+              </div>
+            </div>
+            <DataTable
+              rows={rotacionArea.map((r, i) => ({ ...r, id: `rot-${i}` }))}
+              emptyMessage="Sin datos de rotación por área."
+              columns={[
+                { key: "area", header: "Área", render: (r) => r.area },
+                { key: "vin", header: "Vinculados", render: (r) => r.vinculados },
+                { key: "ret", header: "Retiros del año", render: (r) => r.retiros },
+                { key: "rot", header: "Rotación", render: (r) => `${r.rotacion}%` },
+              ]}
+            />
+          </TabsContent>
+
           <TabsContent value="horas" className="space-y-4">
             <DataTable
               rows={he}
