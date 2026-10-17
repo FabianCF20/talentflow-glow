@@ -12,6 +12,14 @@ import { useOperaciones } from "@/store/operaciones";
 import { EMPRESA } from "@/lib/empresa";
 import { ultimaVersion } from "@/lib/documentos";
 import { nombreEmpleado, type EmpleadoRRHH } from "@/types/rrhh";
+import { EXPEDIENTES } from "@/data/rrhh";
+import {
+  aniversarioDelMes,
+  diasRestantesPrueba,
+  esCumpleaniosDelMes,
+  esVinculado,
+  mesesSinVacaciones,
+} from "@/lib/rrhh";
 import { TIPO_EXAMEN_LABEL } from "@/types/sst";
 import { TIPO_SOLICITUD_LABEL } from "@/types/operaciones";
 
@@ -21,7 +29,11 @@ export type TipoAlerta =
   | "examen"
   | "dotacion"
   | "licencia"
-  | "retencion";
+  | "retencion"
+  | "vacaciones"
+  | "periodo_prueba"
+  | "cumpleanos"
+  | "aniversario";
 
 export const TIPO_ALERTA_LABEL: Record<TipoAlerta, string> = {
   contrato: "Contrato",
@@ -30,6 +42,10 @@ export const TIPO_ALERTA_LABEL: Record<TipoAlerta, string> = {
   dotacion: "Dotación",
   licencia: "Licencia o permiso",
   retencion: "Retención documental",
+  vacaciones: "Vacaciones acumuladas",
+  periodo_prueba: "Periodo de prueba",
+  cumpleanos: "Cumpleaños",
+  aniversario: "Aniversario de ingreso",
 };
 
 export type NivelAlerta = "vencido" | "por_vencer" | "informativo";
