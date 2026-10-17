@@ -2,7 +2,7 @@
  * Pantalla: Listado, creación, exportación y reportes de empleados.
  * Ruta: /empleados
  */
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Download, FileSpreadsheet, Filter, UserCheck, UserMinus, Users2 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
@@ -23,9 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AREAS } from "@/data/organizacion";
+import { EXPEDIENTES } from "@/data/rrhh";
 import { useRrhh } from "@/store/rrhh";
 import {
   antiguedadAnios,
+  completitudExpediente,
   esVinculado,
   nombreArea,
   nombreCargo,
@@ -84,6 +86,7 @@ function Empleados() {
   const [query, setQuery] = useState("");
   const [areaFiltro, setAreaFiltro] = useState("todas");
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | EstadoLaboral>("todos");
+  const [expFiltro, setExpFiltro] = useState<"todos" | "incompletos">("todos");
 
   const verSalario = (id: string) => puedeVerSalario(empleadoAsignadoId, rolesUsuario, id);
 
@@ -93,7 +96,8 @@ function Empleados() {
       const okTexto = texto.includes(query.trim().toLowerCase());
       const okArea = areaFiltro === "todas" || e.laboral?.areaId === areaFiltro;
       const okEstado = estadoFiltro === "todos" || e.estadoLaboral === estadoFiltro;
-      return okTexto && okArea && okEstado;
+      const okExp = expFiltro === "todos" || completitudExpediente(EXPEDIENTES[e.id]) < 80;
+      return okTexto && okArea && okEstado && okExp;
     });
 
   const activos = useMemo(
@@ -144,6 +148,29 @@ function Empleados() {
       ),
     },
     { key: "jefe", header: "Jefe inmediato", render: (e) => nombreJefe(e.laboral?.jefeInmediatoId) },
+    {
+      key: "expediente",
+      header: "Expediente",
+      render: (e) => {
+        const pct = completitudExpediente(EXPEDIENTES[e.id]);
+        return (
+          <div className="w-28">
+            <div className="flex items-center justify-between text-xs">
+              <span className={pct < 80 ? "font-medium text-warning" : "font-medium text-success"}>
+                {pct}%
+              </span>
+              {pct < 80 && <span className="text-muted-foreground">incompleto</span>}
+            </div>
+            <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full ${pct < 80 ? "bg-warning" : "bg-success"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
+    },
     {
       key: "contrato",
       header: "Contrato",
@@ -342,6 +369,18 @@ function Empleados() {
           </Select>
         </div>
         <div className="w-full sm:w-52">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">Expediente</label>
+          <Select value={expFiltro} onValueChange={(v) => setExpFiltro(v as typeof expFiltro)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="incompletos">Incompletos (&lt; 80%)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-full sm:w-52">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
             Rol en sesión
           </label>
@@ -531,6 +570,8 @@ function Empleados() {
           </section>
         </TabsContent>
       </Tabs>
+      {/* La ficha del empleado (/empleados/$id) se renderiza aquí como ruta hija. */}
+      <Outlet />
     </AppShell>
   );
 }

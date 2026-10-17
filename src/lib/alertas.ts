@@ -12,6 +12,14 @@ import { useOperaciones } from "@/store/operaciones";
 import { EMPRESA } from "@/lib/empresa";
 import { ultimaVersion } from "@/lib/documentos";
 import { nombreEmpleado, type EmpleadoRRHH } from "@/types/rrhh";
+import { EXPEDIENTES } from "@/data/rrhh";
+import {
+  aniversarioDelMes,
+  diasRestantesPrueba,
+  esCumpleaniosDelMes,
+  esVinculado,
+  mesesSinVacaciones,
+} from "@/lib/rrhh";
 import { TIPO_EXAMEN_LABEL } from "@/types/sst";
 import { TIPO_SOLICITUD_LABEL } from "@/types/operaciones";
 
@@ -21,7 +29,11 @@ export type TipoAlerta =
   | "examen"
   | "dotacion"
   | "licencia"
-  | "retencion";
+  | "retencion"
+  | "vacaciones"
+  | "periodo_prueba"
+  | "cumpleanos"
+  | "aniversario";
 
 export const TIPO_ALERTA_LABEL: Record<TipoAlerta, string> = {
   contrato: "Contrato",
@@ -30,6 +42,10 @@ export const TIPO_ALERTA_LABEL: Record<TipoAlerta, string> = {
   dotacion: "Dotación",
   licencia: "Licencia o permiso",
   retencion: "Retención documental",
+  vacaciones: "Vacaciones acumuladas",
+  periodo_prueba: "Periodo de prueba",
+  cumpleanos: "Cumpleaños",
+  aniversario: "Aniversario de ingreso",
 };
 
 export type NivelAlerta = "vencido" | "por_vencer" | "informativo";
@@ -187,6 +203,79 @@ export function useAlertasCumplimiento(): AlertaCumplimiento[] {
         dias,
         ruta: "/ausencias",
       });
+    }
+
+    // Vacaciones acumuladas: más de 11 meses sin descanso (art. 186 CST).
+    for (const e of empleados) {
+      if (!esVinculado(e)) continue;
+      const meses = mesesSinVacaciones(e, solicitudes);
+      if (meses < 11) continue;
+      alertas.push({
+        id: `vacaciones-${e.id}`,
+        tipo: "vacaciones",
+        nivel: meses >= 14 ? "vencido" : "por_vencer",
+        titulo: `${meses} meses sin vacaciones`,
+        detalle: "Art. 186 CST: 15 días hábiles de descanso por cada año de servicio. Programe las vacaciones.",
+        empleadoId: e.id,
+        empleadoNombre: nombreEmpleado(e),
+        fecha: e.laboral?.fechaIngreso ?? "",
+        dias: null,
+        ruta: "/ausencias",
+      });
+    }
+
+    // Periodo de prueba próximo a vencer (contratos nuevos).
+    for (const e of empleados) {
+      if (!esVinculado(e)) continue;
+      const dias = diasRestantesPrueba(e);
+      if (dias === null || dias < 0 || dias > 15) continue;
+      alertas.push({
+        id: `prueba-${e.id}`,
+        tipo: "periodo_prueba",
+        nivel: dias <= 5 ? "por_vencer" : "informativo",
+        titulo: "Periodo de prueba por vencer",
+        detalle: `Quedan ${dias} días. Confirme la continuidad o tome la decisión antes del vencimiento.`,
+        empleadoId: e.id,
+        empleadoNombre: nombreEmpleado(e),
+        fecha: e.laboral?.fechaIngreso ?? "",
+        dias,
+        ruta: "/empleados",
+      });
+    }
+
+    // Cumpleaños y aniversarios de ingreso del mes en curso.
+    const mesActual = new Date().getMonth() + 1;
+    for (const e of empleados) {
+      if (!esVinculado(e)) continue;
+      if (esCumpleaniosDelMes(EXPEDIENTES[e.id]?.personales?.fechaNacimiento)) {
+        alertas.push({
+          id: `cumple-${e.id}`,
+          tipo: "cumpleanos",
+          nivel: "informativo",
+          titulo: "Cumpleaños este mes",
+          detalle: `Nació el ${EXPEDIENTES[e.id]?.personales?.fechaNacimiento}.`,
+          empleadoId: e.id,
+          empleadoNombre: nombreEmpleado(e),
+          fecha: `${new Date().getFullYear()}-${String(mesActual).padStart(2, "0")}-01`,
+          dias: null,
+          ruta: "/empleados",
+        });
+      }
+      const anios = aniversarioDelMes(e.laboral?.fechaIngreso);
+      if (anios) {
+        alertas.push({
+          id: `aniv-${e.id}`,
+          tipo: "aniversario",
+          nivel: "informativo",
+          titulo: `${anios} año${anios === 1 ? "" : "s"} en la empresa`,
+          detalle: `Ingresó el ${e.laboral?.fechaIngreso}. Aniversario este mes.`,
+          empleadoId: e.id,
+          empleadoNombre: nombreEmpleado(e),
+          fecha: e.laboral?.fechaIngreso ?? "",
+          dias: null,
+          ruta: "/empleados",
+        });
+      }
     }
 
     // Retención documental: expedientes que superan el tiempo de conservación.

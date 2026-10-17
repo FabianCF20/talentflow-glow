@@ -4,7 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
 import { EMPLEADOS_RRHH, EVENTOS_HV } from "@/data/rrhh";
-import type { EmpleadoRRHH, EstadoLaboral, EventoHojaVida, InformacionLaboral } from "@/types/rrhh";
+import type { ChecklistsEmpleado, EmpleadoRRHH, EstadoLaboral, EventoHojaVida, InformacionLaboral } from "@/types/rrhh";
 import { eventoPorEstado, generarEventosPorCambio } from "@/lib/rrhh";
 import { ESTADO_LABORAL_LABEL } from "@/types/rrhh";
 import type { RoleKey } from "@/types/entities";
@@ -20,6 +20,8 @@ interface RrhhContextValue {
   empleadoActuandoId: string;
   setEmpleadoActuandoId: (id: string) => void;
   actualizarInformacionLaboral: (id: string, cambios: Partial<InformacionLaboral>) => number;
+  /** Guarda el avance de las listas de chequeo (ingreso/retiro) y registra el cierre en la hoja de vida. */
+  actualizarChecklist: (id: string, tipo: keyof ChecklistsEmpleado, checklist: ChecklistsEmpleado) => void;
   cambiarEstadoLaboral: (id: string, estado: EstadoLaboral, motivo?: string) => void;
   toggleAcceso: (id: string) => void;
 }
@@ -153,6 +155,34 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
     [actor],
   );
 
+  const actualizarChecklist = useCallback(
+    (id: string, tipo: keyof ChecklistsEmpleado, checklist: ChecklistsEmpleado) => {
+      const completa = checklist[tipo].every((i) => i.hecho);
+      setEmpleados((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, checklist } : e)),
+      );
+      // Al completar todos los ítems se deja constancia en la hoja de vida.
+      if (completa) {
+        setEventos((prev) => [
+          ...prev,
+          {
+            id: `${id}-ev-chk-${tipo}-${Date.now()}`,
+            empleadoId: id,
+            tipo: tipo === "ingreso" ? "ingreso" : "terminacion",
+            fecha: new Date().toISOString().slice(0, 10),
+            titulo:
+              tipo === "ingreso"
+                ? "Proceso de vinculación completado"
+                : "Proceso de retiro completado",
+            detalle: `Talento Humano marcó como completos todos los ítems del listado de ${tipo}.`,
+            registradoPor: actor,
+          },
+        ]);
+      }
+    },
+    [actor],
+  );
+
   const toggleAcceso = useCallback((id: string) => {
     setEmpleados((prev) =>
       prev.map((e) =>
@@ -172,6 +202,7 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
       empleadoActuandoId,
       setEmpleadoActuandoId,
       actualizarInformacionLaboral,
+      actualizarChecklist,
       cambiarEstadoLaboral,
       toggleAcceso,
     }),
@@ -181,6 +212,7 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
       rolActivo,
       empleadoActuandoId,
       actualizarInformacionLaboral,
+      actualizarChecklist,
       cambiarEstadoLaboral,
       toggleAcceso,
     ],

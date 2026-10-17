@@ -25,12 +25,16 @@ import {
   antiguedadDistribucion,
   ausentismo,
   capacitacionesResumen,
+  distribucionContrato,
+  distribucionEdad,
+  distribucionGenero,
   personalPorArea,
   personalPorCentroCosto,
   horasExtrasReporte,
   indicadoresGlobales,
   reporteVacaciones,
   rotacionMensual,
+  rotacionPorArea,
   type FiltroReportes,
 } from "@/lib/reportes";
 import { downloadExcel, type HojaExcel } from "@/lib/excel";
@@ -119,6 +123,10 @@ function ReportesPage() {
   const cap = capacitacionesResumen(capacitaciones, filtro.anio);
   const porArea = personalPorArea(filtrados, horasExtras, filtro.anio);
   const porCC = personalPorCentroCosto(filtrados, horasExtras, filtro.anio);
+  const porGenero = distribucionGenero(filtrados);
+  const porContrato = distribucionContrato(filtrados);
+  const porEdad = distribucionEdad(filtrados);
+  const rotacionArea = rotacionPorArea(filtrados, filtro.anio);
 
   const filtrosTexto = [
     `Año ${filtro.anio}`,
@@ -187,6 +195,26 @@ function ReportesPage() {
       nombre: "Personal por CC",
       headers: ["Centro de costo", "Empleados", "Horas extras"],
       rows: porCC.map((a) => [a.nombre, a.empleados, a.horasExtras]),
+    },
+    {
+      nombre: "Género",
+      headers: ["Género", "Empleados"],
+      rows: porGenero.map((g) => [g.label, g.valor]),
+    },
+    {
+      nombre: "Tipo de contrato",
+      headers: ["Tipo de contrato", "Empleados"],
+      rows: porContrato.map((c) => [c.label, c.valor]),
+    },
+    {
+      nombre: "Rango de edad",
+      headers: ["Rango", "Empleados"],
+      rows: porEdad.map((e) => [e.label, e.valor]),
+    },
+    {
+      nombre: "Rotación por área",
+      headers: ["Área", "Vinculados", "Retiros del año", "Rotación %"],
+      rows: rotacionArea.map((r) => [r.area, r.vinculados, r.retiros, r.rotacion]),
     },
   ];
 
@@ -299,6 +327,7 @@ function ReportesPage() {
         <Tabs defaultValue="rrhh" className="space-y-4">
           <TabsList className="flex-wrap">
             <TabsTrigger value="rrhh">RRHH</TabsTrigger>
+            <TabsTrigger value="talento">Talento Humano</TabsTrigger>
             <TabsTrigger value="horas">Horas extras</TabsTrigger>
             <TabsTrigger value="sst">SST</TabsTrigger>
             <TabsTrigger value="gerencia">Gerencia</TabsTrigger>
@@ -335,6 +364,48 @@ function ReportesPage() {
                 { key: "tom", header: "Días tomados", render: (r) => r.diasTomados },
                 { key: "pend", header: "Días pendientes", render: (r) => r.diasPendientes },
                 { key: "sol", header: "Solicitudes en trámite", render: (r) => r.solicitudesPendientes },
+              ]}
+            />
+          </TabsContent>
+
+          <TabsContent value="talento" className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Distribución por género</h3>
+                <DonaChart
+                  datos={porGenero.map((g, i) => ({
+                    label: g.label,
+                    valor: g.valor,
+                    clase: i % 2 === 0 ? "stroke-primary" : "stroke-success",
+                  }))}
+                />
+              </div>
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Distribución por tipo de contrato</h3>
+                <BarrasChart datos={porContrato} />
+              </div>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Distribución por rango de edad</h3>
+                <BarrasChart datos={porEdad} />
+              </div>
+              <div className="surface-panel p-5">
+                <h3 className="text-sm font-semibold text-foreground">Rotación por área (%)</h3>
+                <BarrasChart
+                  datos={rotacionArea.map((r) => ({ label: r.area.slice(0, 10), valor: r.rotacion }))}
+                  formato={(v) => `${v}%`}
+                />
+              </div>
+            </div>
+            <DataTable
+              rows={rotacionArea.map((r, i) => ({ ...r, id: `rot-${i}` }))}
+              emptyMessage="Sin datos de rotación por área."
+              columns={[
+                { key: "area", header: "Área", render: (r) => r.area },
+                { key: "vin", header: "Vinculados", render: (r) => r.vinculados },
+                { key: "ret", header: "Retiros del año", render: (r) => r.retiros },
+                { key: "rot", header: "Rotación", render: (r) => `${r.rotacion}%` },
               ]}
             />
           </TabsContent>

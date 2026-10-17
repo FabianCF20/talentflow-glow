@@ -4,7 +4,7 @@
  */
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Lock, Save, ShieldOff, UserCog } from "lucide-react";
+import { ArrowLeft, FileText, ListChecks, Lock, Save, ShieldOff, UserCog } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EstadoLaboralBadge } from "@/components/rrhh/EstadoLaboralBadge";
@@ -31,6 +31,9 @@ import { EXPEDIENTES } from "@/data/rrhh";
 import { useRrhh } from "@/store/rrhh";
 import {
   antiguedadAnios,
+  avanceChecklist,
+  checklistDe,
+  completitudExpediente,
   nombreArea,
   nombreCargo,
   nombreCentroCosto,
@@ -38,6 +41,7 @@ import {
   nombreJefe,
   puedeEditarCamposSensibles,
 } from "@/lib/rrhh";
+import { descargarReportePdf } from "@/lib/reporte-pdf";
 import { puedeVerSalario } from "@/lib/visibilidad";
 import { cargoById, nivelById } from "@/data/organizacion";
 import { rolJerarquicoPorNivel } from "@/config/roles";
@@ -45,10 +49,13 @@ import { formatCOP } from "@/types/organizacion";
 import {
   ESTADO_LABORAL_LABEL,
   TIPO_CONTRATO_LABEL,
+  TIPO_EVENTO_LABEL,
   iniciales,
   nombreEmpleado,
+  type ChecklistsEmpleado,
   type EstadoLaboral,
   type InformacionLaboral,
+  type TipoEventoHV,
 } from "@/types/rrhh";
 import { Campo } from "@/components/rrhh/Campo";
 
@@ -100,6 +107,7 @@ function ExpedienteEmpleadoPage() {
     rolActivo,
     empleadoActuandoId,
     actualizarInformacionLaboral,
+    actualizarChecklist,
     cambiarEstadoLaboral,
     toggleAcceso,
   } = useRrhh();
@@ -116,15 +124,65 @@ function ExpedienteEmpleadoPage() {
     finalidad: "consulta_expediente",
     modulo: "Expediente del empleado",
   });
-  if (!empleado) throw notFound();
+  const misEventos = useMemo(() => eventos.filter((ev) => ev.empleadoId === id), [eventos, id]);
+
+  const [form, setForm] = useState<InformacionLaboral>(empleado?.laboral ?? ({} as InformacionLaboral));
+  const [motivoRetiro, setMotivoRetiro] = useState("");
+  const [filtroEvento, setFiltroEvento] = useState<"todos" | TipoEventoHV>("todos");
+
+  // Mientras Firestore carga, la lista llega vacía: mostrar espera en vez de 404.
+  // (Después de los hooks para no romper el orden de renderizado de React.)
+  if (!empleado) {
+    if (empleados.length === 0) {
+      return (
+        <div className="grid place-items-center py-24 text-sm text-muted-foreground">
+          Cargando expediente…
+        </div>
+      );
+    }
+    throw notFound();
+  }
 
   const exp = EXPEDIENTES[id];
   const esRrhh = puedeEditarCamposSensibles([rolActivo]);
   const verSalario = puedeVerSalario(empleadoActuandoId, [rolActivo], id);
-  const misEventos = useMemo(() => eventos.filter((ev) => ev.empleadoId === id), [eventos, id]);
+  // Completitud del expediente y listas de chequeo del ciclo de vida.
+  const pctExpediente = completitudExpediente(exp);
+  const checklist = checklistDe(empleado);
+  const misEventosFiltrados =
+    filtroEvento === "todos" ? misEventos : misEventos.filter((ev) => ev.tipo === filtroEvento);
 
-  const [form, setForm] = useState<InformacionLaboral>(empleado.laboral);
-  const [motivoRetiro, setMotivoRetiro] = useState("");
+  /** Marca o desmarca un ítem de las listas de ingreso/retiro y lo guarda. */
+  const toggleItem = (tipo: keyof ChecklistsEmpleado, itemId: string) => {
+    if (!esRrhh) {
+      toast.error("Solo Recursos Humanos puede actualizar las listas de chequeo.");
+      return;
+    }
+    const nuevo: ChecklistsEmpleado = {
+      ...checklist,
+      [tipo]: checklist[tipo].map((i) => (i.id === itemId ? { ...i, hecho: !i.hecho } : i)),
+    };
+    actualizarChecklist(id, tipo, nuevo);
+  };
+
+  /** Exporta la hoja de vida del empleado a PDF. */
+  const exportarHojaVida = () => {
+    descargarReportePdf({
+      titulo: `Hoja de vida digital — ${nombreEmpleado(empleado)}`,
+      subtitulo: `CC ${empleado.documento}`,
+      filtros: [filtroEvento === "todos" ? "Todos los eventos" : TIPO_EVENTO_LABEL[filtroEvento]],
+      headers: ["Fecha", "Tipo", "Evento", "Detalle", "Registrado por"],
+      rows: misEventosFiltrados.map((ev) => [
+        ev.fecha,
+        TIPO_EVENTO_LABEL[ev.tipo],
+        ev.titulo,
+        ev.detalle,
+        ev.registradoPor,
+      ]),
+      nombreArchivo: `hoja-vida-${empleado.documento}`,
+    });
+    toast.success("Hoja de vida exportada a PDF");
+  };
   const cuenta = cuentas.find((c) => c.empleadoId === id);
   const accesoActivo = cuenta ? (cuenta.estadoUsuario ?? cuenta.estado) === "activo" : false;
 
@@ -237,6 +295,18 @@ function ExpedienteEmpleadoPage() {
           <span className="text-sm text-muted-foreground">
             Salario: {verSalario ? formatCOP(empleado.laboral?.salario) : "restringido por rol"}
           </span>
+          <span className="flex items-center gap-2 text-sm text-muted-foreground">
+            Expediente:
+            <span className={`font-medium ${pctExpediente < 80 ? "text-warning" : "text-success"}`}>
+              {pctExpediente}% completo
+            </span>
+            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+              <span
+                className={`block h-full rounded-full ${pctExpediente < 80 ? "bg-warning" : "bg-success"}`}
+                style={{ width: `${pctExpediente}%` }}
+              />
+            </span>
+          </span>
         </div>
       </div>
 
@@ -247,6 +317,7 @@ function ExpedienteEmpleadoPage() {
           <TabsTrigger value="familia">Familia y emergencia</TabsTrigger>
           <TabsTrigger value="formacion">Formación y experiencia</TabsTrigger>
           <TabsTrigger value="pagos">Bancarios y seguridad social</TabsTrigger>
+          <TabsTrigger value="vinculacion">Vinculación y retiro</TabsTrigger>
           <TabsTrigger value="hoja">Hoja de vida digital</TabsTrigger>
         </TabsList>
 
@@ -589,6 +660,65 @@ function ExpedienteEmpleadoPage() {
           </SeccionExpediente>
         </TabsContent>
 
+        {/* --------------------- Vinculación y retiro (checklists) --------------------- */}
+        <TabsContent value="vinculacion" className="mt-4 space-y-4">
+          <div className="surface-panel flex items-start gap-3 p-4 text-sm text-muted-foreground">
+            <ListChecks className="mt-0.5 size-4 shrink-0 text-primary" />
+            <p>
+              Listas de chequeo del ciclo de vida: la vinculación se considera completa cuando todos
+              los ítems de ingreso están marcados, y el retiro cuando se completan los de salida.
+              Al completarse una lista queda registrado en la hoja de vida.
+            </p>
+          </div>
+
+          {(["ingreso", "retiro"] as const).map((tipo) => {
+            const items = checklist[tipo];
+            const avance = avanceChecklist(items);
+            return (
+              <SeccionExpediente
+                key={tipo}
+                titulo={tipo === "ingreso" ? "Listado de vinculación" : "Listado de retiro"}
+                descripcion={`Avance: ${avance}% (${items.filter((i) => i.hecho).length} de ${items.length} ítems)`}
+                soloRrhh
+              >
+                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={`h-full rounded-full ${avance === 100 ? "bg-success" : "bg-primary"}`}
+                    style={{ width: `${avance}%` }}
+                  />
+                </div>
+                <ul className="space-y-2">
+                  {items.map((item) => (
+                    <li key={item.id}>
+                      <label
+                        className={`flex items-center gap-3 rounded-md border border-border p-3 text-sm ${
+                          esRrhh ? "cursor-pointer hover:bg-muted/50" : "opacity-80"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item.hecho}
+                          disabled={!esRrhh}
+                          onChange={() => toggleItem(tipo, item.id)}
+                          className="size-4 accent-primary"
+                        />
+                        <span className={item.hecho ? "text-muted-foreground line-through" : "text-foreground"}>
+                          {item.etiqueta}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+                {avance === 100 && (
+                  <p className="mt-3 text-sm font-medium text-success">
+                    Listado completado. El cierre quedó registrado en la hoja de vida.
+                  </p>
+                )}
+              </SeccionExpediente>
+            );
+          })}
+        </TabsContent>
+
         {/* -------------------------- Hoja de vida digital -------------------------- */}
         <TabsContent value="hoja" className="mt-4 space-y-4">
           <div className="surface-panel flex items-start gap-3 p-4 text-sm text-muted-foreground">
@@ -599,7 +729,25 @@ function ExpedienteEmpleadoPage() {
               laboral agrega un evento trazable.
             </p>
           </div>
-          <TimelineLaboral eventos={misEventos} />
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div className="w-full sm:w-64">
+              <Campo label="Filtrar por tipo de evento">
+                <Select value={filtroEvento} onValueChange={(v) => setFiltroEvento(v as typeof filtroEvento)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los eventos</SelectItem>
+                    {(Object.keys(TIPO_EVENTO_LABEL) as TipoEventoHV[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TIPO_EVENTO_LABEL[t]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Campo>
+            </div>
+            <Button variant="outline" size="sm" onClick={exportarHojaVida} disabled={!misEventosFiltrados.length}>
+              <FileText className="size-4" /> Exportar hoja de vida (PDF)
+            </Button>
+          </div>
+          <TimelineLaboral eventos={misEventosFiltrados} />
         </TabsContent>
       </Tabs>
     </AppShell>

@@ -16,6 +16,7 @@ import { useOperaciones } from "@/store/operaciones";
 import { usePortal } from "@/store/portal";
 import { useSst } from "@/store/sst";
 import { estadoVigencia } from "@/lib/documentos";
+import { TIPO_ALERTA_LABEL, useAlertasCumplimiento } from "@/lib/alertas";
 import type { AuditLog } from "@/types/entities";
 import { Button } from "@/components/ui/button";
 
@@ -94,6 +95,12 @@ function DashboardGestion() {
   const { documentos } = usePortal();
   const { accidentes } = useSst();
   const [logs] = useFirestoreState<AuditLog>("auditoria");
+  const alertas = useAlertasCumplimiento();
+  const conteoAlertas = {
+    vencido: alertas.filter((a) => a.nivel === "vencido").length,
+    por_vencer: alertas.filter((a) => a.nivel === "por_vencer").length,
+    informativo: alertas.filter((a) => a.nivel === "informativo").length,
+  };
 
   const activos = empleados.filter((e) => e.estadoLaboral !== "retirado").length;
   const pendientes = solicitudes.filter((s) => s.estado === "pendiente_jefe" || s.estado === "pendiente_rrhh").length;
@@ -117,16 +124,59 @@ function DashboardGestion() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Empleados activos" value={String(activos)} icon={Users} hint="registrados en el sistema" />
-        <StatCard label="Solicitudes pendientes" value={String(pendientes)} icon={Inbox} hint="en espera de aprobación" />
-        <StatCard
-          label="Documentos por vencer"
-          value={String(porVencer)}
-          icon={FileWarning}
-          hint="próximos 30 días"
-        />
-        <StatCard label="Hallazgos SST abiertos" value={String(abiertos)} icon={ShieldAlert} hint="accidentes registrados" />
+        <Link to="/empleados" className="block">
+          <StatCard label="Empleados activos" value={String(activos)} icon={Users} hint="registrados en el sistema" />
+        </Link>
+        <Link to="/solicitudes" className="block">
+          <StatCard label="Solicitudes pendientes" value={String(pendientes)} icon={Inbox} hint="en espera de aprobación" />
+        </Link>
+        <Link to="/documentos" className="block">
+          <StatCard
+            label="Documentos por vencer"
+            value={String(porVencer)}
+            icon={FileWarning}
+            hint="próximos 30 días"
+          />
+        </Link>
+        <Link to="/sst" className="block">
+          <StatCard label="Hallazgos SST abiertos" value={String(abiertos)} icon={ShieldAlert} hint="accidentes registrados" />
+        </Link>
       </div>
+
+      <section className="surface-panel p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold">Alertas de hoy</h2>
+          <div className="flex flex-wrap gap-3 text-xs">
+            <span className="font-medium text-destructive">{conteoAlertas.vencido} vencidas</span>
+            <span className="font-medium text-warning">{conteoAlertas.por_vencer} por vencer</span>
+            <span className="text-muted-foreground">{conteoAlertas.informativo} informativas</span>
+          </div>
+        </div>
+        {alertas.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">Sin alertas pendientes. Todo está al día.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {alertas.slice(0, 6).map((a) => (
+              <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-muted/40 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {a.empleadoNombre} · {a.titulo}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{TIPO_ALERTA_LABEL[a.tipo]}</p>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link to={a.ruta}>Revisar</Link>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {alertas.length > 6 && (
+          <Button asChild variant="link" size="sm" className="mt-2">
+            <Link to="/cumplimiento">Ver las {alertas.length} alertas en Cumplimiento</Link>
+          </Button>
+        )}
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="surface-panel p-5 lg:col-span-2">

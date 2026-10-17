@@ -12,7 +12,8 @@ import type {
   RegistroAsistencia,
   SolicitudOperativa,
 } from "@/types/operaciones";
-import { ESTADOS_VINCULADOS, type EmpleadoRRHH } from "@/types/rrhh";
+import { ESTADOS_VINCULADOS, TIPO_CONTRATO_LABEL, type EmpleadoRRHH } from "@/types/rrhh";
+import { EXPEDIENTES } from "@/data/rrhh";
 import { MESES_LABEL } from "@/lib/fechas";
 
 export interface FiltroReportes {
@@ -115,6 +116,69 @@ export function reporteVacaciones(
       solicitudesPendientes: propias.filter((s) => s.estado?.startsWith("pendiente")).length,
     };
   });
+}
+
+/* --------------------------- Talento Humano --------------------------- */
+
+const GENERO_LABEL: Record<string, string> = { M: "Masculino", F: "Femenino", O: "Otro" };
+
+/** Distribución del personal vinculado por género (lee el expediente). */
+export function distribucionGenero(empleados: EmpleadoRRHH[]): PuntoSerie[] {
+  const conteo = new Map<string, number>();
+  for (const e of empleados.filter(vinculado)) {
+    const g = EXPEDIENTES[e.id]?.personales?.genero ?? "O";
+    const label = GENERO_LABEL[g] ?? "Otro";
+    conteo.set(label, (conteo.get(label) ?? 0) + 1);
+  }
+  return [...conteo.entries()].map(([label, valor]) => ({ label, valor }));
+}
+
+/** Distribución del personal vinculado por tipo de contrato. */
+export function distribucionContrato(empleados: EmpleadoRRHH[]): PuntoSerie[] {
+  return (Object.keys(TIPO_CONTRATO_LABEL) as (keyof typeof TIPO_CONTRATO_LABEL)[])
+    .map((t) => ({
+      label: TIPO_CONTRATO_LABEL[t],
+      valor: empleados.filter((e) => vinculado(e) && e.laboral?.tipoContrato === t).length,
+    }))
+    .filter((p) => p.valor > 0);
+}
+
+export const EDAD_RANGOS = ["< 25", "25 a 34", "35 a 44", "45 a 54", "55+"];
+
+/** Distribución del personal vinculado por rango de edad (lee el expediente). */
+export function distribucionEdad(empleados: EmpleadoRRHH[]): PuntoSerie[] {
+  const hoy = Date.now();
+  const conteo = [0, 0, 0, 0, 0];
+  for (const e of empleados.filter(vinculado)) {
+    const nac = EXPEDIENTES[e.id]?.personales?.fechaNacimiento;
+    if (!nac) continue;
+    const edad = (hoy - new Date(`${nac}T00:00:00`).getTime()) / 31_536_000_000;
+    const idx = edad < 25 ? 0 : edad < 35 ? 1 : edad < 45 ? 2 : edad < 55 ? 3 : 4;
+    conteo[idx] = (conteo[idx] ?? 0) + 1;
+  }
+  return EDAD_RANGOS.map((label, i) => ({ label, valor: conteo[i] ?? 0 }));
+}
+
+export interface RotacionAreaFila {
+  area: string;
+  vinculados: number;
+  retiros: number;
+  rotacion: number;
+}
+
+/** Rotación anual por área: retiros del año / personal vinculado del área. */
+export function rotacionPorArea(empleados: EmpleadoRRHH[], anio: number): RotacionAreaFila[] {
+  return AREAS.map((a) => {
+    const delArea = empleados.filter((e) => e.laboral?.areaId === a.id);
+    const vinculados = delArea.filter(vinculado).length;
+    const retiros = delArea.filter((e) => e.laboral?.fechaRetiro?.startsWith(String(anio))).length;
+    return {
+      area: a.nombre,
+      vinculados,
+      retiros,
+      rotacion: vinculados ? Number(((retiros / vinculados) * 100).toFixed(1)) : 0,
+    };
+  }).filter((r) => r.vinculados > 0 || r.retiros > 0);
 }
 
 /* ------------------------------ Horas extras ------------------------------ */
