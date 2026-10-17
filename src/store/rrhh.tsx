@@ -155,6 +155,34 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
     [actor],
   );
 
+  const actualizarChecklist = useCallback(
+    (id: string, tipo: keyof ChecklistsEmpleado, checklist: ChecklistsEmpleado) => {
+      const completa = checklist[tipo].every((i) => i.hecho);
+      setEmpleados((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, checklist } : e)),
+      );
+      // Al completar todos los ítems se deja constancia en la hoja de vida.
+      if (completa) {
+        setEventos((prev) => [
+          ...prev,
+          {
+            id: `${id}-ev-chk-${tipo}-${Date.now()}`,
+            empleadoId: id,
+            tipo: tipo === "ingreso" ? "ingreso" : "terminacion",
+            fecha: new Date().toISOString().slice(0, 10),
+            titulo:
+              tipo === "ingreso"
+                ? "Proceso de vinculación completado"
+                : "Proceso de retiro completado",
+            detalle: `Talento Humano marcó como completos todos los ítems del listado de ${tipo}.`,
+            registradoPor: actor,
+          },
+        ]);
+      }
+    },
+    [actor],
+  );
+
   const toggleAcceso = useCallback((id: string) => {
     setEmpleados((prev) =>
       prev.map((e) =>
@@ -174,6 +202,7 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
       empleadoActuandoId,
       setEmpleadoActuandoId,
       actualizarInformacionLaboral,
+      actualizarChecklist,
       cambiarEstadoLaboral,
       toggleAcceso,
     }),
@@ -183,6 +212,7 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
       rolActivo,
       empleadoActuandoId,
       actualizarInformacionLaboral,
+      actualizarChecklist,
       cambiarEstadoLaboral,
       toggleAcceso,
     ],
