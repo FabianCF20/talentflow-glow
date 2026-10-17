@@ -10,6 +10,8 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { EMPRESA } from "./empresa";
 import { limpiarUndefined, useFirestoreState } from "./firestore";
+import { useAuth } from "./auth";
+import { alcanceConsultaDocumental, puedeLeerDocumento } from "./acceso-documental";
 
 export type TipoDocumentoFirmado =
   | "certificado"
@@ -18,6 +20,7 @@ export type TipoDocumentoFirmado =
   | "documento_expediente";
 
 export interface RegistroFirma {
+  categoria?: string;
   id: string;
   codigo: string;
   tipo: TipoDocumentoFirmado;
@@ -104,9 +107,12 @@ export async function verificarDocumento(codigo: string): Promise<RegistroFirma 
 
 /** Registro de documentos firmados electrónicamente, del más reciente al más antiguo. */
 export function useDocumentosFirmados(): RegistroFirma[] {
-  const [items] = useFirestoreState<RegistroFirma>("firmas_documentos", "codigo");
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  const propioId = perfil?.empleadoId ?? "";
+  const [items] = useFirestoreState<RegistroFirma>("firmas_documentos", "codigo", alcanceConsultaDocumental(roles, propioId, true));
   return useMemo(
-    () => [...items].sort((a, b) => (a.emitidoEn < b.emitidoEn ? 1 : -1)),
-    [items],
+    () => items.filter((f) => puedeLeerDocumento(roles, propioId, f) && !["desprendible", "liquidacion"].includes(f.tipo)).sort((a, b) => (a.emitidoEn < b.emitidoEn ? 1 : -1)),
+    [items, roles, propioId],
   );
 }
