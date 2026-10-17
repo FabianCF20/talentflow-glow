@@ -16,6 +16,7 @@ import { useOperaciones } from "@/store/operaciones";
 import { usePortal } from "@/store/portal";
 import { useSst } from "@/store/sst";
 import { estadoVigencia } from "@/lib/documentos";
+import { TIPO_ALERTA_LABEL, useAlertasCumplimiento } from "@/lib/alertas";
 import type { AuditLog } from "@/types/entities";
 import { Button } from "@/components/ui/button";
 
@@ -94,6 +95,12 @@ function DashboardGestion() {
   const { documentos } = usePortal();
   const { accidentes } = useSst();
   const [logs] = useFirestoreState<AuditLog>("auditoria");
+  const alertas = useAlertasCumplimiento();
+  const conteoAlertas = {
+    vencido: alertas.filter((a) => a.nivel === "vencido").length,
+    por_vencer: alertas.filter((a) => a.nivel === "por_vencer").length,
+    informativo: alertas.filter((a) => a.nivel === "informativo").length,
+  };
 
   const activos = empleados.filter((e) => e.estadoLaboral !== "retirado").length;
   const pendientes = solicitudes.filter((s) => s.estado === "pendiente_jefe" || s.estado === "pendiente_rrhh").length;
