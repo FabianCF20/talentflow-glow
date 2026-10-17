@@ -4,7 +4,7 @@
  */
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Lock, Save, ShieldOff, UserCog } from "lucide-react";
+import { ArrowLeft, FileText, ListChecks, Lock, Save, ShieldOff, UserCog } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
 import { EstadoLaboralBadge } from "@/components/rrhh/EstadoLaboralBadge";
@@ -31,6 +31,9 @@ import { EXPEDIENTES } from "@/data/rrhh";
 import { useRrhh } from "@/store/rrhh";
 import {
   antiguedadAnios,
+  avanceChecklist,
+  checklistDe,
+  completitudExpediente,
   nombreArea,
   nombreCargo,
   nombreCentroCosto,
@@ -38,6 +41,7 @@ import {
   nombreJefe,
   puedeEditarCamposSensibles,
 } from "@/lib/rrhh";
+import { descargarReportePdf } from "@/lib/reporte-pdf";
 import { puedeVerSalario } from "@/lib/visibilidad";
 import { cargoById, nivelById } from "@/data/organizacion";
 import { rolJerarquicoPorNivel } from "@/config/roles";
@@ -45,10 +49,13 @@ import { formatCOP } from "@/types/organizacion";
 import {
   ESTADO_LABORAL_LABEL,
   TIPO_CONTRATO_LABEL,
+  TIPO_EVENTO_LABEL,
   iniciales,
   nombreEmpleado,
+  type ChecklistsEmpleado,
   type EstadoLaboral,
   type InformacionLaboral,
+  type TipoEventoHV,
 } from "@/types/rrhh";
 import { Campo } from "@/components/rrhh/Campo";
 
