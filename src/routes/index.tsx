@@ -3,7 +3,7 @@
  * Ruta: /
  */
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { esSoloEmpleado } from "@/config/roles";
+import { can, esSoloEmpleado } from "@/config/roles";
 import { Users, FileWarning, Inbox, ShieldAlert, LayoutGrid } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -96,7 +96,7 @@ function DashboardGestion() {
   const { solicitudes } = useOperaciones();
   const { documentos } = usePortal();
   const { accidentes } = useSst();
-  const [logs] = useFirestoreState<AuditLog>("auditoria");
+  const [logs] = useFirestoreState<AuditLog>("auditoria", "id", { enabled: can(perfil?.roles ?? [], "auditoria", "ver") });
   const alertas = useAlertasCumplimiento();
   const conteoAlertas = {
     vencido: alertas.filter((a) => a.nivel === "vencido").length,
@@ -126,23 +126,23 @@ function DashboardGestion() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Link to="/empleados" className="block">
+        {can(perfil?.roles ?? [], "empleados", "ver") && <Link to="/empleados" className="block">
           <StatCard label="Empleados activos" value={String(activos)} icon={Users} hint="registrados en el sistema" />
-        </Link>
-        <Link to="/solicitudes" className="block">
+        </Link>}
+        {can(perfil?.roles ?? [], "solicitudes", "ver") && <Link to="/solicitudes" className="block">
           <StatCard label="Solicitudes pendientes" value={String(pendientes)} icon={Inbox} hint="en espera de aprobación" />
-        </Link>
-        <Link to="/documentos" className="block">
+        </Link>}
+        {can(perfil?.roles ?? [], "documentacion", "ver") && <Link to="/documentos" className="block">
           <StatCard
             label="Documentos por vencer"
             value={String(porVencer)}
             icon={FileWarning}
             hint="próximos 30 días"
           />
-        </Link>
-        <Link to="/sst" className="block">
+        </Link>}
+        {can(perfil?.roles ?? [], "sst", "ver") && <Link to="/sst" className="block">
           <StatCard label="Hallazgos SST abiertos" value={String(abiertos)} icon={ShieldAlert} hint="accidentes registrados" />
-        </Link>
+        </Link>}
       </div>
 
       <section className="surface-panel p-5">
@@ -173,7 +173,7 @@ function DashboardGestion() {
             ))}
           </ul>
         )}
-        {alertas.length > 6 && (
+        {alertas.length > 6 && can(perfil?.roles ?? [], "cumplimiento", "ver") && (
           <Button asChild variant="link" size="sm" className="mt-2">
             <Link to="/cumplimiento">Ver las {alertas.length} alertas en Cumplimiento</Link>
           </Button>
@@ -229,10 +229,10 @@ function DashboardGestion() {
         </div>
       </section>
 
-      <section className="space-y-3">
+      {can(perfil?.roles ?? [], "auditoria", "ver") && <section className="space-y-3">
         <h2 className="text-base font-semibold">Actividad reciente auditada</h2>
         <AuditTrailTable logs={logs.slice(0, 4)} />
-      </section>
+      </section>}
     </AppShell>
   );
 }

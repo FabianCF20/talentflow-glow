@@ -21,7 +21,7 @@ import {
   type AlertaCumplimiento,
   type NivelAlerta,
 } from "@/lib/alertas";
-import { selloLegible, useDocumentosFirmados, verificarDocumento, type RegistroFirma } from "@/lib/firma-digital";
+import { selloLegible, useDocumentosFirmados, verificarDocumento } from "@/lib/firma-digital";
 import { FINALIDAD_LABEL, useAccesosDatos, type AccesoDatos } from "@/lib/habeas-data";
 import { useAuth } from "@/lib/auth";
 import { gestionaDocumentacion } from "@/lib/acceso-documental";
@@ -169,15 +169,6 @@ function CumplimientoPage() {
       render: (r) =>
         r.dias === null ? "—" : r.dias < 0 ? `${Math.abs(r.dias)} vencidos` : `${r.dias} restantes`,
     },
-  ];
-
-  const colFirmas: Column<RegistroFirma>[] = [
-    { key: "codigo", header: "Código", render: (r) => <span className="font-mono text-xs">{r.codigo}</span> },
-    { key: "desc", header: "Documento", render: (r) => r.descripcion },
-    { key: "empleado", header: "Titular", render: (r) => r.empleadoNombre },
-    { key: "hash", header: "Huella SHA-256", render: (r) => <span className="font-mono text-xs">{selloLegible(r.hash)}</span> },
-    { key: "por", header: "Emitido por", render: (r) => r.emitidoPor },
-    { key: "en", header: "Fecha", render: (r) => r.emitidoEn.slice(0, 16).replace("T", " ") },
   ];
 
   const colAccesos: Column<AccesoDatos>[] = [
