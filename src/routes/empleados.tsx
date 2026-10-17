@@ -23,9 +23,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AREAS } from "@/data/organizacion";
+import { EXPEDIENTES } from "@/data/rrhh";
 import { useRrhh } from "@/store/rrhh";
 import {
   antiguedadAnios,
+  completitudExpediente,
   esVinculado,
   nombreArea,
   nombreCargo,
@@ -84,6 +86,7 @@ function Empleados() {
   const [query, setQuery] = useState("");
   const [areaFiltro, setAreaFiltro] = useState("todas");
   const [estadoFiltro, setEstadoFiltro] = useState<"todos" | EstadoLaboral>("todos");
+  const [expFiltro, setExpFiltro] = useState<"todos" | "incompletos">("todos");
 
   const verSalario = (id: string) => puedeVerSalario(empleadoAsignadoId, rolesUsuario, id);
 
@@ -93,7 +96,8 @@ function Empleados() {
       const okTexto = texto.includes(query.trim().toLowerCase());
       const okArea = areaFiltro === "todas" || e.laboral?.areaId === areaFiltro;
       const okEstado = estadoFiltro === "todos" || e.estadoLaboral === estadoFiltro;
-      return okTexto && okArea && okEstado;
+      const okExp = expFiltro === "todos" || completitudExpediente(EXPEDIENTES[e.id]) < 80;
+      return okTexto && okArea && okEstado && okExp;
     });
 
   const activos = useMemo(
