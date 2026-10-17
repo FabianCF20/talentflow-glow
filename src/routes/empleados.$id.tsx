@@ -107,6 +107,7 @@ function ExpedienteEmpleadoPage() {
     rolActivo,
     empleadoActuandoId,
     actualizarInformacionLaboral,
+    actualizarChecklist,
     cambiarEstadoLaboral,
     toggleAcceso,
   } = useRrhh();
@@ -132,6 +133,44 @@ function ExpedienteEmpleadoPage() {
 
   const [form, setForm] = useState<InformacionLaboral>(empleado.laboral);
   const [motivoRetiro, setMotivoRetiro] = useState("");
+  const [filtroEvento, setFiltroEvento] = useState<"todos" | TipoEventoHV>("todos");
+  // Completitud del expediente y listas de chequeo del ciclo de vida.
+  const pctExpediente = completitudExpediente(exp);
+  const checklist = checklistDe(empleado);
+  const misEventosFiltrados =
+    filtroEvento === "todos" ? misEventos : misEventos.filter((ev) => ev.tipo === filtroEvento);
+
+  /** Marca o desmarca un ítem de las listas de ingreso/retiro y lo guarda. */
+  const toggleItem = (tipo: keyof ChecklistsEmpleado, itemId: string) => {
+    if (!esRrhh) {
+      toast.error("Solo Recursos Humanos puede actualizar las listas de chequeo.");
+      return;
+    }
+    const nuevo: ChecklistsEmpleado = {
+      ...checklist,
+      [tipo]: checklist[tipo].map((i) => (i.id === itemId ? { ...i, hecho: !i.hecho } : i)),
+    };
+    actualizarChecklist(id, tipo, nuevo);
+  };
+
+  /** Exporta la hoja de vida del empleado a PDF. */
+  const exportarHojaVida = () => {
+    descargarReportePdf({
+      titulo: `Hoja de vida digital — ${nombreEmpleado(empleado)}`,
+      subtitulo: `CC ${empleado.documento}`,
+      filtros: [filtroEvento === "todos" ? "Todos los eventos" : TIPO_EVENTO_LABEL[filtroEvento]],
+      headers: ["Fecha", "Tipo", "Evento", "Detalle", "Registrado por"],
+      rows: misEventosFiltrados.map((ev) => [
+        ev.fecha,
+        TIPO_EVENTO_LABEL[ev.tipo],
+        ev.titulo,
+        ev.detalle,
+        ev.registradoPor,
+      ]),
+      nombreArchivo: `hoja-vida-${empleado.documento}`,
+    });
+    toast.success("Hoja de vida exportada a PDF");
+  };
   const cuenta = cuentas.find((c) => c.empleadoId === id);
   const accesoActivo = cuenta ? (cuenta.estadoUsuario ?? cuenta.estado) === "activo" : false;
 
