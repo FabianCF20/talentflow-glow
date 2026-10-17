@@ -194,6 +194,19 @@ export interface ExpedienteEmpleado {
   seguridadSocial: SeguridadSocial;
 }
 
+/** Ítem de los listados de chequeo de vinculación o retiro. */
+export interface ItemChecklist {
+  id: string;
+  etiqueta: string;
+  hecho: boolean;
+}
+
+/** Listas de chequeo del ciclo de vida: ingreso y retiro. */
+export interface ChecklistsEmpleado {
+  ingreso: ItemChecklist[];
+  retiro: ItemChecklist[];
+}
+
 /** Empleado del módulo de RRHH: estructura organizacional + estado laboral. */
 export interface EmpleadoRRHH {
   id: string;
@@ -205,6 +218,8 @@ export interface EmpleadoRRHH {
   estado: RecordStatus;
   accesoHabilitado: boolean;
   laboral: InformacionLaboral;
+  /** Listas de chequeo de vinculación y retiro (se crean bajo demanda). */
+  checklist?: ChecklistsEmpleado;
 }
 
 /** Nombre completo; tolera nombres o apellidos ausentes (registros incompletos). */
