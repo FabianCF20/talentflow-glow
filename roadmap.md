@@ -1,5 +1,10 @@
 # Plan de reorganización por etapas
 
+## Corrección documental y permisos
+- [ ] Unificar la consulta de firmas entre Cumplimiento y Gestión documental y enlazar alertas a su módulo responsable.
+- [ ] Restringir consultas y acciones documentales por rol y categoría, también en las reglas de Firebase.
+- [ ] Probar permisos y navegación; conservar datos de prueba y señalar publicación de reglas pendiente.
+
 ## Etapa 1 — Documentación y código común (hecha)
 - [x] Comentario de propósito al inicio de cada archivo.
 - [x] Documento de arquitectura (`docs/ARQUITECTURA.md`).
