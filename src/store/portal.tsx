@@ -122,7 +122,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         ...prev,
       ]);
     },
-    [],
+    [setSolicitudes],
   );
 
   const aprobarSolicitud = useCallback<PortalContextValue["aprobarSolicitud"]>(
@@ -163,7 +163,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         );
       });
     },
-    [],
+    [setSolicitudes],
   );
 
   const rechazarSolicitud = useCallback<PortalContextValue["rechazarSolicitud"]>(
@@ -182,7 +182,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
         ),
       );
     },
-    [],
+    [setSolicitudes],
   );
 
   const cargarDocumento = useCallback<PortalContextValue["cargarDocumento"]>((input) => {
@@ -248,7 +248,7 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       setCertificados((prev) => [cert, ...prev]);
       return cert;
     },
-    [],
+    [setCertificados],
   );
 
   const value = useMemo<PortalContextValue>(

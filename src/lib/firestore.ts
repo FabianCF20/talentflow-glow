@@ -144,7 +144,7 @@ export function useFirestoreState<T extends object>(
 
   const actualizar = useCallback(
     (accion: SetStateAction<T[]>) => {
-      if (!uid || !habilitado) return;
+      if (!auth.currentUser) return;
       const previo = ref.current;
       const siguiente =
         typeof accion === "function" ? (accion as (p: T[]) => T[])(previo) : accion;
@@ -152,7 +152,7 @@ export function useFirestoreState<T extends object>(
       setItems(siguiente);
       void persistirDiff(coleccion, previo, siguiente, campoId);
     },
-    [coleccion, campoId, uid, habilitado],
+    [coleccion, campoId],
   );
 
   return [claveLeida === clave ? items : [], actualizar];
