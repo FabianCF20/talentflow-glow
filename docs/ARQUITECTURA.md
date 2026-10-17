@@ -94,3 +94,11 @@ Ver [`roadmap.md`](../roadmap.md) para el plan de reorganización por etapas.
 
 ## Alcance sin dinero
 El sistema no maneja nómina, presupuestos ni costos. El salario base solo se guarda en la ficha del empleado como dato informativo y las horas extras registran únicamente tiempo. Los reportes PDF genéricos viven en `lib/reporte-pdf.ts`.
+
+## Talento Humano fortalecido (oct 2026)
+
+- **Alertas** (`lib/alertas.ts`): además de contratos, documentos, exámenes, dotación y retención, cubre vacaciones acumuladas (art. 186 CST), periodo de prueba, cumpleaños y aniversarios del mes. El dashboard de gestión muestra el panel "Alertas de hoy".
+- **Listas de chequeo** (`checklist` en `empleados_rrhh`): ingreso y retiro con ítems marcables por TH (`store/rrhh.tsx → actualizarChecklist`); al completarse una lista se registra el cierre en la hoja de vida.
+- **Completitud del expediente** (`lib/rrhh.ts → completitudExpediente`): porcentaje 0-100 sobre las siete secciones; barra en la ficha, columna y filtro "incompletos" en el listado.
+- **Hoja de vida**: filtro por tipo de evento y exportación a PDF desde la ficha.
+- **Reportes**: pestaña "Talento Humano" en /reportes con distribución por género, tipo de contrato, rango de edad y rotación por área (`lib/reportes.ts`).
