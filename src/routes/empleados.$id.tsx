@@ -124,7 +124,14 @@ function ExpedienteEmpleadoPage() {
     finalidad: "consulta_expediente",
     modulo: "Expediente del empleado",
   });
+  const misEventos = useMemo(() => eventos.filter((ev) => ev.empleadoId === id), [eventos, id]);
+
+  const [form, setForm] = useState<InformacionLaboral>(empleado?.laboral ?? {});
+  const [motivoRetiro, setMotivoRetiro] = useState("");
+  const [filtroEvento, setFiltroEvento] = useState<"todos" | TipoEventoHV>("todos");
+
   // Mientras Firestore carga, la lista llega vacía: mostrar espera en vez de 404.
+  // (Después de los hooks para no romper el orden de renderizado de React.)
   if (!empleado) {
     if (empleados.length === 0) {
       return (
@@ -139,11 +146,6 @@ function ExpedienteEmpleadoPage() {
   const exp = EXPEDIENTES[id];
   const esRrhh = puedeEditarCamposSensibles([rolActivo]);
   const verSalario = puedeVerSalario(empleadoActuandoId, [rolActivo], id);
-  const misEventos = useMemo(() => eventos.filter((ev) => ev.empleadoId === id), [eventos, id]);
-
-  const [form, setForm] = useState<InformacionLaboral>(empleado.laboral);
-  const [motivoRetiro, setMotivoRetiro] = useState("");
-  const [filtroEvento, setFiltroEvento] = useState<"todos" | TipoEventoHV>("todos");
   // Completitud del expediente y listas de chequeo del ciclo de vida.
   const pctExpediente = completitudExpediente(exp);
   const checklist = checklistDe(empleado);
