@@ -75,7 +75,10 @@ interface PortalContextValue {
   ) => CertificadoEmitido;
 }
 
-const PortalContext = createContext<PortalContextValue | null>(null);
+// Se conserva una sola instancia del contexto aunque el módulo se recargue en caliente.
+const claveContexto = "__sigthPortalContext";
+const globalCtx = globalThis as unknown as Record<string, React.Context<PortalContextValue | null> | undefined>;
+const PortalContext = (globalCtx[claveContexto] ??= createContext<PortalContextValue | null>(null));
 
 
 export function PortalProvider({ children }: { children: ReactNode }) {
