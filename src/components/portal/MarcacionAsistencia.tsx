@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { MapPin, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -114,8 +114,13 @@ export function MarcacionAsistencia() {
       const punto = { ...gps, marcadoEn: serverTimestamp() };
 
       if (tipo === "ingreso") {
-        if (actual.exists()) {
-          throw new Error("Ya existe un registro de asistencia para hoy. Si hay un error, solicita revisión a tu superior.");
+        const registrosPrevios = await getDocs(query(
+          collection(db, "op_asistencia"),
+          where("empleadoId", "==", empleadoId),
+          where("fecha", "==", fecha),
+        ));
+        if (actual.exists() || !registrosPrevios.empty) {
+          throw new Error("Ya existe un registro de asistencia para hoy. Si hay un registro histórico, solicita revisión a tu superior.");
         }
         await setDoc(referencia, {
           id,
