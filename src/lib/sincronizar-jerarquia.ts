@@ -36,7 +36,7 @@ export async function sincronizarSubordinadosDeMandos(
     if (cuentasSnap.empty) continue;
 
     const subordinadosIds = subordinadosSnap.docs
-      .filter((item) => item.data().estado === "activo")
+      .filter((item) => item.id !== empleadoId && item.data().estado === "activo")
       .map((item) => item.id);
 
     const batch = writeBatch(db);
