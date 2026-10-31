@@ -5,7 +5,7 @@ import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebas
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes, getBytes, deleteObject } from "firebase/storage";
 
-const projectId = "demo-talentflow-storage";
+const projectId = "demo-talentflow-rules";
 let env;
 const firestoreRules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
 const storageRules = readFileSync(new URL("../storage.rules", import.meta.url), "utf8");
