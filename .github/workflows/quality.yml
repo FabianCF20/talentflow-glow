@@ -4,15 +4,13 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches:
-      - main
-      - "security/**"
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
-  group: talentflow-security-${{ github.ref }}-${{ github.event_name }}
+  group: talentflow-security-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
