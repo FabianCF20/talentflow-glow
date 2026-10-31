@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
-import { Clock3, MapPin, LogIn, LogOut, ShieldCheck } from "lucide-react";
+import { MapPin, LogIn, LogOut, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/firebase";
