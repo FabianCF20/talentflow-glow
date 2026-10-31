@@ -348,7 +348,31 @@ service cloud.firestore {
         && request.resource.data.get('id', '') == id
         && id == request.resource.data.get('empleadoId', '') + '_' + request.resource.data.get('fecha', '')
         && request.resource.data.get('fecha', '') is string
-        && request.resource.data.get('fecha', '').matches('^\\d{4}-\\d{2}-\\d{2}
+        && request.resource.data.get('fecha', '').size() == 10
+        && puntoGpsValido(request.resource.data.get('ingreso', {}))
+        && request.resource.data.get('validacion', {}) is map
+        && request.resource.data.get('validacion', {}).keys().hasOnly(['estado'])
+        && request.resource.data.get('validacion', {}).get('estado', '') == 'pendiente';
+      // El titular solo puede añadir una salida; ingreso y su GPS quedan inmutables.
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (
+          (esMiEmpleado(resource.data.get('empleadoId', ''))
+            && resource.data.get('ingreso', null) is map
+            && resource.data.get('salida', null) == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['salida'])
+            && request.resource.data.get('ingreso', {}) == resource.data.get('ingreso', {})
+            && request.resource.data.get('validacion', {}) == resource.data.get('validacion', {})
+            && puntoGpsValido(request.resource.data.get('salida', {})))
+          || ((esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', '')))
+            && resource.data.get('ingreso', null) is map
+            && resource.data.get('salida', null) is map
+            && resource.data.get('validacion', {}).get('estado', 'pendiente') == 'pendiente'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['validacion'])
+            && validacionAsistenciaValida(request.resource.data.get('validacion', {})))
+        );
+      allow delete: if false;
+    }
     match /op_horas_extras/{id} {
       allow read: if activo() && (
         esRrhh() || tieneAlguno(['nomina', 'contabilidad'])
