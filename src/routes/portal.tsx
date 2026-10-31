@@ -71,6 +71,7 @@ import { ResponderFormulario } from "@/components/sst/ResponderFormulario";
 import { useSst } from "@/store/sst";
 import { formulariosPara } from "@/lib/sst";
 import { TIPO_ASIGNACION_LABEL } from "@/types/sst";
+import { MiAsistencia } from "@/components/portal/MiAsistencia";
 
 export const Route = createFileRoute("/portal")({
   head: () => ({
@@ -392,6 +393,7 @@ function PortalEmpleadoPage() {
           <TabsTrigger value="perfil">Perfil</TabsTrigger>
           <TabsTrigger value="contrato">Contrato e info. laboral</TabsTrigger>
           <TabsTrigger value="ausencias">Vacaciones e incapacidades</TabsTrigger>
+          {perfil?.empleadoId && <TabsTrigger value="asistencia">Mi asistencia</TabsTrigger>}
           <TabsTrigger value="dotacion">Dotación</TabsTrigger>
           <TabsTrigger value="historial">Historial</TabsTrigger>
           <TabsTrigger value="actualizar">Actualizar datos</TabsTrigger>
@@ -447,6 +449,10 @@ function PortalEmpleadoPage() {
               ))}
             </div>
           </SeccionExpediente>
+        </TabsContent>
+
+        <TabsContent value="asistencia" className="mt-4 space-y-4">
+          <MiAsistencia />
         </TabsContent>
 
         {/* --------------------------------- Contrato --------------------------------- */}

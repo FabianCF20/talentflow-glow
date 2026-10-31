@@ -116,13 +116,30 @@ export interface IncapacidadOperativa {
 
 /* --------------------------- Control de asistencia -------------------------- */
 
-/** Horas diarias de llegada y salida registradas por el supervisor. */
+/** Ubicación capturada por el navegador al momento de la marcación. */
+export interface UbicacionMarcacion {
+  latitud: number;
+  longitud: number;
+  precisionMetros: number;
+}
+
+/** Registro diario: hora del servidor, GPS y validación del superior. */
 export interface RegistroAsistencia {
   id: string;
   empleadoId: string;
   fecha: string;
+  /** Campos históricos; se mantienen para consultar registros anteriores. */
   horaIngreso?: string;
   horaSalida?: string;
+  ingresoRegistradoEn?: import("firebase/firestore").Timestamp;
+  salidaRegistradaEn?: import("firebase/firestore").Timestamp;
+  ubicacionIngreso?: UbicacionMarcacion;
+  ubicacionSalida?: UbicacionMarcacion;
+  registradoPorUid?: string;
+  estadoValidacion?: "pendiente" | "validada" | "observada";
+  validadoPorUid?: string;
+  validadoEn?: import("firebase/firestore").Timestamp;
+  observacionValidacion?: string;
   /** Ausencia registrada explícitamente por el supervisor. */
   ausente: boolean;
   justificacion?: string;

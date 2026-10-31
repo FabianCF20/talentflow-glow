@@ -22,7 +22,7 @@ export function alcanceOperacion(
   if (
     (modulo === "solicitudes" && rrhh) ||
     (modulo === "incapacidades" && sst) ||
-    (modulo === "asistencia" && (rrhh || nomina)) ||
+    (modulo === "asistencia" && rrhh) ||
     (modulo === "horasExtras" && consultaNomina) ||
     (modulo === "novedades" && (rrhh || nomina))
   ) {
