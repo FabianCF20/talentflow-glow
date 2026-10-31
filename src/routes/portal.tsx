@@ -282,10 +282,8 @@ function PortalEmpleadoPage() {
   };
 
   /* ------------------------------- Certificados ------------------------------- */
-  const generar = (tipo: TipoCertificado) => {
-    const cert = emitirCertificado(tipo, id, nombreEmpleado(empleado), tipo !== "cargo");
-    void descargarCertificado(cert, empleado, perfilUsuario);
-    toast.success(`${TIPO_CERTIFICADO_LABEL[tipo]} generado con código ${cert.codigo}.`);
+  const generar = (_tipo: TipoCertificado) => {
+    toast.error("La emisión de certificados está temporalmente deshabilitada hasta implementar la expedición segura desde el servidor. Solicítalo a Talento Humano.");
   };
 
   const colVac: Column<PeriodoVacaciones>[] = [
