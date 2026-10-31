@@ -9,7 +9,6 @@ import { eventoPorEstado, generarEventosPorCambio } from "@/lib/rrhh";
 import { ESTADO_LABORAL_LABEL } from "@/types/rrhh";
 import type { RoleKey } from "@/types/entities";
 import { useAuth } from "@/lib/auth";
-import { can } from "@/config/roles";
 
 interface RrhhContextValue {
   empleados: EmpleadoRRHH[];
