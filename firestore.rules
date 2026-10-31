@@ -414,8 +414,8 @@ service cloud.firestore {
         esRrhh() || tieneRol('sst')
         || (resource.data.get('estado', '') == 'activo'
           && miEmpleadoId() != ''
-          && resource.data.empleadosAsignados is list
-          && miEmpleadoId() in resource.data.empleadosAsignados)
+          && resource.data.get('empleadosAsignados', []) is list
+          && miEmpleadoId() in resource.data.get('empleadosAsignados', []))
       );
       allow create: if activo()
         && (esRrhh() || tieneRol('sst'))
