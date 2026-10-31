@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import {
   collection,
+  and,
   doc,
   getDocs,
   onSnapshot,
@@ -89,7 +90,11 @@ async function persistirDiff<T extends object>(
 export function useFirestoreState<T extends object>(
   coleccion: string,
   campoId = "id",
-  opciones: { enabled?: boolean; filtros?: { campo: string; valor: string | string[]; operador?: "==" | "in" | "array-contains" }[] } = {},
+  opciones: {
+    enabled?: boolean;
+    filtros?: { campo: string; valor: string | string[]; operador?: "==" | "in" | "array-contains" }[];
+    combinar?: "and" | "or";
+  } = {},
 ): [T[], (accion: SetStateAction<T[]>) => void] {
   const [items, setItems] = useState<T[]>([]);
   const ref = useRef<T[]>([]);
@@ -98,7 +103,8 @@ export function useFirestoreState<T extends object>(
   const uid = useUidSesion();
   const habilitado = opciones.enabled !== false;
   const filtrosClave = JSON.stringify(opciones.filtros ?? []);
-  const clave = `${uid}|${coleccion}|${campoId}|${habilitado}|${filtrosClave}`;
+  const combinar = opciones.combinar ?? "or";
+  const clave = `${uid}|${coleccion}|${campoId}|${habilitado}|${combinar}|${filtrosClave}`;
   const [claveLeida, setClaveLeida] = useState("");
 
   useEffect(() => {
@@ -127,7 +133,7 @@ export function useFirestoreState<T extends object>(
     const consulta = condiciones.length === 1
       ? query(origen, condiciones[0])
       : condiciones.length > 1
-        ? query(origen, or(...condiciones))
+        ? query(origen, combinar === "and" ? and(...condiciones) : or(...condiciones))
         : origen;
     const unsub = onSnapshot(
       consulta,
@@ -144,7 +150,7 @@ export function useFirestoreState<T extends object>(
       },
     );
     return unsub;
-  }, [coleccion, campoId, uid, habilitado, filtrosClave, clave]);
+  }, [coleccion, campoId, uid, habilitado, filtrosClave, combinar, clave]);
 
   const actualizar = useCallback(
     (accion: SetStateAction<T[]>) => {
