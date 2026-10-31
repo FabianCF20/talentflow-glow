@@ -3,6 +3,8 @@
  * Ruta: /evaluaciones
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useMemo, useState } from "react";
 import { ClipboardCheck, Users, BarChart3, Plus, Trash2, Award } from "lucide-react";
 import { toast } from "sonner";
@@ -125,7 +127,7 @@ function EvaluacionesPage() {
   const actualizarCampo = (id: string, cambios: Partial<CampoEvaluacion>) =>
     setCampos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
 
-  const crear = () => {
+  const crear = async () => {
     if (titulo.trim().length < 5 || campos.some((c) => !c.etiqueta.trim())) {
       toast.error("Complete el título y las preguntas del instrumento.");
       return;
@@ -147,6 +149,22 @@ function EvaluacionesPage() {
       toast.error("La asignación no tiene empleados activos vinculados.");
       return;
     }
+    const empleadosAsignadosUid = new Set<string>();
+    try {
+      for (let inicio = 0; inicio < empleadosAsignados.length; inicio += 30) {
+        const bloque = empleadosAsignados.slice(inicio, inicio + 30);
+        const usuarios = await getDocs(query(collection(db, "usuarios"), where("empleadoId", "in", bloque)));
+        usuarios.docs.forEach((usuario) => empleadosAsignadosUid.add(usuario.id));
+      }
+    } catch (error) {
+      console.error("[evaluaciones] no se pudieron resolver las cuentas asignadas", error);
+      toast.error("No fue posible verificar las cuentas de los empleados asignados.");
+      return;
+    }
+    if (empleadosAsignadosUid.size === 0) {
+      toast.error("Los empleados seleccionados aún no tienen cuentas vinculadas para responder desde el portal.");
+      return;
+    }
     disc.crearEvaluacion({
       titulo,
       descripcion,
@@ -154,6 +172,7 @@ function EvaluacionesPage() {
       campos,
       asignacion: { tipo: tipoAsignacion, valores: tipoAsignacion === "empresa" ? [] : valores },
       empleadosAsignados,
+      empleadosAsignadosUid: [...empleadosAsignadosUid],
       puntajeAprobacion: campos.some((c) => c.correcta !== undefined) ? puntajeAprobacion : undefined,
       responsable: "Talento Humano",
     });

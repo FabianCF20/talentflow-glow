@@ -51,13 +51,13 @@ before(async () => {
     await setDoc(doc(store, "sst_entregas", "dot-a"), { empleadoId: "emp-a", aceptacion: { aceptado: false } });
     await setDoc(doc(store, "sst_entregas", "dot-b"), { empleadoId: "emp-b", aceptacion: { aceptado: false } });
     await setDoc(doc(store, "disc_evaluaciones", "eval-a"), {
-      id: "eval-a", estado: "activo", empleadosAsignados: ["emp-a"],
+      id: "eval-a", estado: "activo", empleadosAsignados: ["emp-a"], empleadosAsignadosUid: ["emp-a-user"],
     });
     await setDoc(doc(store, "disc_evaluaciones", "eval-b"), {
-      id: "eval-b", estado: "activo", empleadosAsignados: ["emp-b"],
+      id: "eval-b", estado: "activo", empleadosAsignados: ["emp-b"], empleadosAsignadosUid: ["emp-b-user"],
     });
     await setDoc(doc(store, "disc_evaluaciones", "eval-archived"), {
-      id: "eval-archived", estado: "archivado", empleadosAsignados: ["emp-a"],
+      id: "eval-archived", estado: "archivado", empleadosAsignados: ["emp-a"], empleadosAsignadosUid: ["emp-a-user"],
     });
   });
 });
@@ -147,7 +147,7 @@ test("las evaluaciones solo son visibles a empleados asignados y mientras estén
   const asignadas = await getDocs(
     query(
       collection(store, "disc_evaluaciones"),
-      where("empleadosAsignados", "array-contains", "emp-a"),
+      where("empleadosAsignadosUid", "array-contains", "emp-a-user"),
       where("estado", "==", "activo"),
     ),
   );

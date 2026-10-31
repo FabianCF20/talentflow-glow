@@ -80,6 +80,7 @@ interface DisciplinarioContextValue {
     campos: CampoEvaluacion[];
     asignacion: AsignacionFormulario;
     empleadosAsignados: string[];
+    empleadosAsignadosUid: string[];
     puntajeAprobacion?: number;
     responsable: string;
   }) => void;
@@ -328,7 +329,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
   /* ----------------------------- Evaluaciones ----------------------------- */
 
   const crearEvaluacion = useCallback<DisciplinarioContextValue["crearEvaluacion"]>(
-    ({ titulo, descripcion, tipo, campos, asignacion, empleadosAsignados, puntajeAprobacion, responsable }) => {
+    ({ titulo, descripcion, tipo, campos, asignacion, empleadosAsignados, empleadosAsignadosUid, puntajeAprobacion, responsable }) => {
       setEvaluaciones((prev) => [
         {
           id: nextId("ev"),
@@ -339,6 +340,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
           campos,
           asignacion,
           empleadosAsignados: [...new Set(empleadosAsignados.filter(Boolean))],
+          empleadosAsignadosUid: [...new Set(empleadosAsignadosUid.filter(Boolean))],
           puntajeAprobacion,
           estado: "activo",
           creadoPor: responsable,

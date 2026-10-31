@@ -413,17 +413,18 @@ service cloud.firestore {
       allow read: if activo() && (
         esRrhh() || tieneRol('sst')
         || (resource.data.get('estado', '') == 'activo'
-          && miEmpleadoId() != ''
-          && resource.data.get('empleadosAsignados', []) is list
-          && miEmpleadoId() in resource.data.get('empleadosAsignados', []))
+          && resource.data.get('empleadosAsignadosUid', []) is list
+          && request.auth.uid in resource.data.get('empleadosAsignadosUid', []))
       );
       allow create: if activo()
         && (esRrhh() || tieneRol('sst'))
         && request.resource.data.get('empleadosAsignados', []) is list
+        && request.resource.data.get('empleadosAsignadosUid', []) is list
         && request.resource.data.get('estado', '') == 'activo';
       allow update: if activo()
         && (esRrhh() || tieneRol('sst'))
-        && request.resource.data.get('empleadosAsignados', []) is list;
+        && request.resource.data.get('empleadosAsignados', []) is list
+        && request.resource.data.get('empleadosAsignadosUid', []) is list;
       allow delete: if false;
     }
     match /disc_respuestas/{id} {

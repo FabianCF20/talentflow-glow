@@ -217,6 +217,8 @@ export interface Evaluacion {
   asignacion: AsignacionFormulario;
   /** IDs materializados al crear la evaluación; permiten validar y consultar asignaciones sin exponer datos salariales. */
   empleadosAsignados?: string[];
+  /** UID de cuentas vinculadas; permite una consulta segura por usuario autenticado. */
+  empleadosAsignadosUid?: string[];
   /** Porcentaje mínimo para aprobar (solo instrumentos calificables). */
   puntajeAprobacion?: number;
   estado: RecordStatus;
