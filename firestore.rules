@@ -320,7 +320,8 @@ service cloud.firestore {
     }
     match /op_horas_extras/{id} {
       allow read: if activo() && (
-        esConsultaNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        esRrhh() || tieneAlguno(['nomina', 'contabilidad'])
+        || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
       allow create: if activo()
