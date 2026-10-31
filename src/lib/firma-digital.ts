@@ -24,6 +24,7 @@ export interface RegistroFirma {
   categoria?: string;
   id: string;
   codigo: string;
+  usuarioUid: string;
   tipo: TipoDocumentoFirmado;
   descripcion: string;
   empleadoId: string;
@@ -72,8 +73,10 @@ export async function sellarDocumento(input: {
   emitidoPor: string;
 }): Promise<{ hash: string; sello: string }> {
   const hash = await huella(`${input.codigo}|${EMPRESA.nit}|${input.contenido}`);
+  const actor = auth.currentUser;
   const registro: RegistroFirma = {
     id: input.codigo,
+    usuarioUid: actor?.uid ?? "",
     codigo: input.codigo,
     tipo: input.tipo,
     descripcion: input.descripcion,
@@ -88,6 +91,7 @@ export async function sellarDocumento(input: {
     emitidoEn: new Date().toISOString(),
   };
   try {
+    if (!actor) throw new Error("Se requiere una sesión autenticada para registrar la firma.");
     await setDoc(
       doc(db, "firmas_documentos", input.codigo),
       limpiarUndefined(registro) as unknown as Record<string, unknown>,
