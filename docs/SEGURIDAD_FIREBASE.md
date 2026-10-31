@@ -162,3 +162,29 @@ Commit de integración final en `main`: `65eacb333f452511b733a9c5495113e3bd8c850
 7. Provisionar y verificar el primer administrador mediante un procedimiento controlado, nunca desde el registro público.
 
 **Estado de publicación:** los cambios están integrados en GitHub `main`, pero no se han publicado reglas en Firebase ni desplegado la aplicación. No cargar datos personales, laborales o salariales reales hasta cerrar los pendientes y validar el entorno de producción.
+
+
+## Fase de integración de Firebase Storage — rama `security/real-document-storage`
+
+Esta fase implementa el flujo de binarios del portal documental, sin publicar reglas en el proyecto Firebase:
+
+- Los PDF se cargan con Firebase Storage SDK, con límite de 5 MB, MIME PDF y comprobación de cabecera `%PDF-` en cliente.
+- La ruta privada vincula empleado, categoría y documento: `documentos/{empleadoId}/{categoria}/{documentoId}/{archivo}`.
+- Storage permite cargar al titular, Talento Humano/Administración y SST únicamente para categorías ocupacionales.
+- La lectura requiere perfil activo, autorización por titular/rol y metadatos coincidentes en `portal_documentos`.
+- No se permiten sobrescrituras ni borrados desde cliente.
+- Las descargas usan Firebase Storage SDK autenticado (`getBlob`); no se generan URLs de descarga persistentes.
+- El versionamiento de documentos existentes carga un nuevo binario y actualiza metadatos solo para Talento Humano o SST según categoría.
+- Las versiones antiguas sin `storagePath` quedan marcadas como archivo no disponible; no se genera un PDF ficticio como si fuera el original.
+- Se añadieron pruebas de Storage Emulator y se incluyeron junto con Firestore en CI.
+
+### Validaciones aún necesarias
+
+- Ejecutar GitHub Actions de esta rama y resolver cualquier fallo de build o pruebas.
+- Confirmar comportamiento real con Storage Emulator; estas pruebas todavía no se han ejecutado desde este entorno.
+- Verificar CORS y descarga real en el bucket de pruebas.
+- Añadir limpieza confiable de objetos huérfanos si se carga el binario pero falla la escritura de metadatos.
+- Implementar inspección de contenido del archivo en backend; MIME y cabecera PDF comprobados en cliente no sustituyen análisis antivirus/validación del lado servidor.
+- Completar backend confiable de certificados, sincronización de subordinados y auditoría server-side.
+
+**Estado:** cambios propuestos en rama independiente. No se han integrado a `main`, no se han desplegado reglas ni se han subido archivos al bucket productivo.
