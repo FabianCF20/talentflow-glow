@@ -46,7 +46,6 @@ import {
   nombreJefe,
   ordenarEventos,
 } from "@/lib/rrhh";
-import { descargarCertificado } from "@/lib/certificados";
 import { useAuth } from "@/lib/auth";
 import { formatCOP } from "@/types/organizacion";
 import {
