@@ -90,7 +90,8 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'nombres', 'apellidos', 'estado', 'estadoUsuario', 'empleadoId',
             'nivelJerarquico', 'ultimoAcceso', 'intentosFallidos', 'subordinadosIds'
-          ]))
+          ])
+          && request.resource.data.get('subordinadosIds', []) is list)
         || (activo()
           && request.auth.uid == uid
           && request.resource.data.get('id', '') == resource.data.get('id', uid)
@@ -322,7 +323,7 @@ service cloud.firestore {
       );
       allow create: if activo()
         && tieneRol('supervisor')
-        && esResponsableDirecto(request.resource.data.get('empleadoId', ''))
+        && esMandoAutorizado(request.resource.data.get('empleadoId', ''))
         && request.resource.data.get('estado', '') == 'pendiente_jefe';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
@@ -352,7 +353,7 @@ service cloud.firestore {
       );
       allow create: if activo()
         && tieneRol('supervisor')
-        && esResponsableDirecto(request.resource.data.get('empleadoId', ''))
+        && esMandoAutorizado(request.resource.data.get('empleadoId', ''))
         && request.resource.data.get('estado', '') == 'registrada';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
