@@ -16,8 +16,6 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
 import { useRrhh } from "@/store/rrhh";
 import { downloadCsv } from "@/lib/export";
-import { esVinculado } from "@/lib/rrhh";
-import { nombreEmpleado } from "@/types/rrhh";
 import { JORNADA } from "@/types/operaciones";
 
 type PuntoMarcacion = {
@@ -26,6 +24,8 @@ type PuntoMarcacion = {
   precisionMetros: number;
   marcadoEn?: { toDate: () => Date };
 };
+
+type PersonaAsistencia = { id: string; nombre: string };
 
 type RegistroDia = {
   id: string;
@@ -160,13 +160,13 @@ function AsistenciaPage() {
     };
   }, [fecha, puedeConsultar, esRrhh, subordinados.join("|")]);
 
-  const personal = useMemo(
-    () =>
-      empleados
-        .filter(esVinculado)
-        .filter((e) => esRrhh || subordinados.includes(e.id)),
-    [empleados, esRrhh, subordinados.join("|")],
-  );
+  const personal = useMemo<PersonaAsistencia[]>(() => {
+    const nombres = new Map(
+      empleados.map((empleado) => [empleado.id, `${empleado.nombres} ${empleado.apellidos}`.trim()]),
+    );
+    const ids = esRrhh ? empleados.map((empleado) => empleado.id) : subordinados;
+    return [...new Set(ids)].map((id) => ({ id, nombre: nombres.get(id) || id }));
+  }, [empleados, esRrhh, subordinados.join("|")]);
   const registrosPorEmpleado = useMemo(
     () => new Map(registros.map((r) => [r.empleadoId, r])),
     [registros],
@@ -175,7 +175,7 @@ function AsistenciaPage() {
     () =>
       personal
         .filter((e) => {
-          const texto = `${nombreEmpleado(e)} ${e.id}`.toLowerCase();
+          const texto = `${e.nombre} ${e.id}`.toLowerCase();
           return texto.includes(busqueda.trim().toLowerCase());
         })
         .map((empleado) => ({ empleado, registro: registrosPorEmpleado.get(empleado.id) })),
@@ -246,7 +246,7 @@ function AsistenciaPage() {
       `asistencia-${fecha}.csv`,
       ["Empleado", "ID", "Fecha", "Ingreso", "Salida", "GPS ingreso", "GPS salida", "Precisión ingreso (m)", "Precisión salida (m)", "Estado", "Observación"],
       filas.map(({ empleado, registro }) => [
-        nombreEmpleado(empleado),
+        empleado.nombre,
         empleado.id,
         fecha,
         hora(registro?.ingreso, registro?.horaIngreso),
