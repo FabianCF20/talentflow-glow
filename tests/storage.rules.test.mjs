@@ -78,6 +78,11 @@ test("se deniegan perfiles inactivos, MIME no permitido y archivos mayores de 5 
     new Blob(["imagen"], { type: "image/png" }),
     { contentType: "image/png" },
   ));
+  await assertFails(uploadBytes(
+    ref(storage("emp-a"), "documentos/trab-a/categoria-inventada/doc-a/archivo.pdf"),
+    pdf(),
+    { contentType: "application/pdf" },
+  ));
   const oversized = new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: "application/pdf" });
   await assertFails(uploadBytes(
     ref(storage("emp-a"), "documentos/trab-a/personales/doc-a/grande.pdf"),
