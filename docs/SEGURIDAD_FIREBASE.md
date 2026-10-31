@@ -180,8 +180,8 @@ Esta fase implementa el flujo de binarios del portal documental, sin publicar re
 
 ### Validaciones aún necesarias
 
-- Ejecutar GitHub Actions de esta rama y resolver cualquier fallo de build o pruebas.
-- Confirmar comportamiento real con Storage Emulator; estas pruebas todavía no se han ejecutado desde este entorno.
+- GitHub Actions de la rama: build y ESLint aprobados; 14 pruebas Firestore y 7 pruebas Storage aprobadas (21 en total, 0 fallidas).
+- Confirmar comportamiento real en navegador contra un proyecto Firebase de pruebas y validar CORS/descarga.
 - Verificar CORS y descarga real en el bucket de pruebas.
 - Añadir limpieza confiable de objetos huérfanos si se carga el binario pero falla la escritura de metadatos.
 - Implementar inspección de contenido del archivo en backend; MIME y cabecera PDF comprobados en cliente no sustituyen análisis antivirus/validación del lado servidor.
@@ -198,3 +198,6 @@ La ejecución CI de esta fase confirmó que los errores de lint existentes eran 
 - Se añadió `npm run format:check` como verificación explícita de Prettier.
 - No se ejecutó `prettier --write .` ni se reformateó masivamente el repositorio.
 - La deuda de formato queda pendiente y debe resolverse en un cambio separado, revisando el diff completo antes de integrarlo.
+
+
+Validación CI de la fase documental: build y ESLint aprobados; 21 pruebas combinadas Firestore/Storage aprobadas (14 + 7).
