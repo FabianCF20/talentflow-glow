@@ -2,7 +2,7 @@ import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 
 const projectId = "demo-talentflow-rules";
 let env;
@@ -50,6 +50,15 @@ before(async () => {
     await setDoc(doc(store, "portal_documentos", "doc-a"), { empleadoId: "emp-a", categoria: "personales", versiones: [] });
     await setDoc(doc(store, "sst_entregas", "dot-a"), { empleadoId: "emp-a", aceptacion: { aceptado: false } });
     await setDoc(doc(store, "sst_entregas", "dot-b"), { empleadoId: "emp-b", aceptacion: { aceptado: false } });
+    await setDoc(doc(store, "disc_evaluaciones", "eval-a"), {
+      id: "eval-a", estado: "activo", empleadosAsignados: ["emp-a"], empleadosAsignadosUid: ["emp-a-user"],
+    });
+    await setDoc(doc(store, "disc_evaluaciones", "eval-b"), {
+      id: "eval-b", estado: "activo", empleadosAsignados: ["emp-b"], empleadosAsignadosUid: ["emp-b-user"],
+    });
+    await setDoc(doc(store, "disc_evaluaciones", "eval-archived"), {
+      id: "eval-archived", estado: "archivado", empleadosAsignados: ["emp-a"], empleadosAsignadosUid: ["emp-a-user"],
+    });
   });
 });
 
@@ -130,12 +139,47 @@ test("las observaciones internas no son visibles para el empleado titular", asyn
 });
 
 
-test("las respuestas disciplinarias no aceptan puntajes enviados por el navegador", async () => {
+test("las evaluaciones solo son visibles a empleados asignados y mientras estén activas", async () => {
+  const store = db("emp-a-user");
+  await assertSucceeds(getDoc(doc(store, "disc_evaluaciones", "eval-a")));
+  await assertFails(getDoc(doc(store, "disc_evaluaciones", "eval-b")));
+  await assertFails(getDoc(doc(store, "disc_evaluaciones", "eval-archived")));
+  const asignadas = await getDocs(
+    query(
+      collection(store, "disc_evaluaciones"),
+      where("empleadosAsignadosUid", "array-contains", "emp-a-user"),
+      where("estado", "==", "activo"),
+    ),
+  );
+  assert.deepEqual(asignadas.docs.map((item) => item.id), ["eval-a"]);
+});
+
+test("las respuestas disciplinarias exigen asignación activa y rechazan puntajes del navegador", async () => {
   const store = db("emp-a-user");
   await assertSucceeds(
     setDoc(doc(store, "disc_respuestas", "resp-own"), {
       id: "resp-own",
-      evaluacionId: "eval-1",
+      evaluacionId: "eval-a",
+      empleadoId: "emp-a",
+      fecha: "2026-10-31",
+      hora: "10:00",
+      valores: { pregunta1: "respuesta" },
+    }),
+  );
+  await assertFails(
+    setDoc(doc(store, "disc_respuestas", "resp-unassigned"), {
+      id: "resp-unassigned",
+      evaluacionId: "eval-b",
+      empleadoId: "emp-a",
+      fecha: "2026-10-31",
+      hora: "10:00",
+      valores: { pregunta1: "respuesta" },
+    }),
+  );
+  await assertFails(
+    setDoc(doc(store, "disc_respuestas", "resp-archived"), {
+      id: "resp-archived",
+      evaluacionId: "eval-archived",
       empleadoId: "emp-a",
       fecha: "2026-10-31",
       hora: "10:00",
@@ -145,7 +189,7 @@ test("las respuestas disciplinarias no aceptan puntajes enviados por el navegado
   await assertFails(
     setDoc(doc(store, "disc_respuestas", "resp-score"), {
       id: "resp-score",
-      evaluacionId: "eval-1",
+      evaluacionId: "eval-a",
       empleadoId: "emp-a",
       fecha: "2026-10-31",
       hora: "10:00",

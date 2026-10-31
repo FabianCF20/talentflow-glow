@@ -79,6 +79,8 @@ interface DisciplinarioContextValue {
     tipo: TipoInstrumento;
     campos: CampoEvaluacion[];
     asignacion: AsignacionFormulario;
+    empleadosAsignados: string[];
+    empleadosAsignadosUid: string[];
     puntajeAprobacion?: number;
     responsable: string;
   }) => void;
@@ -112,13 +114,22 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     "id",
     alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
   );
+  const esGestorEvaluaciones = roles.some((rol) => sst.includes(rol));
+  const alcanceEvaluaciones = esGestorEvaluaciones
+    ? { enabled: true }
+    : empleadoId
+      ? {
+          combinar: "and" as const,
+          filtros: [
+            { campo: "empleadosAsignados", valor: empleadoId, operador: "array-contains" as const },
+            { campo: "estado", valor: "activo" },
+          ],
+        }
+      : { enabled: false };
   const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>(
     "disc_evaluaciones",
     "id",
-    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst, {
-      incluirPropio: false,
-      incluirSubordinados: false,
-    }),
+    alcanceEvaluaciones,
   );
   const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
     "disc_respuestas",
@@ -318,7 +329,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
   /* ----------------------------- Evaluaciones ----------------------------- */
 
   const crearEvaluacion = useCallback<DisciplinarioContextValue["crearEvaluacion"]>(
-    ({ titulo, descripcion, tipo, campos, asignacion, puntajeAprobacion, responsable }) => {
+    ({ titulo, descripcion, tipo, campos, asignacion, empleadosAsignados, empleadosAsignadosUid, puntajeAprobacion, responsable }) => {
       setEvaluaciones((prev) => [
         {
           id: nextId("ev"),
@@ -328,6 +339,8 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
           tipo,
           campos,
           asignacion,
+          empleadosAsignados: [...new Set(empleadosAsignados.filter(Boolean))],
+          empleadosAsignadosUid: [...new Set(empleadosAsignadosUid.filter(Boolean))],
           puntajeAprobacion,
           estado: "activo",
           creadoPor: responsable,
@@ -351,7 +364,12 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     (evaluacionId, empleadoId, valores) => {
       setEvaluaciones((evs) => {
         const evaluacion = evs.find((e) => e.id === evaluacionId);
-        if (evaluacion) {
+        if (
+          evaluacion
+          && evaluacion.estado === "activo"
+          && evaluacion.empleadosAsignados?.includes(empleadoId)
+          && empleadoId === perfil?.empleadoId
+        ) {
           // El empleado solo envía sus respuestas. La puntuación y aprobación
           // deben calcularse en backend confiable, nunca aceptarse del navegador.
           setRespuestas((prev) => [
@@ -369,7 +387,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
         return evs;
       });
     },
-    [],
+    [perfil?.empleadoId],
   );
 
   const value = useMemo<DisciplinarioContextValue>(

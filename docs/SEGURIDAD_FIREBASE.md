@@ -212,3 +212,31 @@ Se añadió `src/lib/sincronizar-jerarquia.ts`:
 - La operación requiere RR. HH./Administración y las reglas de Firestore limitan los campos que pueden cambiar.
 
 Pendiente de esta mejora: pruebas de integración del flujo completo y un trigger/backend para cubrir escrituras que no pasen por esas pantallas.
+
+
+## Fase de endurecimiento de certificados y evaluaciones — rama `security/certificates-evaluations-hardening`
+
+### Certificados y huellas de integridad
+
+- Se retiró del portal la emisión y descarga de certificados generados exclusivamente en el navegador. Los controles quedan deshabilitados hasta implementar un servicio backend que valide permisos, datos vigentes, autorización del emisor, persistencia y trazabilidad.
+- Se eliminó el mecanismo de hash de respaldo no criptográfico. Si Web Crypto / SHA-256 no está disponible, la operación falla.
+- El registro de huella ahora falla de forma cerrada si no hay sesión o si Firestore no confirma la escritura; ya no se registra un error y se devuelve un sello como si hubiera sido exitoso.
+- Una huella SHA-256 generada por el navegador no se debe presentar como firma electrónica confiable ni como prueba de identidad o voluntad del firmante. La emisión confiable y cualquier firma electrónica deben implementarse del lado servidor.
+
+### Evaluaciones disciplinarias
+
+- Al crear una evaluación, el flujo de Talento Humano/SST materializa los IDs de empleados activos destinatarios en `empleadosAsignados`, calculados desde la ficha laboral actual y la asignación por empleado, cargo, área (incluye subáreas) o empresa.
+- Los empleados consultan únicamente evaluaciones activas que contienen su ID en `empleadosAsignados`; la consulta usa `array-contains` y las reglas validan el mismo alcance.
+- Firestore solo acepta respuestas del titular autenticado cuando la evaluación existe, sigue activa y lo incluye en `empleadosAsignados`.
+- Se rechazan campos de puntaje/aprobación enviados por el navegador y las respuestas no se pueden editar ni borrar.
+- Las asignaciones antiguas sin `empleadosAsignados` quedan inaccesibles para empleados hasta que Talento Humano las vuelva a emitir o se migren de forma controlada.
+
+### Validaciones pendientes de esta fase
+
+- Ejecutar build, ESLint y pruebas Firestore/Storage sobre esta rama.
+- Implementar endpoint/backend confiable para solicitud, emisión y firma de certificados.
+- Calcular puntajes y aprobación en backend; nunca confiar en valores enviados por el navegador.
+- Añadir pruebas de integración del flujo de creación de evaluaciones con usuarios reales de prueba y verificar asignaciones por cargo, área y empresa.
+- Revisar si una evaluación debe limitarse a una sola respuesta por empleado; actualmente la regla valida asignación y titular, pero no impone unicidad de respuesta.
+
+**Estado:** cambios en rama de trabajo; no fusionados, no desplegados y sin publicación de reglas Firebase.

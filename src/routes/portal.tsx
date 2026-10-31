@@ -47,7 +47,6 @@ import {
   nombreJefe,
   ordenarEventos,
 } from "@/lib/rrhh";
-import { descargarCertificado } from "@/lib/certificados";
 import { useAuth } from "@/lib/auth";
 import { formatCOP } from "@/types/organizacion";
 import {
@@ -117,7 +116,6 @@ function PortalEmpleadoPage() {
     solicitarCambio,
     cargarDocumento,
     nuevaVersion,
-    emitirCertificado,
   } = usePortal();
 
   const empleadoSesionId = perfil?.empleadoId ?? empleadoActuandoId;
@@ -284,10 +282,8 @@ function PortalEmpleadoPage() {
   };
 
   /* ------------------------------- Certificados ------------------------------- */
-  const generar = (tipo: TipoCertificado) => {
-    const cert = emitirCertificado(tipo, id, nombreEmpleado(empleado), tipo !== "cargo");
-    void descargarCertificado(cert, empleado, perfilUsuario);
-    toast.success(`${TIPO_CERTIFICADO_LABEL[tipo]} generado con código ${cert.codigo}.`);
+  const generar = (_tipo: TipoCertificado) => {
+    toast.error("La emisión de certificados está temporalmente deshabilitada hasta implementar la expedición segura desde el servidor. Solicítalo a Talento Humano.");
   };
 
   const colVac: Column<PeriodoVacaciones>[] = [
@@ -743,8 +739,8 @@ function PortalEmpleadoPage() {
                     {TIPO_CERTIFICADO_LABEL[c.tipo]}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{c.detalle}</p>
-                  <Button size="sm" className="mt-3 w-full" onClick={() => generar(c.tipo)}>
-                    <Download className="size-4" /> Generar y descargar
+                  <Button size="sm" className="mt-3 w-full" variant="outline" disabled onClick={() => generar(c.tipo)}>
+                    <Download className="size-4" /> Emisión pendiente de habilitación
                   </Button>
                 </div>
               ))}
@@ -770,12 +766,8 @@ function PortalEmpleadoPage() {
                       {c.incluyeSalario ? " · Incluye salario" : ""}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void descargarCertificado(c, empleado, perfilUsuario)}
-                  >
-                    <Download className="size-4" /> Descargar PDF
+                  <Button size="sm" variant="outline" disabled>
+                    <Download className="size-4" /> Descarga temporalmente deshabilitada
                   </Button>
                 </div>
               ))}
