@@ -48,6 +48,8 @@ before(async () => {
     await setDoc(doc(store, "disc_incidencias", "dis-b"), { empleadoId: "emp-b", estado: "registrada", traza: [], actuaciones: [] });
     await setDoc(doc(store, "disc_observaciones", "obs-b"), { empleadoId: "emp-b", texto: "interno" });
     await setDoc(doc(store, "portal_documentos", "doc-a"), { empleadoId: "emp-a", categoria: "personales", versiones: [] });
+    await setDoc(doc(store, "sst_entregas", "dot-a"), { empleadoId: "emp-a", aceptacion: { aceptado: false } });
+    await setDoc(doc(store, "sst_entregas", "dot-b"), { empleadoId: "emp-b", aceptacion: { aceptado: false } });
   });
 });
 
@@ -121,6 +123,24 @@ test("nómina separa consulta, liquidación y alcance personal", async () => {
 
 test("las observaciones internas no son visibles para el empleado titular", async () => {
   await assertFails(getDoc(doc(db("emp-b-user"), "disc_observaciones", "obs-b")));
+});
+
+
+test("el empleado solo puede aceptar una vez su propia entrega de dotación", async () => {
+  const store = db("emp-a-user");
+  const aceptacion = {
+    aceptado: true,
+    nombre: "Empleado A",
+    documento: "123456",
+    fecha: "2026-10-31",
+    hora: "10:00",
+    firma: "hash-de-prueba",
+  };
+  await assertSucceeds(updateDoc(doc(store, "sst_entregas", "dot-a"), { aceptacion }));
+  await assertFails(updateDoc(doc(store, "sst_entregas", "dot-b"), { aceptacion }));
+  await assertFails(updateDoc(doc(store, "sst_entregas", "dot-a"), {
+    aceptacion: { ...aceptacion, nombre: "Otro nombre" },
+  }));
 });
 
 test("el titular no puede alterar metadatos de documentos existentes", async () => {
