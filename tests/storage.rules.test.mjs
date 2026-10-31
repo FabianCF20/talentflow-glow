@@ -92,8 +92,9 @@ test("no se permite sobrescribir ni borrar archivos", async () => {
   await assertFails(deleteObject(fileRef));
 });
 
-test("no se permite leer un archivo si sus metadatos no existen", async () => {
+test("el acceso se limita por ruta privada y perfil activo, aunque aún no existan metadatos", async () => {
   const path = "documentos/trab-a/personales/doc-sin-metadata/archivo.pdf";
   await assertSucceeds(uploadBytes(ref(storage("emp-a"), path), pdf(), { contentType: "application/pdf" }));
-  await assertFails(getBytes(ref(storage("emp-a"), path)));
+  await assertSucceeds(getBytes(ref(storage("emp-a"), path)));
+  await assertFails(getBytes(ref(storage("emp-b"), path)));
 });
