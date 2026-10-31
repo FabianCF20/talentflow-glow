@@ -743,8 +743,8 @@ function PortalEmpleadoPage() {
                     {TIPO_CERTIFICADO_LABEL[c.tipo]}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{c.detalle}</p>
-                  <Button size="sm" className="mt-3 w-full" onClick={() => generar(c.tipo)}>
-                    <Download className="size-4" /> Generar y descargar
+                  <Button size="sm" className="mt-3 w-full" variant="outline" disabled onClick={() => generar(c.tipo)}>
+                    <Download className="size-4" /> Emisión pendiente de habilitación
                   </Button>
                 </div>
               ))}
@@ -770,12 +770,8 @@ function PortalEmpleadoPage() {
                       {c.incluyeSalario ? " · Incluye salario" : ""}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void descargarCertificado(c, empleado, perfilUsuario)}
-                  >
-                    <Download className="size-4" /> Descargar PDF
+                  <Button size="sm" variant="outline" disabled>
+                    <Download className="size-4" /> Descarga temporalmente deshabilitada
                   </Button>
                 </div>
               ))}
