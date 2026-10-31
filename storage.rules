@@ -2,7 +2,6 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-
     function perfil() {
       return firestore.get(
         /databases/(default)/documents/usuarios/$(request.auth.uid)
@@ -11,45 +10,51 @@ service firebase.storage {
 
     function activo() {
       return request.auth != null
+        && firestore.exists(
+          /databases/(default)/documents/usuarios/$(request.auth.uid)
+        )
         && perfil().get('estado', '') == 'activo'
         && perfil().get('estadoUsuario', 'activo') == 'activo'
         && perfil().get('bloqueado', false) == false;
     }
 
-    function autorizado(documentoId) {
+    function puedeCargar(empleadoId, categoria) {
+      let roles = perfil().get('roles', []);
+      return activo() && (
+        roles.hasAny(['administrador', 'talento_humano'])
+        || perfil().get('empleadoId', '') == empleadoId
+        || (roles.hasAny(['sst']) && categoria in ['sst', 'incapacidades'])
+      );
+    }
+
+    function puedeLeer(empleadoId, categoria, documentoId) {
       let datos = firestore.get(
         /databases/(default)/documents/portal_documentos/$(documentoId)
       ).data;
       let roles = perfil().get('roles', []);
-      return activo() && (
-        roles.hasAny(['administrador', 'talento_humano'])
-        || (perfil().get('empleadoId', '') != ''
-          && datos.get('empleadoId', '') == perfil().get('empleadoId', ''))
-        || (roles.hasAny(['sst'])
-          && datos.get('categoria', '') in ['sst', 'incapacidades'])
-      );
+      return activo()
+        && datos.get('empleadoId', '') == empleadoId
+        && datos.get('categoria', '') == categoria
+        && (
+          roles.hasAny(['administrador', 'talento_humano'])
+          || perfil().get('empleadoId', '') == empleadoId
+          || (roles.hasAny(['sst']) && categoria in ['sst', 'incapacidades'])
+        );
     }
 
-    // Cada archivo queda ligado a un documento existente y autorizado.
-    match /documentos/{documentoId}/{archivo} {
-      allow read: if request.auth != null && autorizado(documentoId);
-
-      // Se aceptan PDF e imágenes de soporte; máximo 10 MB por archivo.
-      allow create: if request.auth != null
-        && autorizado(documentoId)
+    // Ruta: documentos/{empleadoId}/{categoria}/{documentoId}/{archivo}
+    // El archivo se carga antes de crear los metadatos; la lectura exige metadatos coincidentes.
+    match /documentos/{empleadoId}/{categoria}/{documentoId}/{archivo} {
+      allow create: if puedeCargar(empleadoId, categoria)
         && request.resource != null
-        && request.resource.size <= 10 * 1024 * 1024
-        && request.resource.contentType in [
-          'application/pdf',
-          'image/jpeg',
-          'image/png'
-        ];
+        && request.resource.size > 0
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType == 'application/pdf';
 
-      // No se permite reemplazar ni borrar archivos desde el cliente.
+      allow read: if puedeLeer(empleadoId, categoria, documentoId);
       allow update, delete: if false;
     }
 
-    // Denegación explícita para cualquier ruta no declarada.
     match /{allPaths=**} {
       allow read, write: if false;
     }
