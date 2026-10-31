@@ -98,7 +98,7 @@ firebase deploy --only firestore:rules,storage
 
 La publicación de reglas no migra documentos ni cambia permisos IAM de Firebase Console. Los administradores del proyecto deben usar MFA y limitarse a las personas estrictamente necesarias.
 
-## Limitaciones que requieren una segunda fase
+## Limitaciones pendientes después de la segunda fase
 
 - El organigrama completo no se entrega a empleados ni mandos que no tengan acceso a los datos salariales, porque `org_empleados` contiene el campo salario. Para recuperar el organigrama sin exponer salarios se debe crear una proyección pública sin datos sensibles, generada por un backend confiable (Cloud Functions/Admin SDK), y adaptar la pantalla a esa colección.
 - El alcance jerárquico usa `subordinadosIds` como proyección confiable en el perfil. Si se modifica el organigrama, esa lista debe sincronizarse desde Talento Humano o un backend confiable; no se concede acceso por inferencia ni por campos enviados por el cliente.
@@ -120,4 +120,45 @@ En la segunda fase de hardening:
 - La carga documental actual de la interfaz registra metadatos, pero no utiliza uploadBytes ni guarda el archivo binario en Firebase Storage. Por tanto, no debe anunciarse como carga real ni considerarse validada la integración de Storage.
 - La actualización de versiones de documentos existentes está reservada a Talento Humano y SST según categoría. El titular no puede editar los metadatos de un documento existente.
 - La emisión de certificados persistidos está restringida a Talento Humano/Nómina; la generación desde el portal del empleado requiere un flujo de solicitud o un backend confiable antes de habilitarla como certificado oficial.
-- El build, las pruebas de reglas y las pruebas de integración de Storage deben ejecutarse sobre esta segunda fase antes de aprobarla.
+- El build de producción y las pruebas de Firestore Emulator sí se ejecutaron sobre la segunda fase: build correcto y 14 pruebas aprobadas, 0 fallidas. Las pruebas de Storage Emulator siguen pendientes.
+
+## Registro de integración en `main` — 31 de octubre de 2026
+
+Se integraron los dos pull requests de hardening:
+
+| PR | Alcance | Resultado |
+|---|---|---|
+| [#2 — Security hardening](https://github.com/FabianCF20/talentflow-glow/pull/2) | Reglas iniciales de Firestore/Storage, controles de roles, aislamiento de datos y documentación de bootstrap | Integrado |
+| [#3 — Security compatibility](https://github.com/FabianCF20/talentflow-glow/pull/3) | Consultas filtradas, compatibilidad de escrituras del cliente y pruebas ampliadas | Integrado |
+
+Commit de integración final en `main`: `65eacb333f452511b733a9c5495113e3bd8c8502`.
+
+### Resultados de validación registrados
+
+- Build de producción: aprobado en GitHub Actions.
+- Firestore Emulator: 14 pruebas aprobadas y 0 fallidas en el último commit de la segunda fase.
+- Lint: no aprobado. La ejecución registró 1.078 errores y 54 advertencias de formato. No se aplicó formateo masivo porque habría introducido cambios ajenos al hardening.
+- Storage Emulator: no ejecutado; las reglas de Storage todavía requieren pruebas de integración específicas.
+- Prueba de flujos completos con cuentas de cada rol: pendiente.
+
+### Cambios de aplicación relacionados
+
+- El sincronizador cliente no elimina documentos de Firestore; los registros omitidos se conservan y el borrado desde cliente permanece denegado.
+- Los stores de operaciones, SST y disciplinario aplican alcances por empleado y subordinados.
+- Las consultas de colecciones sensibles del organigrama se deshabilitan para roles sin autorización.
+- Las respuestas disciplinarias ya no envían puntuación ni aprobación desde el navegador.
+- El empleado puede aceptar una sola vez su entrega de dotación, sin editar otros campos.
+- Se restringe la edición de versiones de metadatos documentales desde el portal del empleado.
+- Las reglas de Storage exigen un perfil activo y mantienen las restricciones de tipo, tamaño, titularidad y escritura.
+
+### Condiciones que impiden considerar el sistema listo para producción
+
+1. Implementar y probar la carga/descarga real de archivos binarios en Firebase Storage; la interfaz actual registra metadatos y no demuestra una carga real.
+2. Ejecutar Storage Emulator con pruebas positivas y negativas de titularidad, roles, MIME, tamaño, actualización y borrado.
+3. Completar el flujo confiable de emisión/solicitud de certificados.
+4. Verificar y mantener `subordinadosIds` al cambiar el organigrama; las consultas con listas extensas pueden superar los límites de disyunciones de Firestore.
+5. Probar las pantallas completas con usuarios de cada rol y datos sintéticos, verificando que todas las consultas cumplan las reglas.
+6. Resolver la deuda de lint y volver a ejecutar el pipeline completo.
+7. Provisionar y verificar el primer administrador mediante un procedimiento controlado, nunca desde el registro público.
+
+**Estado de publicación:** los cambios están integrados en GitHub `main`, pero no se han publicado reglas en Firebase ni desplegado la aplicación. No cargar datos personales, laborales o salariales reales hasta cerrar los pendientes y validar el entorno de producción.
