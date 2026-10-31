@@ -13,6 +13,7 @@ import {
   query,
   where,
   or,
+  documentId,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "./firebase";
@@ -122,9 +123,15 @@ export function useFirestoreState<T extends object>(
       return;
     }
     const filtros = JSON.parse(filtrosClave) as { campo: string; valor: string | string[] }[];
-    const condiciones = filtros.map((f) => where(f.campo, Array.isArray(f.valor) ? "in" : "==", f.valor));
+    const condiciones = filtros.map((f) =>
+      where(f.campo === "__name__" ? documentId() : f.campo, Array.isArray(f.valor) ? "in" : "==", f.valor),
+    );
     const origen = collection(db, coleccion);
-    const consulta = condiciones.length ? query(origen, or(...condiciones)) : origen;
+    const consulta = condiciones.length === 1
+      ? query(origen, condiciones[0])
+      : condiciones.length > 1
+        ? query(origen, or(...condiciones))
+        : origen;
     const unsub = onSnapshot(
       consulta,
       (snap) => {
