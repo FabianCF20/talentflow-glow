@@ -228,6 +228,10 @@ function AsistenciaPage() {
       toast.error("Selecciona registros completos que estén pendientes de validación.");
       return;
     }
+    if (elegibles.length > 450) {
+      toast.error("Valida máximo 450 registros por lote y divide los demás en otro grupo.");
+      return;
+    }
     try {
       const lote = writeBatch(db);
       elegibles.forEach((r) =>
