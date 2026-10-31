@@ -47,7 +47,6 @@ import {
   nombreJefe,
   ordenarEventos,
 } from "@/lib/rrhh";
-import { descargarCertificado } from "@/lib/certificados";
 import { useAuth } from "@/lib/auth";
 import { formatCOP } from "@/types/organizacion";
 import {
@@ -117,7 +116,6 @@ function PortalEmpleadoPage() {
     solicitarCambio,
     cargarDocumento,
     nuevaVersion,
-    emitirCertificado,
   } = usePortal();
 
   const empleadoSesionId = perfil?.empleadoId ?? empleadoActuandoId;
