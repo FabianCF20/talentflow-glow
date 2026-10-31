@@ -11,8 +11,7 @@ import {
   type User,
 } from "firebase/auth";
 import { iniciales as inicialesDe } from "./formato";
-import { collection, doc, getDoc,
-  getDocFromServer, getDocs, onSnapshot, limit, query, setDoc } from "firebase/firestore";
+import { doc, getDoc, getDocFromServer, onSnapshot, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { RoleKey } from "@/types/entities";
 
@@ -68,17 +67,6 @@ async function conLimite<T>(promesa: Promise<T>, ms = 8000): Promise<T> {
   }
 }
 
-async function esPrimerUsuario() {
-  try {
-    const snap = await conLimite(getDocs(query(collection(db, COLECCION), limit(1))));
-    return snap.empty;
-  } catch (error) {
-    console.error("[auth] no se pudo consultar la colección de usuarios", error);
-    throw new FirestoreNoDisponible();
-  }
-}
-
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<User | null>(null);
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null);
@@ -98,20 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // Un perfil sin roles se normaliza a lista vacía para no romper pantallas.
             setPerfil({ ...datos, roles: Array.isArray(datos.roles) ? datos.roles : [], id: u.uid });
           } else {
-            // Cuenta de Auth sin perfil: se crea para no quedar sin permisos.
-            const primero = await esPrimerUsuario().catch(() => false);
-            const nuevo: PerfilUsuario = {
-              id: u.uid,
-              email: u.email ?? "",
-              nombres: u.displayName?.split(" ")[0] ?? (u.email?.split("@")[0] ?? "Usuario"),
-              apellidos: u.displayName?.split(" ").slice(1).join(" ") || "",
-              roles: primero ? ["administrador", "talento_humano"] : ["empleado"],
-              estado: "activo",
-              creadoEn: new Date().toISOString(),
-            };
-            await conLimite(setDoc(doc(db, COLECCION, u.uid), nuevo, { merge: true }));
-            if (primero) await marcarInicializado(u.uid);
-            setPerfil(nuevo);
+            // Una cuenta de Auth sin perfil queda sin permisos. Nunca se autoasignan roles.
+            // La vinculación y los roles deben ser provisionados por un administrador.
+            setPerfil(null);
           }
         } catch (error) {
           console.error("[auth] no se pudo leer el perfil", error);
@@ -157,25 +134,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const registrar = useCallback<AuthContextValue["registrar"]>(async (datos) => {
-    const primero = await esPrimerUsuario();
+    // El registro público únicamente crea una cuenta básica. Nunca concede roles
+    // administrativos ni vincula empleados por datos enviados desde el navegador.
     const cred = await createUserWithEmailAndPassword(auth, datos.email.trim(), datos.password);
     const nuevo: PerfilUsuario = {
       id: cred.user.uid,
       email: datos.email.trim(),
       nombres: datos.nombres.trim(),
       apellidos: datos.apellidos.trim(),
-      roles: primero ? ["administrador", "talento_humano"] : ["empleado"],
+      roles: ["empleado"],
       estado: "activo",
       creadoEn: new Date().toISOString(),
     };
     try {
       await conLimite(setDoc(doc(db, COLECCION, cred.user.uid), nuevo));
-      if (primero) await marcarInicializado(cred.user.uid);
+      setPerfil(nuevo);
     } catch (error) {
-      console.error("[auth] no se pudo guardar el perfil", error);
+      console.error("[auth] no se pudo guardar el perfil básico", error);
+      await cred.user.delete().catch((deleteError) =>
+        console.error("[auth] no se pudo limpiar la cuenta sin perfil", deleteError),
+      );
       throw new FirestoreNoDisponible();
     }
-    setPerfil(nuevo);
   }, []);
 
   const recuperarClave = useCallback(async (email: string) => {
@@ -233,16 +213,4 @@ export function mensajeAuth(error: unknown): string {
       "No hay base de datos Firestore activa en el proyecto indunilo. Créela en Firebase Console (Firestore Database > Crear base de datos) y vuelva a intentar.",
   };
   return mapa[code] ?? "No fue posible completar la operación.";
-}
-
-/** Cierra el alta de administradores propios una vez existe el primero. */
-async function marcarInicializado(uid: string) {
-  try {
-    await setDoc(doc(db, "configuracion", "inicializacion"), {
-      primerAdministrador: uid,
-      fecha: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("[auth] no se pudo marcar la inicialización", error);
-  }
 }

@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo } from "react";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "./firebase";
+import { auth, db } from "./firebase";
 import { limpiarUndefined, useFirestoreState } from "./firestore";
 import { useAuth } from "./auth";
 import { gestionaDocumentacion } from "./acceso-documental";
@@ -53,10 +53,14 @@ export async function registrarAccesoDatos(input: {
   modulo: string;
   detalle?: string;
 }) {
+  const actor = auth.currentUser;
+  if (!actor) return;
+
   const ahora = new Date();
   const registro: AccesoDatos = {
     id: idAcceso(),
     ...input,
+    usuarioUid: actor.uid,
     navegador: typeof navigator === "undefined" ? "—" : navigator.userAgent.slice(0, 120),
     fecha: ahora.toISOString().slice(0, 10),
     hora: ahora.toISOString().slice(11, 19),
@@ -70,6 +74,7 @@ export async function registrarAccesoDatos(input: {
     await setDoc(doc(db, "auditoria", registro.id), {
       id: registro.id,
       usuario: registro.usuario,
+      usuarioUid: actor.uid,
       fecha: registro.fecha,
       hora: registro.hora,
       ip: "—",

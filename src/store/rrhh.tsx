@@ -9,7 +9,6 @@ import { eventoPorEstado, generarEventosPorCambio } from "@/lib/rrhh";
 import { ESTADO_LABORAL_LABEL } from "@/types/rrhh";
 import type { RoleKey } from "@/types/entities";
 import { useAuth } from "@/lib/auth";
-import { can } from "@/config/roles";
 
 interface RrhhContextValue {
   empleados: EmpleadoRRHH[];
@@ -30,9 +29,27 @@ const RrhhContext = createContext<RrhhContextValue | null>(null);
 
 export function RrhhProvider({ children }: { children: ReactNode }) {
   const { perfil } = useAuth();
-  const [empleados, setEmpleados] = useFirestoreState<EmpleadoRRHH>("empleados_rrhh");
-  const [eventos, setEventos] = useFirestoreState<EventoHojaVida>("eventos_hoja_vida");
   const rolesUsuario = perfil?.roles ?? ["empleado"];
+  const empleadoPropioId = perfil?.empleadoId ?? "";
+  const puedeVerDatosLaboralesGlobales = rolesUsuario.some((rol) =>
+    ["administrador", "talento_humano", "nomina", "contabilidad"].includes(rol),
+  );
+  const filtroEmpleadoPropio = empleadoPropioId
+    ? { filtros: [{ campo: "__name__", valor: empleadoPropioId }] }
+    : { enabled: false };
+  const filtroEventosPropios = empleadoPropioId
+    ? { filtros: [{ campo: "empleadoId", valor: empleadoPropioId }] }
+    : { enabled: false };
+  const [empleados, setEmpleados] = useFirestoreState<EmpleadoRRHH>(
+    "empleados_rrhh",
+    "id",
+    puedeVerDatosLaboralesGlobales ? {} : filtroEmpleadoPropio,
+  );
+  const [eventos, setEventos] = useFirestoreState<EventoHojaVida>(
+    "eventos_hoja_vida",
+    "id",
+    puedeVerDatosLaboralesGlobales ? {} : filtroEventosPropios,
+  );
   const [rolActivo, setRolActivoState] = useState<RoleKey>(
     rolesUsuario.includes("administrador")
       ? "administrador"
@@ -49,13 +66,7 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
                 : "empleado",
   );
 
-  const puedeVerOtrosEmpleados = useMemo(
-    () =>
-      perfil?.roles.some(
-        (rol) => rol !== "empleado" && can([rol], "empleados", "ver"),
-      ) ?? false,
-    [perfil?.roles],
-  );
+  const puedeVerOtrosEmpleados = puedeVerDatosLaboralesGlobales;
   const [empleadoActuandoId, setEmpleadoActuandoIdState] = useState<string>(perfil?.empleadoId ?? "e-004");
 
   useEffect(() => {

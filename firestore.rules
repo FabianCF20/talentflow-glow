@@ -1,272 +1,439 @@
 rules_version = '2';
 
-// Reglas de seguridad de Firestore para el proyecto "indunilo" (SIGTH).
-// Publicar en Firebase Console > Firestore Database > Reglas, o con:
-//   firebase deploy --only firestore:rules
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /* --------------------------- Utilidades base --------------------------- */
-
-    function autenticado() {
-      return request.auth != null;
-    }
-
+    // Identidad: no hay permisos si el perfil no existe, no está activo o está bloqueado.
+    function autenticado() { return request.auth != null; }
     function perfilRef() {
       return /databases/$(database)/documents/usuarios/$(request.auth.uid);
     }
-
-    function tienePerfil() {
-      return autenticado() && exists(perfilRef());
-    }
-
-    function perfil() {
-      return get(perfilRef()).data;
-    }
-
-    function roles() {
-      return tienePerfil() && perfil().roles is list ? perfil().roles : [];
-    }
-
-    function tieneRol(rol) {
-      return rol in roles();
-    }
-
-    function tieneAlguno(lista) {
-      return roles().hasAny(lista);
-    }
-
-    // Cuenta habilitada: no inactiva ni bloqueada.
+    function tienePerfil() { return autenticado() && exists(perfilRef()); }
+    function perfil() { return get(perfilRef()).data; }
     function activo() {
       return tienePerfil()
-        && perfil().estado != 'inactivo'
-        && !(perfil().get('estadoUsuario', 'activo') in ['inactivo', 'bloqueado']);
+        && perfil().get('estado', '') == 'activo'
+        && perfil().get('estadoUsuario', 'activo') == 'activo'
+        && perfil().get('bloqueado', false) == false;
+    }
+    function roles() {
+      return activo() && perfil().get('roles', []) is list
+        ? perfil().get('roles', []) : [];
+    }
+    function tieneRol(rol) { return rol in roles(); }
+    function tieneAlguno(lista) { return roles().hasAny(lista); }
+    function esAdmin() { return tieneRol('administrador'); }
+    function esRrhh() { return tieneAlguno(['administrador', 'talento_humano']); }
+    function esNomina() { return tieneAlguno(['administrador', 'nomina']); }
+    // Consulta de nómina: gerencia y dirección pueden consultar, pero no liquidar ni modificar.
+    function esConsultaNomina() {
+      return esRrhh() || tieneAlguno(['gerente_general', 'director', 'nomina', 'contabilidad']);
+    }
+    function esSst() { return tieneAlguno(['administrador', 'sst', 'talento_humano']); }
+    function miEmpleadoId() { return activo() ? perfil().get('empleadoId', '') : ''; }
+    function esMiEmpleado(id) {
+      return activo() && id is string && id != '' && id == miEmpleadoId();
     }
 
-    function esAdmin() {
-      return tieneRol('administrador');
+    // Proyección mínima de subordinados mantenida por RRHH en el perfil del mando.
+    // No se consulta una colección salarial desde cada evaluación de reglas.
+    function esMandoAutorizado(id) {
+      return activo()
+        && tieneAlguno(['gerente_general', 'director', 'jefe', 'supervisor'])
+        && perfil().get('empleadoId', '') is string
+        && perfil().get('empleadoId', '') != ''
+        && id is string
+        && id in perfil().get('subordinadosIds', []);
+    }
+    function actorPropio(data) {
+      return activo() && data.get('usuarioUid', '') == request.auth.uid;
+    }
+    function documentoPermitido(data) {
+      return activo() && (
+        esRrhh()
+        || esMiEmpleado(data.get('empleadoId', ''))
+        || (tieneRol('sst') && data.get('categoria', '') in ['sst', 'incapacidades'])
+      );
+    }
+    function puedeGestionarDocumento(data) {
+      return activo() && (
+        esRrhh()
+        || (tieneRol('sst') && data.get('categoria', '') in ['sst', 'incapacidades'])
+      );
     }
 
-    // Talento Humano: dueño de datos maestros, empleados y expedientes.
-    function esRrhh() {
-      return tieneAlguno(['administrador', 'talento_humano']);
-    }
-
-    function esNomina() {
-      return tieneAlguno(['administrador', 'nomina', 'contabilidad']);
-    }
-
-    function esSst() {
-      return tieneAlguno(['administrador', 'sst', 'talento_humano']);
-    }
-
-    // Mandos con capacidad de aprobación y gestión de su equipo.
-    function esMando() {
-      return tieneAlguno([
-        'administrador', 'gerente_general', 'director', 'jefe',
-        'supervisor', 'talento_humano'
-      ]);
-    }
-
-    // El empleado vinculado a la cuenta en sesión.
-    function miEmpleadoId() {
-      return tienePerfil() ? perfil().get('empleadoId', '') : '';
-    }
-
-    function esMiEmpleado(empleadoId) {
-      return empleadoId != '' && empleadoId == miEmpleadoId();
-    }
-
-    // Lectura documental por función y titular, nunca por jerarquía genérica.
-    function documentoPermitido(datos) {
-      return activo() && (esRrhh()
-        || esMiEmpleado(datos.get('empleadoId', ''))
-        || (tieneRol('sst') && datos.get('categoria', '') in ['sst', 'incapacidades']));
-    }
-
-    function puedeGestionarDocumento(datos) {
-      return activo() && (esRrhh()
-        || (tieneRol('sst') && datos.get('categoria', '') in ['sst', 'incapacidades']));
-    }
-
-    /* ------------------------------- Cuentas ------------------------------- */
-
+    // Cuentas. Los roles privilegiados solo los asigna un administrador existente.
     match /usuarios/{uid} {
-      allow read: if autenticado();
-      // Alta propia: solo como 'empleado', salvo el primer administrador del
-      // sistema (antes de que exista configuracion/inicializacion).
-      // RRHH puede crear cuentas con cualquier rol.
-      // Talento Humano gestiona cuentas, pero solo un Administrador otorga
-      // el rol 'administrador'.
+      allow read: if activo() && (request.auth.uid == uid || esRrhh());
       allow create: if esAdmin()
-        || (esRrhh() && !('administrador' in request.resource.data.get('roles', [])))
-        || (autenticado() && request.auth.uid == uid
-            && request.resource.data.get('empleadoId', '') == ''
-            && (request.resource.data.roles == ['empleado']
-                || !exists(/databases/$(database)/documents/configuracion/inicializacion)));
-      // El propio usuario no puede escalar sus roles ni reactivarse solo.
+        || (esRrhh()
+          && request.resource.data.get('id', '') == uid
+          && request.resource.data.get('roles', []) == ['empleado']
+          && request.resource.data.get('estado', '') == 'activo'
+          && request.resource.data.get('empleadoId', '') == ''
+          && request.resource.data.keys().hasOnly([
+            'id', 'email', 'nombres', 'apellidos', 'roles', 'estado',
+            'estadoUsuario', 'creadoEn', 'nivelJerarquico', 'intentosFallidos'
+          ]))
+        || (autenticado()
+          && request.auth.uid == uid
+          && request.resource.data.get('id', '') == uid
+          && request.resource.data.get('roles', []) == ['empleado']
+          && request.resource.data.get('empleadoId', '') == ''
+          && request.resource.data.get('email', '') == request.auth.token.email
+          && request.resource.data.get('estado', '') == 'activo'
+          && request.resource.data.keys().hasOnly([
+            'id', 'email', 'nombres', 'apellidos', 'roles', 'estado', 'creadoEn'
+          ]));
       allow update: if esAdmin()
-        || (esRrhh() && !('administrador' in request.resource.data.get('roles', [])))
-        || (request.auth.uid == uid
-            && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['nombres', 'apellidos', 'ultimoAcceso', 'telefono', 'celular', 'direccion']));
-      allow delete: if esAdmin();
+        || (esRrhh()
+          && request.resource.data.get('id', '') == resource.data.get('id', uid)
+          && request.resource.data.get('roles', []) == resource.data.get('roles', [])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'nombres', 'apellidos', 'estado', 'estadoUsuario', 'empleadoId',
+            'nivelJerarquico', 'ultimoAcceso', 'intentosFallidos', 'subordinadosIds'
+          ])
+          && request.resource.data.get('subordinadosIds', []) is list)
+        || (activo()
+          && request.auth.uid == uid
+          && request.resource.data.get('id', '') == resource.data.get('id', uid)
+          && request.resource.data.get('roles', []) == resource.data.get('roles', [])
+          && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+          && request.resource.data.get('estado', '') == resource.data.get('estado', '')
+          && request.resource.data.get('estadoUsuario', 'activo') == resource.data.get('estadoUsuario', 'activo')
+          && request.resource.data.get('bloqueado', false) == resource.data.get('bloqueado', false)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'nombres', 'apellidos', 'ultimoAcceso', 'telefono', 'celular', 'direccion'
+          ]));
+      allow delete: if false;
     }
 
-    /* --------------------- Configuración y matriz de permisos -------------- */
-
-    match /configuracion/{docId} {
-      allow read: if autenticado();
-      allow write: if esAdmin();
+    match /configuracion/{id} {
+      allow read: if activo() && (esAdmin() || tieneRol('talento_humano'));
+      allow create, update: if activo() && esAdmin();
+      allow delete: if false;
     }
 
-    /* ----------------------------- Auditoría ------------------------------- */
-
-    match /auditoria/{docId} {
-      allow read: if esAdmin() || tieneRol('gerente_general');
-      allow create: if autenticado();
+    // Auditoría del cliente: autoatribuida e inmutable. No equivale a auditoría forense.
+    match /auditoria/{id} {
+      allow read: if activo() && (esAdmin() || tieneRol('gerente_general'));
+      allow create: if actorPropio(request.resource.data)
+        && request.resource.data.keys().hasAll(['usuarioUid', 'accion', 'modulo', 'fecha'])
+        && request.resource.data.keys().hasOnly([
+          'id', 'usuarioUid', 'usuario', 'fecha', 'hora', 'ip', 'navegador',
+          'accion', 'modulo', 'registroAfectado', 'valorAnterior', 'valorNuevo'
+        ]);
       allow update, delete: if false;
     }
-
-    /* ---------------- Cumplimiento: firmas y habeas data ------------------- */
-    // Firma electrónica: el registro es inmutable una vez creado (Ley 527/1999).
-
+    match /accesos_datos/{id} {
+      allow read: if activo() && esRrhh();
+      allow create: if actorPropio(request.resource.data) && (
+        esRrhh()
+        || (tieneRol('sst') && request.resource.data.get('categoria', '') in ['sst', 'incapacidades'])
+        || esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+      );
+      allow update, delete: if false;
+    }
     match /firmas_documentos/{codigo} {
       allow read: if documentoPermitido(resource.data);
-      allow create: if documentoPermitido(request.resource.data);
+      allow create: if activo() && (esRrhh() || esNomina())
+        && request.resource.data.get('codigo', '') == codigo
+        && request.resource.data.get('usuarioUid', '') == request.auth.uid
+        && request.resource.data.get('hash', '') is string
+        && request.resource.data.get('algoritmo', '') == 'SHA-256';
       allow update, delete: if false;
     }
 
-    // Bitácora de acceso a datos personales: solo lectura para control interno.
-
-    match /accesos_datos/{docId} {
-      allow read: if esRrhh() && activo();
-      allow create: if autenticado();
-      allow update, delete: if false;
+    // Maestros sin datos salariales.
+    match /org_niveles/{id} {
+      allow read: if activo();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
     }
-
-    /* --------------------------- Datos maestros ---------------------------- */
-    // Estructura organizacional: lectura para todo usuario autenticado,
-    // escritura solo para Administrador y Talento Humano.
-
-    match /org_niveles/{docId}          { allow read: if autenticado(); allow write: if esRrhh() && activo(); }
-    match /org_areas/{docId}            { allow read: if autenticado(); allow write: if esRrhh() && activo(); }
-    match /org_dependencias/{docId}     { allow read: if autenticado(); allow write: if esRrhh() && activo(); }
-    match /org_centros_trabajo/{docId}  { allow read: if autenticado(); allow write: if esRrhh() && activo(); }
-    match /org_centros_costo/{docId}    { allow read: if autenticado(); allow write: if (esRrhh() || esNomina()) && activo(); }
-    match /org_cargos/{docId}           { allow read: if autenticado(); allow write: if esRrhh() && activo(); }
-    match /org_empleados/{docId}        { allow read: if autenticado(); allow write: if esRrhh() && activo(); }
-
-    /* ---------------------- Empleados y hoja de vida ----------------------- */
-
+    match /org_areas/{id} {
+      allow read: if activo();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
+    }
+    match /org_dependencias/{id} {
+      allow read: if activo();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
+    }
+    match /org_centros_trabajo/{id} {
+      allow read: if activo();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
+    }
+    match /org_centros_costo/{id} {
+      allow read: if activo() && esConsultaNomina();
+      allow create, update: if activo() && (esRrhh() || esNomina());
+      allow delete: if false;
+    }
+    match /org_cargos/{id} {
+      allow read: if activo() && esConsultaNomina();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
+    }
+    // org_empleados incluye salario: no se entrega a mandos ni empleados.
+    match /org_empleados/{empleadoId} {
+      allow read: if activo() && esConsultaNomina();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
+    }
     match /empleados_rrhh/{empleadoId} {
-      allow read: if autenticado();
-      allow create, update: if esRrhh() && activo();
-      allow delete: if false; // nunca se elimina: se inactiva o archiva
-    }
-
-    // Expediente: RRHH completo; el empleado solo consulta el propio.
-    match /expedientes/{empleadoId} {
-      allow read: if esRrhh() || esMando() || esMiEmpleado(empleadoId);
-      allow create, update: if esRrhh() && activo();
+      allow read: if activo() && (esRrhh() || esNomina() || esMiEmpleado(empleadoId));
+      allow create, update: if activo() && esRrhh();
       allow delete: if false;
     }
-
-    // Hoja de vida digital: alta automática, sin edición ni borrado.
-    match /eventos_hoja_vida/{docId} {
-      allow read: if esRrhh() || esMando() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow create: if esRrhh() && activo();
+    match /expedientes/{empleadoId} {
+      allow read: if activo() && (esRrhh() || esMiEmpleado(empleadoId));
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
+    }
+    match /eventos_hoja_vida/{id} {
+      allow read: if activo() && (esRrhh() || esMiEmpleado(resource.data.get('empleadoId', '')));
+      allow create: if activo() && esRrhh();
       allow update, delete: if false;
     }
 
-    /* ------------------------------- Nómina -------------------------------- */
-
-    match /nomina_periodos/{docId}      { allow read: if esNomina() || esMando(); allow write: if esNomina() && activo(); }
-    match /nomina_recurrentes/{docId}   { allow read: if esNomina() || esRrhh(); allow write: if esNomina() && activo(); }
-    match /nomina_liquidaciones/{docId} {
-      allow read: if esNomina() || esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow write: if esNomina() && activo();
+    // Nómina: no se permite lectura global a gerentes, directores, jefes o supervisores.
+    match /nomina_periodos/{id} {
+      allow read: if activo() && esConsultaNomina();
+      allow create, update: if activo() && esNomina();
+      allow delete: if false;
     }
-
-    /* --------------------------------- SST --------------------------------- */
-
-    match /sst_examenes/{docId}       { allow read: if esSst() || esMiEmpleado(resource.data.get('empleadoId', '')); allow write: if esSst() && activo(); }
-    match /sst_accidentes/{docId}     { allow read: if esSst() || esMando(); allow write: if esSst() && activo(); }
-    match /sst_capacitaciones/{docId} { allow read: if autenticado(); allow write: if esSst() && activo(); }
-    match /sst_tallas/{empleadoId}    { allow read: if esSst() || esMiEmpleado(empleadoId); allow write: if (esSst() || esMiEmpleado(empleadoId)) && activo(); }
-    match /sst_entregas/{docId}       { allow read: if esSst() || esMiEmpleado(resource.data.get('empleadoId', '')); allow write: if esSst() && activo(); }
-    match /sst_formularios/{docId}    { allow read: if autenticado(); allow write: if esSst() && activo(); }
-    match /sst_respuestas/{docId} {
-      allow read: if esSst() || esMando() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow create: if activo();
-      allow update: if esSst() && activo();
+    match /nomina_recurrentes/{id} {
+      allow read: if activo() && esConsultaNomina();
+      allow create, update: if activo() && esNomina();
+      allow delete: if false;
+    }
+    match /nomina_liquidaciones/{id} {
+      allow read: if activo() && (esConsultaNomina() || esMiEmpleado(resource.data.get('empleadoId', '')));
+      allow create, update: if activo() && esNomina();
       allow delete: if false;
     }
 
-    /* ---------------------- Operaciones del día a día ---------------------- */
-    // El empleado registra y consulta lo propio; los mandos gestionan y aprueban.
-
-    match /op_solicitudes/{docId} {
-      allow read: if esMando() || esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow create: if activo();
-      allow update: if (esMando() || esRrhh()) && activo();
+    // SST y datos ocupacionales.
+    match /sst_examenes/{id} {
+      allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
+      allow create: if activo() && esSst();
+      allow update: if activo() && esSst()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
     }
-    match /op_incapacidades/{docId} { allow read: if esMando() || esSst() || esMiEmpleado(resource.data.get('empleadoId', '')); allow write: if (esRrhh() || esSst()) && activo(); }
-    match /op_asistencia/{docId}    { allow read: if esMando() || esMiEmpleado(resource.data.get('empleadoId', '')); allow write: if esMando() && activo(); }
-    match /op_horas_extras/{docId} {
-      allow read: if esMando() || esNomina() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow create: if activo();
-      allow update: if (esMando() || esNomina()) && activo();
+    match /sst_accidentes/{id} {
+      allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
+      allow create: if activo() && esSst();
+      allow update: if activo() && esSst()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
     }
-    match /op_novedades/{docId}     { allow read: if esMando() || esNomina() || esRrhh(); allow write: if (esRrhh() || esNomina()) && activo(); }
-
-    /* ----------------------------- Disciplinario --------------------------- */
-
-    match /disc_incidencias/{docId}   { allow read: if esRrhh() || esMando(); allow write: if (esRrhh() || esMando()) && activo(); }
-    match /disc_observaciones/{docId} { allow read: if esRrhh() || esMando(); allow write: if (esRrhh() || esMando()) && activo(); }
-    match /disc_evaluaciones/{docId}  { allow read: if esRrhh() || esMando() || esMiEmpleado(resource.data.get('empleadoId', '')); allow write: if (esRrhh() || esMando()) && activo(); }
-    match /disc_respuestas/{docId} {
-      allow read: if esRrhh() || esMando() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow create: if activo();
-      allow update: if (esRrhh() || esMando()) && activo();
+    match /sst_capacitaciones/{id} {
+      allow read: if activo();
+      allow create, update: if activo() && esSst();
+      allow delete: if false;
+    }
+    match /sst_tallas/{empleadoId} {
+      allow read: if activo() && (esSst() || esMiEmpleado(empleadoId));
+      allow create, update: if activo()
+        && (esSst() || esMiEmpleado(empleadoId))
+        && request.resource.data.get('empleadoId', empleadoId) == empleadoId;
+      allow delete: if false;
+    }
+    match /sst_entregas/{id} {
+      allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
+      allow create: if activo() && esSst();
+      allow update: if activo() && esSst()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
+      allow delete: if false;
+    }
+    match /sst_formularios/{id} {
+      allow read: if activo();
+      allow create, update: if activo() && esSst();
+      allow delete: if false;
+    }
+    match /sst_respuestas/{id} {
+      allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
+      allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.keys().hasOnly(['id', 'formularioId', 'empleadoId', 'fecha', 'hora', 'valores']);
+      allow update: if false;
       allow delete: if false;
     }
 
-    /* -------------------------- Portal del empleado ------------------------ */
-
-    match /portal_solicitudes/{docId} {
-      allow read: if esRrhh() || esMando() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow create: if activo();
-      allow update: if (esRrhh() || esMando()) && activo();
+    // Solicitudes, asistencia y horas extra. Los mandos solo ven/gestionan subordinados directos.
+    match /op_solicitudes/{id} {
+      allow read: if activo() && (
+        esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente_jefe';
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (
+          (esRrhh()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'estado', 'flujo', 'desde', 'hasta', 'dias', 'desdeOriginal',
+              'hastaOriginal', 'comentario', 'fechaRevision', 'revisadoPor'
+            ]))
+          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'flujo'])
+            && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
+        );
       allow delete: if false;
     }
-    match /portal_documentos/{docId} {
+    match /op_incapacidades/{id} {
+      allow read: if activo() && (
+        esRrhh() || esSst() || esMiEmpleado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo() && (
+        (esMiEmpleado(request.resource.data.get('empleadoId', ''))
+          && request.resource.data.get('estado', '') == 'radicada')
+        || esRrhh() || esSst()
+      );
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (esRrhh() || esSst());
+      allow delete: if false;
+    }
+    match /op_asistencia/{id} {
+      allow read: if activo() && (
+        esRrhh() || esNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo() && (
+        esRrhh() || esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+      );
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (
+          esRrhh()
+          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
+        );
+      allow delete: if false;
+    }
+    match /op_horas_extras/{id} {
+      allow read: if activo() && (
+        esConsultaNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && tieneRol('supervisor')
+        && esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente_jefe';
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'flujo'])
+        && (
+          (esNomina() && request.resource.data.get('estado', '') in ['liquidada', 'rechazada'])
+          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.get('estado', '') in ['pendiente_nomina', 'rechazada'])
+        );
+      allow delete: if false;
+    }
+    match /op_novedades/{id} {
+      allow read: if activo() && (
+        esRrhh() || esNomina() || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo() && (
+        esRrhh() || esNomina() || esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+      );
+      allow update, delete: if false;
+    }
+
+    // Disciplinario. Las observaciones internas nunca son visibles al empleado.
+    match /disc_incidencias/{id} {
+      allow read: if activo() && (
+        esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && tieneRol('supervisor')
+        && esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'registrada';
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (
+          (esRrhh()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza', 'actuaciones']))
+          || (tieneAlguno(['jefe', 'director'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza'])
+            && request.resource.data.get('estado', '') in ['validada', 'desestimada', 'escalada_rrhh'])
+        );
+      allow delete: if false;
+    }
+    match /disc_observaciones/{id} {
+      allow read: if activo() && (
+        esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo() && (
+        esRrhh() || esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+      );
+      allow update, delete: if false;
+    }
+    // Los formularios pueden asignarse a varias personas; no se autoriza acceso por inferencia.
+    match /disc_evaluaciones/{id} {
+      allow read, create, update: if activo() && (esRrhh() || tieneRol('sst'));
+      allow delete: if false;
+    }
+    match /disc_respuestas/{id} {
+      allow read: if activo() && (
+        esRrhh() || esSst() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.keys().hasOnly(['id', 'evaluacionId', 'empleadoId', 'fecha', 'hora', 'valores']);
+      allow update, delete: if false;
+    }
+
+    // Portal.
+    match /portal_solicitudes/{id} {
+      allow read: if activo() && (
+        esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente';
+      allow update: if activo() && esRrhh()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estado', 'fechaRevision', 'revisadoPor', 'comentarioRrhh'
+        ]);
+      allow delete: if false;
+    }
+    match /portal_documentos/{id} {
       allow read: if documentoPermitido(resource.data);
       allow create: if puedeGestionarDocumento(request.resource.data)
-        || (activo() && esMiEmpleado(request.resource.data.get('empleadoId', '')));
-      // Impide cambiar de titular o reclasificar para saltarse la categoría autorizada.
-      allow update: if (puedeGestionarDocumento(resource.data)
-          && puedeGestionarDocumento(request.resource.data)
-          && request.resource.data.empleadoId == resource.data.empleadoId)
-        || (activo() && esMiEmpleado(resource.data.get('empleadoId', ''))
-          && request.resource.data.empleadoId == resource.data.empleadoId
-          && request.resource.data.categoria == resource.data.categoria);
+        || (activo()
+          && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+          && request.resource.data.get('categoria', '') in [
+            'personales', 'academicos', 'contractuales', 'sst', 'disciplinarios', 'incapacidades'
+          ]);
+      // El titular no puede modificar metadatos ni rutas de archivos ya existentes.
+      allow update: if puedeGestionarDocumento(resource.data)
+        && puedeGestionarDocumento(request.resource.data)
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
     }
-    match /portal_certificados/{docId} {
-      allow read: if esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''));
-      allow create: if activo();
-      allow update, delete: if esRrhh() && activo();
+    match /portal_certificados/{id} {
+      allow read: if activo() && (
+        esRrhh() || esNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo() && (esRrhh() || esNomina());
+      allow update, delete: if false;
     }
 
-    /* --------------------------- Cierre por defecto ------------------------ */
-    // Cualquier colección no declarada arriba queda restringida a administración.
-    // OJO: en Firestore las reglas se SUMAN; si aquí se permitiera leer a todo
-    // autenticado, se abrirían también las colecciones protegidas de arriba.
-    match /{coleccion}/{docId} {
-      allow read, write: if esAdmin() && activo();
+    // Todo lo que no está declarado arriba queda denegado, incluso para usuarios autenticados.
+    match /{documento=**} {
+      allow read, write: if false;
     }
   }
 }
