@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
 import { useRrhh } from "@/store/rrhh";
+import { esVinculado } from "@/lib/rrhh";
 import { downloadCsv } from "@/lib/export";
 import { JORNADA } from "@/types/operaciones";
 
@@ -165,9 +166,9 @@ function AsistenciaPage() {
 
   const personal = useMemo<PersonaAsistencia[]>(() => {
     const nombres = new Map(
-      empleados.map((empleado) => [empleado.id, `${empleado.nombres} ${empleado.apellidos}`.trim()]),
+      empleados.filter(esVinculado).map((empleado) => [empleado.id, `${empleado.nombres} ${empleado.apellidos}`.trim()]),
     );
-    const ids = esRrhh ? empleados.map((empleado) => empleado.id) : subordinados;
+    const ids = esRrhh ? empleados.filter(esVinculado).map((empleado) => empleado.id) : subordinados;
     return [...new Set(ids)].map((id) => ({ id, nombre: nombres.get(id) || id }));
   }, [empleados, esRrhh, subordinados]);
   const registrosPorEmpleado = useMemo(
