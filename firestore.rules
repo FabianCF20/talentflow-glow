@@ -112,7 +112,8 @@ service cloud.firestore {
 
     match /configuracion/{id} {
       allow read: if activo() && (esAdmin() || tieneRol('talento_humano'));
-      allow write: if activo() && esAdmin();
+      allow create, update: if activo() && esAdmin();
+      allow delete: if false;
     }
 
     // Auditoría del cliente: autoatribuida e inmutable. No equivale a auditoría forense.
@@ -149,19 +150,23 @@ service cloud.firestore {
     // Maestros sin datos salariales.
     match /org_niveles/{id} {
       allow read: if activo();
-      allow write: if activo() && esRrhh();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
     }
     match /org_areas/{id} {
       allow read: if activo();
-      allow write: if activo() && esRrhh();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
     }
     match /org_dependencias/{id} {
       allow read: if activo();
-      allow write: if activo() && esRrhh();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
     }
     match /org_centros_trabajo/{id} {
       allow read: if activo();
-      allow write: if activo() && esRrhh();
+      allow create, update: if activo() && esRrhh();
+      allow delete: if false;
     }
     match /org_centros_costo/{id} {
       allow read: if activo() && esConsultaNomina();
@@ -202,7 +207,9 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /nomina_recurrentes/{id} {
-      allow read, write: if activo() && esNomina();
+      allow read: if activo() && esNomina();
+      allow create, update: if activo() && esNomina();
+      allow delete: if false;
     }
     match /nomina_liquidaciones/{id} {
       allow read: if activo() && (esConsultaNomina() || esMiEmpleado(resource.data.get('empleadoId', '')));
@@ -337,7 +344,8 @@ service cloud.firestore {
     }
     // Los formularios pueden asignarse a varias personas; no se autoriza acceso por inferencia.
     match /disc_evaluaciones/{id} {
-      allow read, write: if activo() && (esRrhh() || tieneRol('sst'));
+      allow read, create, update: if activo() && (esRrhh() || tieneRol('sst'));
+      allow delete: if false;
     }
     match /disc_respuestas/{id} {
       allow read: if activo() && (
