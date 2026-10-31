@@ -145,7 +145,11 @@ test("las evaluaciones solo son visibles a empleados asignados y mientras estén
   await assertFails(getDoc(doc(store, "disc_evaluaciones", "eval-b")));
   await assertFails(getDoc(doc(store, "disc_evaluaciones", "eval-archived")));
   const asignadas = await getDocs(
-    query(collection(store, "disc_evaluaciones"), where("empleadosAsignados", "array-contains", "emp-a")),
+    query(
+      collection(store, "disc_evaluaciones"),
+      where("empleadosAsignados", "array-contains", "emp-a"),
+      where("estado", "==", "activo"),
+    ),
   );
   assert.deepEqual(asignadas.docs.map((item) => item.id), ["eval-a"]);
 });
