@@ -11,7 +11,7 @@ import {
   OBSERVACIONES_INICIALES,
   RESPUESTAS_EVALUACION_INICIALES,
 } from "@/data/disciplinario";
-import { calificar, consecutivoDisciplinario, horaActual, hoyISO } from "@/lib/disciplinario";
+import { consecutivoDisciplinario, horaActual, hoyISO } from "@/lib/disciplinario";
 import type { AsignacionFormulario, ValorRespuesta } from "@/types/sst";
 import type {
   ActuacionDisciplinaria,
@@ -349,7 +349,8 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
       setEvaluaciones((evs) => {
         const evaluacion = evs.find((e) => e.id === evaluacionId);
         if (evaluacion) {
-          const { puntaje, aprobado } = calificar(evaluacion, valores);
+          // El empleado solo envía sus respuestas. La puntuación y aprobación
+          // deben calcularse en backend confiable, nunca aceptarse del navegador.
           setRespuestas((prev) => [
             {
               id: nextId("rev"),
@@ -358,8 +359,6 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
               fecha: hoyISO(),
               hora: horaActual(),
               valores,
-              puntaje,
-              aprobado,
             },
             ...prev,
           ]);
