@@ -126,10 +126,11 @@ export function MarcacionAsistencia() {
         });
         toast.success("Ingreso registrado con hora del servidor y ubicación GPS.");
       } else {
-        if (!actual.exists() || !actual.data().ingreso) {
+        const datosActuales = actual.data();
+        if (!actual.exists() || !datosActuales?.ingreso) {
           throw new Error("Primero debes registrar tu ingreso.");
         }
-        if (actual.data().salida) {
+        if (datosActuales.salida) {
           throw new Error("La salida de hoy ya fue registrada.");
         }
         await updateDoc(referencia, { salida: punto });
