@@ -40,3 +40,23 @@ export function alcanceOperacion(
     ? { filtros: ids.map((id) => ({ campo: "empleadoId", valor: id })) }
     : { enabled: false };
 }
+
+/** Alcance reutilizable para colecciones protegidas por empleadoId o ID de documento. */
+export function alcancePorEmpleado(
+  roles: RoleKey[],
+  empleadoId: string,
+  subordinadosIds: string[],
+  rolesGlobales: RoleKey[],
+  opciones: { incluirPropio?: boolean; incluirSubordinados?: boolean; campo?: string } = {},
+): Alcance {
+  if (roles.some((rol) => rolesGlobales.includes(rol))) return { enabled: true };
+  const campo = opciones.campo ?? "empleadoId";
+  const ids = [
+    ...(opciones.incluirPropio === false ? [] : [empleadoId]),
+    ...(opciones.incluirSubordinados === false ? [] : subordinadosIds),
+  ].filter(Boolean);
+  const unicos = [...new Set(ids)];
+  return unicos.length
+    ? { filtros: unicos.map((id) => ({ campo, valor: id })) }
+    : { enabled: false };
+}
