@@ -98,7 +98,10 @@ function AsistenciaPage() {
   );
   const puedeConsultar = esRrhh || esMando;
   const puedeValidar = puedeConsultar;
-  const subordinados = [...new Set(perfil?.subordinadosIds ?? [])].filter(Boolean);
+  const subordinados = useMemo(
+    () => [...new Set(perfil?.subordinadosIds ?? [])].filter(Boolean),
+    [perfil?.subordinadosIds],
+  );
 
   const [fecha, setFecha] = useState(fechaBogota);
   const [busqueda, setBusqueda] = useState("");
@@ -158,7 +161,7 @@ function AsistenciaPage() {
     return () => {
       unsubs.forEach((unsub) => unsub());
     };
-  }, [fecha, puedeConsultar, esRrhh, subordinados.join("|")]);
+  }, [fecha, puedeConsultar, esRrhh, subordinados]);
 
   const personal = useMemo<PersonaAsistencia[]>(() => {
     const nombres = new Map(
@@ -166,7 +169,7 @@ function AsistenciaPage() {
     );
     const ids = esRrhh ? empleados.map((empleado) => empleado.id) : subordinados;
     return [...new Set(ids)].map((id) => ({ id, nombre: nombres.get(id) || id }));
-  }, [empleados, esRrhh, subordinados.join("|")]);
+  }, [empleados, esRrhh, subordinados]);
   const registrosPorEmpleado = useMemo(
     () => new Map(registros.map((r) => [r.empleadoId, r])),
     [registros],
@@ -199,11 +202,11 @@ function AsistenciaPage() {
       return;
     }
     try {
-      await writeBatch(db)
-        .update(doc(db, "op_asistencia", registro.id), {
-          validacion: { estado, usuarioUid: uid, fecha: serverTimestamp(), observacion },
-        })
-        .commit();
+      const lote = writeBatch(db);
+      lote.update(doc(db, "op_asistencia", registro.id), {
+        validacion: { estado, usuarioUid: uid, fecha: serverTimestamp(), observacion },
+      });
+      await lote.commit();
       toast.success(estado === "validada" ? "Asistencia validada." : "Asistencia observada.");
     } catch (error) {
       console.error("[asistencia] No se pudo validar", error);
