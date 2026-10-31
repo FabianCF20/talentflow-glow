@@ -252,8 +252,7 @@ service cloud.firestore {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
       allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''))
         && request.resource.data.keys().hasOnly(['id', 'formularioId', 'empleadoId', 'fecha', 'hora', 'valores']);
-      allow update: if activo() && esSst()
-        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
+      allow update: if false;
       allow delete: if false;
     }
 
@@ -268,16 +267,16 @@ service cloud.firestore {
         && request.resource.data.get('estado', '') == 'pendiente_jefe';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'estado', 'flujo', 'desde', 'hasta', 'dias', 'desdeOriginal',
-          'hastaOriginal', 'comentario', 'fechaRevision', 'revisadoPor'
-        ])
         && (
-          (esRrhh() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza', 'actuaciones']))
-          || (tieneAlguno(['jefe', 'director'])
+          (esRrhh()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'estado', 'flujo', 'desde', 'hasta', 'dias', 'desdeOriginal',
+              'hastaOriginal', 'comentario', 'fechaRevision', 'revisadoPor'
+            ]))
+          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
             && esMandoAutorizado(resource.data.get('empleadoId', ''))
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza'])
-            && request.resource.data.get('estado', '') in ['validada', 'desestimada', 'escalada_rrhh'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'flujo'])
+            && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
         );
       allow delete: if false;
     }
@@ -324,6 +323,7 @@ service cloud.firestore {
         && request.resource.data.get('estado', '') == 'pendiente_jefe';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'flujo'])
         && (
           (esNomina() && request.resource.data.get('estado', '') in ['liquidada', 'rechazada'])
           || (tieneAlguno(['jefe', 'director', 'gerente_general'])
@@ -353,7 +353,14 @@ service cloud.firestore {
         && request.resource.data.get('estado', '') == 'registrada';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
-        && (esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', '')));
+        && (
+          (esRrhh()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza', 'actuaciones']))
+          || (tieneAlguno(['jefe', 'director'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza'])
+            && request.resource.data.get('estado', '') in ['validada', 'desestimada', 'escalada_rrhh'])
+        );
       allow delete: if false;
     }
     match /disc_observaciones/{id} {
