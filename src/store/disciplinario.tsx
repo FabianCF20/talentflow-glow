@@ -118,8 +118,10 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     ? { enabled: true }
     : empleadoId
       ? {
+          combinar: "and" as const,
           filtros: [
             { campo: "empleadosAsignados", valor: empleadoId, operador: "array-contains" as const },
+            { campo: "estado", valor: "activo" },
           ],
         }
       : { enabled: false };
