@@ -41,8 +41,16 @@ before(async () => {
     await setDoc(doc(store, "nomina_liquidaciones", "liq-a"), { empleadoId: "emp-a", neto: 2000000 });
     await setDoc(doc(store, "nomina_liquidaciones", "liq-b"), { empleadoId: "emp-b", neto: 2100000 });
     await setDoc(doc(store, "nomina_periodos", "periodo-1"), { periodo: "2026-10" });
-    await setDoc(doc(store, "op_asistencia", "asis-b"), { empleadoId: "emp-b", fecha: "2026-10-01" });
-    await setDoc(doc(store, "op_asistencia", "asis-c"), { empleadoId: "emp-c", fecha: "2026-10-01" });
+    const horaPrueba = Timestamp.fromDate(new Date("2026-10-01T12:00:00.000Z"));
+    const gpsPrueba = { latitud: 7.1193, longitud: -73.1227, precisionMetros: 12, marcadoEn: horaPrueba };
+    await setDoc(doc(store, "op_asistencia", "asis-b"), {
+      id: "asis-b", empleadoId: "emp-b", fecha: "2026-10-01",
+      ingreso: gpsPrueba, salida: gpsPrueba, validacion: { estado: "pendiente" },
+    });
+    await setDoc(doc(store, "op_asistencia", "asis-c"), {
+      id: "asis-c", empleadoId: "emp-c", fecha: "2026-10-01",
+      ingreso: gpsPrueba, salida: gpsPrueba, validacion: { estado: "pendiente" },
+    });
     await setDoc(doc(store, "op_solicitudes", "sol-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "op_horas_extras", "he-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "disc_incidencias", "dis-b"), { empleadoId: "emp-b", estado: "registrada", traza: [], actuaciones: [] });
@@ -96,16 +104,59 @@ test("perfiles inactivos o bloqueados no conservan permisos", async () => {
   await assertFails(getDoc(doc(db("blocked-user"), "org_areas", "area-1")));
 });
 
-test("los mandos solo acceden a registros de subordinados directos", async () => {
+test("el empleado registra ingreso y salida con GPS y hora del servidor; no puede alterar la evidencia", async () => {
+  const employee = db("emp-a-user");
+  const own = doc(employee, "op_asistencia", "emp-a_2026-10-31");
+  const punto = {
+    latitud: 7.1193,
+    longitud: -73.1227,
+    precisionMetros: 12,
+    marcadoEn: serverTimestamp(),
+  };
+  await assertSucceeds(setDoc(own, {
+    id: "emp-a_2026-10-31",
+    empleadoId: "emp-a",
+    fecha: "2026-10-31",
+    ingreso: punto,
+    validacion: { estado: "pendiente" },
+  }));
+  await assertFails(setDoc(doc(employee, "op_asistencia", "emp-b_2026-10-31"), {
+    id: "emp-b_2026-10-31", empleadoId: "emp-b", fecha: "2026-10-31",
+    ingreso: punto, validacion: { estado: "pendiente" },
+  }));
+  await assertFails(updateDoc(own, {
+    ingreso: { ...punto, latitud: 0, marcadoEn: serverTimestamp() },
+  }));
+  await assertSucceeds(updateDoc(own, {
+    salida: { ...punto, marcadoEn: serverTimestamp() },
+  }));
+  await assertFails(updateDoc(own, {
+    salida: { ...punto, marcadoEn: serverTimestamp() },
+  }));
+});
+
+test("los mandos solo consultan subordinados y validan sin alterar las marcaciones", async () => {
   const supervisor = db("sup-user");
   const otherSupervisor = db("other-sup-user");
-  await assertSucceeds(getDoc(doc(supervisor, "op_asistencia", "asis-b")));
-  await assertSucceeds(
-    updateDoc(doc(supervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
-  );
-  await assertFails(
-    updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
-  );
+  const subordinate = doc(supervisor, "op_asistencia", "asis-b");
+  await assertSucceeds(getDoc(subordinate));
+  await assertSucceeds(updateDoc(subordinate, {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertFails(updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "other-sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertFails(updateDoc(subordinate, { "ingreso.latitud": 0 }));
   await assertFails(getDoc(doc(supervisor, "op_asistencia", "asis-c")));
   await assertSucceeds(getDoc(doc(supervisor, "op_solicitudes", "sol-b")));
   await assertSucceeds(getDoc(doc(supervisor, "op_horas_extras", "he-b")));
