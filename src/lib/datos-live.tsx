@@ -26,7 +26,6 @@ const COLECCIONES_PUBLICAS: { nombre: string; destino: { id: string }[] }[] = [
   { nombre: "org_areas", destino: AREAS },
   { nombre: "org_dependencias", destino: DEPENDENCIAS },
   { nombre: "org_centros_trabajo", destino: CENTROS_TRABAJO },
-  { nombre: "org_cargos", destino: CARGOS },
 ];
 
 function limpiarDatosPrivados() {
@@ -74,6 +73,7 @@ export function DatosMaestrosProvider({ children }: { children: ReactNode }) {
     if (esRrhh || esNomina) {
       for (const { nombre, destino } of [
         { nombre: "org_centros_costo", destino: CENTROS_COSTO },
+        { nombre: "org_cargos", destino: CARGOS },
         { nombre: "org_empleados", destino: EMPLEADOS },
       ]) {
         subs.push(onSnapshot(
