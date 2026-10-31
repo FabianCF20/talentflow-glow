@@ -3,6 +3,8 @@
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
+import { doc, runTransaction, serverTimestamp, updateDoc, writeBatch } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
 import { alcanceOperacion } from "@/lib/acceso-operativo";
 import {
@@ -13,6 +15,7 @@ import {
   SOLICITUDES_OP_INICIALES,
 } from "@/data/operaciones";
 import { calcularAsistencia, consecutivo, diasEntre, horaActual, hoyISO, supervisorDe } from "@/lib/operaciones";
+import type { UbicacionMarcacion } from "@/types/operaciones";
 import { empleadoById } from "@/data/organizacion";
 import { nombreCompleto } from "@/types/organizacion";
 import type {
@@ -76,14 +79,10 @@ interface OperacionesContextValue {
   rechazarIncapacidad: (id: string, responsable: string, observacion?: string) => void;
   transcribirIncapacidad: (id: string, responsable: string) => void;
 
-  registrarMarcacion: (input: {
-    empleadoId: string;
-    fecha: string;
-    campo: "horaIngreso" | "horaSalida";
-    valor: string;
-    responsable: string;
-  }) => void;
-  marcarAusencia: (empleadoId: string, fecha: string, justificacion: string, responsable: string) => void;
+  registrarIngreso: (input: { empleadoId: string; fecha: string; ubicacion: UbicacionMarcacion }) => Promise<void>;
+  registrarSalida: (input: { empleadoId: string; fecha: string; ubicacion: UbicacionMarcacion }) => Promise<void>;
+  validarAsistencia: (id: string, estado: "validada" | "observada", responsableUid: string, observacion?: string) => Promise<void>;
+  validarAsistenciaMasiva: (ids: string[], estado: "validada" | "observada", responsableUid: string, observacion?: string) => Promise<void>;
 
   registrarHoraExtra: (input: {
     empleadoId: string;
@@ -470,73 +469,96 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
 
   /* --------------------------- Control asistencia --------------------------- */
 
-  const upsertAsistencia = useCallback(
-    (
-      empleadoId: string,
-      fecha: string,
-      responsable: string,
-      cambios: (r: RegistroAsistencia) => RegistroAsistencia,
-    ) => {
-      setAsistencia((prev) => {
-        const existe = prev.find((r) => r.empleadoId === empleadoId && r.fecha === fecha);
-        if (existe) return prev.map((r) => (r === existe ? cambios(r) : r));
-        const base: RegistroAsistencia = {
-          id: nextId("as"),
-          empleadoId,
-          fecha,
-          ausente: false,
-          registradoPor: responsable,
-        };
-        return [cambios(base), ...prev];
+  const idAsistencia = (empleadoId: string, fecha: string) =>
+    `as-${empleadoId}-${fecha}`;
+
+  const registrarIngreso = useCallback<OperacionesContextValue["registrarIngreso"]>(
+    async ({ empleadoId: titularId, fecha, ubicacion }) => {
+      if (!perfil?.id || !perfil.empleadoId || perfil.empleadoId !== titularId) {
+        throw new Error("Solo puedes registrar tu propia asistencia.");
+      }
+      if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(fecha) || titularId.includes("/")) throw new Error("Fecha o identificación de empleado inválida.");
+      if (asistencia.some((r) => r.empleadoId === titularId && r.fecha === fecha)) {
+        throw new Error("Ya existe un registro de asistencia para esta fecha. Contacta a tu superior si necesitas corregirlo.");
+      }
+      const id = idAsistencia(titularId, fecha);
+      const ref = doc(db, "op_asistencia", id);
+      await runTransaction(db, async (tx) => {
+        const existente = await tx.get(ref);
+        if (existente.exists()) throw new Error("El ingreso de hoy ya fue registrado.");
+        tx.set(ref, {
+          id, empleadoId: titularId, fecha, ausente: false,
+          registradoPorUid: perfil.id,
+          ingresoRegistradoEn: serverTimestamp(),
+          ubicacionIngreso: ubicacion,
+          estadoValidacion: "pendiente",
+        });
+      });
+    },
+    [asistencia, perfil?.id, perfil?.empleadoId],
+  );
+
+  const registrarSalida = useCallback<OperacionesContextValue["registrarSalida"]>(
+    async ({ empleadoId: titularId, fecha, ubicacion }) => {
+      if (!perfil?.id || !perfil.empleadoId || perfil.empleadoId !== titularId) {
+        throw new Error("Solo puedes registrar tu propia salida.");
+      }
+      const ref = doc(db, "op_asistencia", idAsistencia(titularId, fecha));
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists()) throw new Error("Primero debes registrar tu ingreso.");
+        const actual = snap.data();
+        if (actual.empleadoId !== titularId || actual.registradoPorUid !== perfil.id) {
+          throw new Error("No puedes modificar este registro.");
+        }
+        if (!actual.ingresoRegistradoEn) throw new Error("No se encontró la hora de ingreso.");
+        if (actual.salidaRegistradaEn) throw new Error("La salida ya fue registrada.");
+        tx.update(ref, {
+          salidaRegistradaEn: serverTimestamp(),
+          ubicacionSalida: ubicacion,
+        });
+      });
+    },
+    [perfil?.id, perfil?.empleadoId],
+  );
+
+  const validarAsistencia = useCallback<OperacionesContextValue["validarAsistencia"]>(
+    async (id, estado, responsableUid, observacion) => {
+      if (!responsableUid) throw new Error("No se identificó al responsable de la validación.");
+      if (estado === "observada" && !observacion?.trim()) {
+        throw new Error("Escribe el motivo de la observación.");
+      }
+      await updateDoc(doc(db, "op_asistencia", id), {
+        estadoValidacion: estado,
+        validadoPorUid: responsableUid,
+        validadoEn: serverTimestamp(),
+        ...(observacion?.trim() ? { observacionValidacion: observacion.trim() } : {}),
       });
     },
     [],
   );
 
-  const registrarMarcacion = useCallback<OperacionesContextValue["registrarMarcacion"]>(
-    ({ empleadoId, fecha, campo, valor, responsable }) => {
-      upsertAsistencia(empleadoId, fecha, responsable, (r) => {
-        const actualizado = { ...r, [campo]: valor, ausente: false, registradoPor: responsable };
-        return actualizado;
-      });
-      const etiqueta: Record<typeof campo, string> = {
-        horaIngreso: "Hora de ingreso",
-        horaSalida: "Hora de salida",
-      };
-      registrarNovedad({
-        empleadoId,
-        tipo: "asistencia",
-        titulo: `${etiqueta[campo]} registrada`,
-        detalle: `${fecha} · ${valor}`,
-        etapa: "jefe",
-        responsable,
-        referencia: `AS-${fecha}`,
-      });
+  const validarAsistenciaMasiva = useCallback<OperacionesContextValue["validarAsistenciaMasiva"]>(
+    async (ids, estado, responsableUid, observacion) => {
+      const unicos = [...new Set(ids.filter(Boolean))];
+      if (!unicos.length) throw new Error("Selecciona al menos un registro.");
+      if (unicos.length > 450) throw new Error("Selecciona máximo 450 registros por operación.");
+      if (!responsableUid) throw new Error("No se identificó al responsable de la validación.");
+      if (estado === "observada" && !observacion?.trim()) {
+        throw new Error("Escribe el motivo de la observación masiva.");
+      }
+      const batch = writeBatch(db);
+      for (const id of unicos) {
+        batch.update(doc(db, "op_asistencia", id), {
+          estadoValidacion: estado,
+          validadoPorUid: responsableUid,
+          validadoEn: serverTimestamp(),
+          ...(observacion?.trim() ? { observacionValidacion: observacion.trim() } : {}),
+        });
+      }
+      await batch.commit();
     },
-    [registrarNovedad, upsertAsistencia],
-  );
-
-  const marcarAusencia = useCallback<OperacionesContextValue["marcarAusencia"]>(
-    (empleadoId, fecha, justificacion, responsable) => {
-      upsertAsistencia(empleadoId, fecha, responsable, (r) => ({
-        ...r,
-        ausente: true,
-        horaIngreso: undefined,
-        horaSalida: undefined,
-        justificacion,
-        registradoPor: responsable,
-      }));
-      registrarNovedad({
-        empleadoId,
-        tipo: "asistencia",
-        titulo: "Ausencia registrada",
-        detalle: `${fecha} · ${justificacion || "Sin justificación"}`,
-        etapa: "jefe",
-        responsable,
-        referencia: `AS-${fecha}`,
-      });
-    },
-    [registrarNovedad, upsertAsistencia],
+    [],
   );
 
   /* ------------------------------ Horas extras ----------------------------- */
@@ -670,8 +692,10 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       validarIncapacidad,
       rechazarIncapacidad,
       transcribirIncapacidad,
-      registrarMarcacion,
-      marcarAusencia,
+      registrarIngreso,
+      registrarSalida,
+      validarAsistencia,
+      validarAsistenciaMasiva,
       registrarHoraExtra,
       aprobarHoraExtraJefe,
       liquidarHoraExtra,
@@ -693,8 +717,10 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       validarIncapacidad,
       rechazarIncapacidad,
       transcribirIncapacidad,
-      registrarMarcacion,
-      marcarAusencia,
+      registrarIngreso,
+      registrarSalida,
+      validarAsistencia,
+      validarAsistenciaMasiva,
       registrarHoraExtra,
       aprobarHoraExtraJefe,
       liquidarHoraExtra,

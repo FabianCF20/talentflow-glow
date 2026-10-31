@@ -311,26 +311,68 @@ service cloud.firestore {
         && (esRrhh() || esSst());
       allow delete: if false;
     }
+    function ubicacionMarcacionValida(data, campo) {
+      let ubicacion = data.get(campo, {});
+      return ubicacion is map
+        && ubicacion.keys().hasOnly(['latitud', 'longitud', 'precisionMetros'])
+        && ubicacion.get('latitud', 999) is number
+        && ubicacion.get('latitud', 999) >= -90
+        && ubicacion.get('latitud', 999) <= 90
+        && ubicacion.get('longitud', 999) is number
+        && ubicacion.get('longitud', 999) >= -180
+        && ubicacion.get('longitud', 999) <= 180
+        && ubicacion.get('precisionMetros', 0) is number
+        && ubicacion.get('precisionMetros', 0) > 0
+        && ubicacion.get('precisionMetros', 0) <= 10000;
+    }
+
     match /op_asistencia/{id} {
       allow read: if activo() && (
-        esRrhh() || esNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
-      allow create: if activo() && (
-        esRrhh() || esMandoAutorizado(request.resource.data.get('empleadoId', ''))
-      );
+      // El empleado solo crea su ingreso con hora de servidor y GPS válido.
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('id', '') == id
+        && request.resource.data.get('fecha', '') is string
+        && id == 'as-' + request.resource.data.get('empleadoId', '') + '-' + request.resource.data.get('fecha', '')
+        && request.resource.data.get('fecha', '').matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && request.resource.data.get('registradoPorUid', '') == request.auth.uid
+        && request.resource.data.get('ingresoRegistradoEn', null) == request.time
+        && request.resource.data.get('estadoValidacion', '') == 'pendiente'
+        && request.resource.data.get('ausente', false) == false
+        && ubicacionMarcacionValida(request.resource.data, 'ubicacionIngreso')
+        && request.resource.data.keys().hasOnly([
+          'id', 'empleadoId', 'fecha', 'ausente', 'registradoPorUid',
+          'ingresoRegistradoEn', 'ubicacionIngreso', 'estadoValidacion'
+        ]);
+      // El titular solo puede añadir la salida; nunca cambiar el ingreso o su GPS.
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
         && (
-          esRrhh()
-          || (tieneRol('supervisor')
-            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+          (esMiEmpleado(resource.data.get('empleadoId', ''))
+            && resource.data.get('registradoPorUid', '') == request.auth.uid
+            && resource.data.get('salidaRegistradaEn', null) == null
+            && request.resource.data.get('salidaRegistradaEn', null) == request.time
+            && ubicacionMarcacionValida(request.resource.data, 'ubicacionSalida')
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'horaIngreso', 'horaSalida', 'ausente', 'justificacion', 'registradoPor'
+              'salidaRegistradaEn', 'ubicacionSalida'
             ]))
-          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
-            && esMandoAutorizado(resource.data.get('empleadoId', ''))
-            && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
+          ||
+          // El superior solo valida el registro completo. No puede editar horas ni GPS.
+          ((esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', '')))
+            && resource.data.get('salidaRegistradaEn', null) != null
+            && resource.data.get('estadoValidacion', 'pendiente') in ['pendiente', 'observada']
+            && request.resource.data.get('estadoValidacion', '') in ['validada', 'observada']
+            && request.resource.data.get('validadoPorUid', '') == request.auth.uid
+            && request.resource.data.get('validadoEn', null) == request.time
+            && (request.resource.data.get('estadoValidacion', '') != 'observada'
+              || request.resource.data.get('observacionValidacion', '') is string
+                && request.resource.data.get('observacionValidacion', '').size() > 0)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'estadoValidacion', 'validadoPorUid', 'validadoEn', 'observacionValidacion'
+            ]))
         );
       allow delete: if false;
     }

@@ -15,6 +15,23 @@ export { hoyISO, horaActual, diasEntre, sumarDias };
 
 /** Utilidades de cálculo y reglas de los procesos operativos. */
 
+/** Fecha calendario de Colombia, independiente de la zona horaria del dispositivo. */
+export function fechaBogota(fecha = new Date()) {
+  const partes = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(fecha);
+  const valor = (tipo: string) => partes.find((p) => p.type === tipo)?.value ?? "";
+  return `${valor("year")}-${valor("month")}-${valor("day")}`;
+}
+
+/** Presenta una marca de tiempo del servidor en hora colombiana. */
+export function horaDesdeRegistro(valor?: { toDate: () => Date } | null) {
+  if (!valor) return "—";
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(valor.toDate());
+}
+
 
 export const aMinutos = (hhmm?: string) => {
   if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
@@ -40,8 +57,8 @@ export function calcularAsistencia(r: RegistroAsistencia): CalculoAsistencia {
     };
   }
 
-  const ingreso = aMinutos(r.horaIngreso);
-  const salida = aMinutos(r.horaSalida);
+  const ingreso = aMinutos(r.ingresoRegistradoEn ? horaDesdeRegistro(r.ingresoRegistradoEn) : r.horaIngreso);
+  const salida = aMinutos(r.salidaRegistradaEn ? horaDesdeRegistro(r.salidaRegistradaEn) : r.horaSalida);
   const entradaEsperada = aMinutos(JORNADA.horaEntrada)!;
   const minutosTardanza =
     ingreso !== null ? Math.max(0, ingreso - entradaEsperada - JORNADA.toleranciaMinutos) : 0;

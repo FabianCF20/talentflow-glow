@@ -2,7 +2,7 @@ import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
 
 const projectId = "demo-talentflow-rules";
 let env;
@@ -41,8 +41,25 @@ before(async () => {
     await setDoc(doc(store, "nomina_liquidaciones", "liq-a"), { empleadoId: "emp-a", neto: 2000000 });
     await setDoc(doc(store, "nomina_liquidaciones", "liq-b"), { empleadoId: "emp-b", neto: 2100000 });
     await setDoc(doc(store, "nomina_periodos", "periodo-1"), { periodo: "2026-10" });
-    await setDoc(doc(store, "op_asistencia", "asis-b"), { empleadoId: "emp-b", fecha: "2026-10-01" });
-    await setDoc(doc(store, "op_asistencia", "asis-c"), { empleadoId: "emp-c", fecha: "2026-10-01" });
+    await setDoc(doc(store, "op_asistencia", "asis-b"), {
+      id: "asis-b", empleadoId: "emp-b", fecha: "2026-10-01", ausente: false,
+      registradoPorUid: "emp-b-user", ingresoRegistradoEn: Timestamp.fromDate(new Date("2026-10-01T13:00:00Z")),
+      salidaRegistradaEn: Timestamp.fromDate(new Date("2026-10-01T22:00:00Z")),
+      ubicacionIngreso: { latitud: 7.1, longitud: -73.1, precisionMetros: 10 },
+      ubicacionSalida: { latitud: 7.1, longitud: -73.1, precisionMetros: 10 }, estadoValidacion: "pendiente",
+    });
+    await setDoc(doc(store, "op_asistencia", "asis-b-open"), {
+      id: "asis-b-open", empleadoId: "emp-b", fecha: "2026-10-02", ausente: false,
+      registradoPorUid: "emp-b-user", ingresoRegistradoEn: Timestamp.fromDate(new Date("2026-10-02T13:00:00Z")),
+      ubicacionIngreso: { latitud: 7.1, longitud: -73.1, precisionMetros: 10 }, estadoValidacion: "pendiente",
+    });
+    await setDoc(doc(store, "op_asistencia", "asis-c"), {
+      id: "asis-c", empleadoId: "emp-c", fecha: "2026-10-01", ausente: false,
+      registradoPorUid: "emp-c-user", ingresoRegistradoEn: Timestamp.fromDate(new Date("2026-10-01T13:00:00Z")),
+      salidaRegistradaEn: Timestamp.fromDate(new Date("2026-10-01T22:00:00Z")),
+      ubicacionIngreso: { latitud: 7.1, longitud: -73.1, precisionMetros: 10 },
+      ubicacionSalida: { latitud: 7.1, longitud: -73.1, precisionMetros: 10 }, estadoValidacion: "pendiente",
+    });
     await setDoc(doc(store, "op_solicitudes", "sol-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "op_horas_extras", "he-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "disc_incidencias", "dis-b"), { empleadoId: "emp-b", estado: "registrada", traza: [], actuaciones: [] });
@@ -100,12 +117,13 @@ test("los mandos solo acceden a registros de subordinados directos", async () =>
   const supervisor = db("sup-user");
   const otherSupervisor = db("other-sup-user");
   await assertSucceeds(getDoc(doc(supervisor, "op_asistencia", "asis-b")));
-  await assertSucceeds(
-    updateDoc(doc(supervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
-  );
-  await assertFails(
-    updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
-  );
+  await assertSucceeds(updateDoc(doc(supervisor, "op_asistencia", "asis-b"), {
+    estadoValidacion: "validada", validadoPorUid: "sup-user", validadoEn: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), {
+    estadoValidacion: "validada", validadoPorUid: "other-sup-user", validadoEn: serverTimestamp(),
+  }));
+  await assertFails(updateDoc(doc(supervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }));
   await assertFails(getDoc(doc(supervisor, "op_asistencia", "asis-c")));
   await assertSucceeds(getDoc(doc(supervisor, "op_solicitudes", "sol-b")));
   await assertSucceeds(getDoc(doc(supervisor, "op_horas_extras", "he-b")));
@@ -114,6 +132,41 @@ test("los mandos solo acceden a registros de subordinados directos", async () =>
   await assertSucceeds(getDoc(doc(supervisor, "disc_observaciones", "obs-b")));
   await assertFails(getDoc(doc(otherSupervisor, "disc_observaciones", "obs-b")));
   await assertFails(getDoc(doc(supervisor, "org_empleados", "emp-b")));
+});
+
+
+
+test("el empleado crea su ingreso con GPS y hora de servidor, pero no puede alterar el ingreso", async () => {
+  const store = db("emp-a-user");
+  const ref = doc(store, "op_asistencia", "as-emp-a-2026-10-31");
+  await assertSucceeds(setDoc(ref, {
+    id: "as-emp-a-2026-10-31", empleadoId: "emp-a", fecha: "2026-10-31",
+    ausente: false, registradoPorUid: "emp-a-user", ingresoRegistradoEn: serverTimestamp(),
+    ubicacionIngreso: { latitud: 7.12, longitud: -73.12, precisionMetros: 15 },
+    estadoValidacion: "pendiente",
+  }));
+  await assertFails(updateDoc(ref, { ubicacionIngreso: { latitud: 0, longitud: 0, precisionMetros: 1 } }));
+  await assertFails(setDoc(doc(store, "op_asistencia", "duplicado-emp-a-2026-10-31"), {
+    id: "duplicado-emp-a-2026-10-31", empleadoId: "emp-a", fecha: "2026-10-31",
+    ausente: false, registradoPorUid: "emp-a-user", ingresoRegistradoEn: serverTimestamp(),
+    ubicacionIngreso: { latitud: 7.12, longitud: -73.12, precisionMetros: 15 }, estadoValidacion: "pendiente",
+  }));
+  await assertFails(setDoc(doc(store, "op_asistencia", "as-emp-b-2026-10-31"), {
+    id: "as-emp-b-2026-10-31", empleadoId: "emp-b", fecha: "2026-10-31",
+    ausente: false, registradoPorUid: "emp-a-user", ingresoRegistradoEn: serverTimestamp(),
+    ubicacionIngreso: { latitud: 7.12, longitud: -73.12, precisionMetros: 15 }, estadoValidacion: "pendiente",
+  }));
+});
+
+test("el empleado solo puede agregar una salida propia con GPS y hora del servidor", async () => {
+  const store = db("emp-b-user");
+  await assertSucceeds(updateDoc(doc(store, "op_asistencia", "asis-b-open"), {
+    salidaRegistradaEn: serverTimestamp(),
+    ubicacionSalida: { latitud: 7.11, longitud: -73.11, precisionMetros: 12 },
+  }));
+  await assertFails(updateDoc(doc(store, "op_asistencia", "asis-b-open"), {
+    ingresoRegistradoEn: serverTimestamp(),
+  }));
 });
 
 test("nómina separa consulta, liquidación y alcance personal", async () => {
