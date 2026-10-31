@@ -1,7 +1,7 @@
 import type { RoleKey } from "@/types/entities";
 
 type Filtro = { campo: string; valor: string | string[]; operador?: "==" | "in" | "array-contains" };
-type Alcance = { enabled?: boolean; filtros?: Filtro[] };
+type Alcance = { enabled?: boolean; filtros?: Filtro[]; combinar?: "and" | "or" };
 
 /**
  * Construye consultas compatibles con las reglas de Firestore.
