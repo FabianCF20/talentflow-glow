@@ -2,7 +2,7 @@ import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 
 const projectId = "demo-talentflow-rules";
 let env;
@@ -144,6 +144,10 @@ test("las evaluaciones solo son visibles a empleados asignados y mientras estén
   await assertSucceeds(getDoc(doc(store, "disc_evaluaciones", "eval-a")));
   await assertFails(getDoc(doc(store, "disc_evaluaciones", "eval-b")));
   await assertFails(getDoc(doc(store, "disc_evaluaciones", "eval-archived")));
+  const asignadas = await getDocs(
+    query(collection(store, "disc_evaluaciones"), where("empleadosAsignados", "array-contains", "emp-a")),
+  );
+  assert.deepEqual(asignadas.docs.map((item) => item.id), ["eval-a"]);
 });
 
 test("las respuestas disciplinarias exigen asignación activa y rechazan puntajes del navegador", async () => {
