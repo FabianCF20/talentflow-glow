@@ -77,12 +77,7 @@ async function persistirDiff<T extends object>(
       cambios++;
     }
   }
-  for (const id of antes.keys()) {
-    if (!ahora.has(id)) {
-      batch.delete(doc(db, coleccion, id));
-      cambios++;
-    }
-  }
+  // No se ejecutan borrados desde el cliente: los registros se archivan por estado.
 
   if (!cambios) return;
   try {
