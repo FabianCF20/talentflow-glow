@@ -98,6 +98,7 @@ service cloud.firestore {
           && request.resource.data.get('estado', 'activo') == 'activo')
         || (autenticado()
           && request.auth.uid == uid
+          && request.resource.data.get('id', '') == uid
           && request.resource.data.get('roles', []) == ['empleado']
           && request.resource.data.get('empleadoId', '') == ''
           && request.resource.data.get('email', '') == request.auth.token.email
