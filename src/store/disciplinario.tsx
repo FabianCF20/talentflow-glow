@@ -115,7 +115,10 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
   const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>(
     "disc_evaluaciones",
     "id",
-    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst, { incluirPropio: false, incluirSubordinados: false }),
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst, {
+      incluirPropio: false,
+      incluirSubordinados: false,
+    }),
   );
   const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
     "disc_respuestas",
