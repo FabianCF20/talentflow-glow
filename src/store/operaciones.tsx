@@ -139,7 +139,15 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       // El empleado radica su solicitud, pero no puede escribir el historial
       // operativo interno. Solo RRHH, Nómina o un mando autorizado lo registra.
       const puedeRegistrar = roles.some((rol) =>
-        ["administrador", "talento_humano", "nomina", "jefe", "director", "gerente_general", "supervisor"].includes(rol),
+        [
+          "administrador",
+          "talento_humano",
+          "nomina",
+          "jefe",
+          "director",
+          "gerente_general",
+          "supervisor",
+        ].includes(rol),
       );
       if (!puedeRegistrar) return;
       setNovedades((prev) => [{ ...n, id: nextId("nov"), fecha: hoyISO(), hora: horaActual() }, ...prev]);
