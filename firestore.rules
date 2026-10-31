@@ -311,26 +311,185 @@ service cloud.firestore {
         && (esRrhh() || esSst());
       allow delete: if false;
     }
+    // GPS: las coordenadas se capturan en el dispositivo; la hora debe ser serverTimestamp().
+    function puntoGpsValido(punto) {
+      return punto is map
+        && punto.get('latitud', null) is number
+        && punto.get('latitud', 0) >= -90
+        && punto.get('latitud', 0) <= 90
+        && punto.get('longitud', null) is number
+        && punto.get('longitud', 0) >= -180
+        && punto.get('longitud', 0) <= 180
+        && punto.get('precisionMetros', null) is number
+        && punto.get('precisionMetros', 0) > 0
+        && punto.get('marcadoEn', null) == request.time;
+    }
+    function validacionAsistenciaValida(data) {
+      return data is map
+        && data.keys().hasOnly(['estado', 'usuarioUid', 'fecha', 'observacion'])
+        && data.get('estado', '') in ['validada', 'observada']
+        && data.get('usuarioUid', '') == request.auth.uid
+        && data.get('fecha', null) == request.time
+        && data.get('observacion', '') is string
+        && (data.get('estado', '') != 'observada' || data.get('observacion', '').size() >= 5);
+    }
     match /op_asistencia/{id} {
+      // Nómina no recibe acceso general a asistencia; cada empleado ve solo su registro.
       allow read: if activo() && (
-        esRrhh() || esNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        esRrhh()
+        || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      // El empleado crea únicamente su ingreso, con hora emitida por el servidor.
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.keys().hasOnly(['id', 'empleadoId', 'fecha', 'ingreso', 'validacion'])
+        && request.resource.data.keys().hasAll(['id', 'empleadoId', 'fecha', 'ingreso', 'validacion'])
+        && request.resource.data.get('id', '') == id
+        && id == request.resource.data.get('empleadoId', '') + '_' + request.resource.data.get('fecha', '')
+        && request.resource.data.get('fecha', '') is string
+        && request.resource.data.get('fecha', '').matches('^\\d{4}-\\d{2}-\\d{2}
+    match /op_horas_extras/{id} {
+      allow read: if activo() && (
+        esRrhh() || tieneAlguno(['nomina', 'contabilidad'])
+        || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && tieneRol('supervisor')
+        && esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente_jefe';
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'flujo'])
+        && (
+          (esNomina() && request.resource.data.get('estado', '') in ['liquidada', 'rechazada'])
+          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.get('estado', '') in ['pendiente_nomina', 'rechazada'])
+        );
+      allow delete: if false;
+    }
+    match /op_novedades/{id} {
+      allow read: if activo() && (
+        esRrhh() || esNomina() || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo() && (
+        esRrhh() || esNomina() || esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+      );
+      allow update, delete: if false;
+    }
+
+    // Disciplinario. Las observaciones internas nunca son visibles al empleado.
+    match /disc_incidencias/{id} {
+      allow read: if activo() && (
+        esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && tieneRol('supervisor')
+        && esMandoAutorizado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'registrada';
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (
+          (esRrhh()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza', 'actuaciones']))
+          || (tieneAlguno(['jefe', 'director'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza'])
+            && request.resource.data.get('estado', '') in ['validada', 'desestimada', 'escalada_rrhh'])
+        );
+      allow delete: if false;
+    }
+    match /disc_observaciones/{id} {
+      allow read: if activo() && (
+        esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
       allow create: if activo() && (
         esRrhh() || esMandoAutorizado(request.resource.data.get('empleadoId', ''))
       );
+      allow update, delete: if false;
+    }
+    // Los formularios pueden asignarse a varias personas; no se autoriza acceso por inferencia.
+    match /disc_evaluaciones/{id} {
+      allow read, create, update: if activo() && (esRrhh() || tieneRol('sst'));
+      allow delete: if false;
+    }
+    match /disc_respuestas/{id} {
+      allow read: if activo() && (
+        esRrhh() || esSst() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.keys().hasOnly(['id', 'evaluacionId', 'empleadoId', 'fecha', 'hora', 'valores']);
+      allow update, delete: if false;
+    }
+
+    // Portal.
+    match /portal_solicitudes/{id} {
+      allow read: if activo() && (
+        esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente';
+      allow update: if activo() && esRrhh()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estado', 'fechaRevision', 'revisadoPor', 'comentarioRrhh'
+        ]);
+      allow delete: if false;
+    }
+    match /portal_documentos/{id} {
+      allow read: if documentoPermitido(resource.data);
+      allow create: if puedeGestionarDocumento(request.resource.data)
+        || (activo()
+          && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+          && request.resource.data.get('categoria', '') in [
+            'personales', 'academicos', 'contractuales', 'sst', 'disciplinarios', 'incapacidades'
+          ]);
+      // El titular no puede modificar metadatos ni rutas de archivos ya existentes.
+      allow update: if puedeGestionarDocumento(resource.data)
+        && puedeGestionarDocumento(request.resource.data)
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
+      allow delete: if false;
+    }
+    match /portal_certificados/{id} {
+      allow read: if activo() && (
+        esRrhh() || esNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo() && (esRrhh() || esNomina());
+      allow update, delete: if false;
+    }
+
+    // Todo lo que no está declarado arriba queda denegado, incluso para usuarios autenticados.
+    match /{documento=**} {
+      allow read, write: if false;
+    }
+  }
+})
+        && puntoGpsValido(request.resource.data.get('ingreso', {}))
+        && request.resource.data.get('validacion', {}) is map
+        && request.resource.data.get('validacion', {}).keys().hasOnly(['estado'])
+        && request.resource.data.get('validacion', {}).get('estado', '') == 'pendiente';
+      // El titular solo puede añadir una salida; ingreso y su GPS quedan inmutables.
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
         && (
-          esRrhh()
-          || (tieneRol('supervisor')
-            && esMandoAutorizado(resource.data.get('empleadoId', ''))
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'horaIngreso', 'horaSalida', 'ausente', 'justificacion', 'registradoPor'
-            ]))
-          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
-            && esMandoAutorizado(resource.data.get('empleadoId', ''))
-            && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
+          (esMiEmpleado(resource.data.get('empleadoId', ''))
+            && resource.data.get('ingreso', null) is map
+            && resource.data.get('salida', null) == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['salida'])
+            && request.resource.data.get('ingreso', {}) == resource.data.get('ingreso', {})
+            && request.resource.data.get('validacion', {}) == resource.data.get('validacion', {})
+            && puntoGpsValido(request.resource.data.get('salida', {})))
+          || ((esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', '')))
+            && resource.data.get('ingreso', null) is map
+            && resource.data.get('salida', null) is map
+            && resource.data.get('validacion', {}).get('estado', 'pendiente') == 'pendiente'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['validacion'])
+            && validacionAsistenciaValida(request.resource.data.get('validacion', {})))
         );
       allow delete: if false;
     }
