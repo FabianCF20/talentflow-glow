@@ -9,7 +9,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useFirestoreState } from "@/lib/firestore";
+import { useFirestoreState, limpiarUndefined } from "@/lib/firestore";
+import { auth, db, storage } from "@/lib/firebase";
+import { doc as firestoreDoc, setDoc } from "firebase/firestore";
+import { ref as storageRef, uploadBytes } from "firebase/storage";
 import { DOCUMENTOS_INICIALES, SOLICITUDES_INICIALES } from "@/data/portal";
 import { EXPEDIENTES } from "@/data/rrhh";
 import { generarCodigo } from "@/lib/certificados";
@@ -63,11 +66,12 @@ interface PortalContextValue {
     subidoPor: string;
     fechaVencimiento?: string;
     nota?: string;
-  }) => void;
+    archivo: File;
+  }) => Promise<void>;
   nuevaVersion: (
     documentoId: string,
-    input: { nombreArchivo: string; tamanoKb: number; subidoPor: string; nota?: string; fechaVencimiento?: string },
-  ) => void;
+    input: { archivo: File; subidoPor: string; nota?: string; fechaVencimiento?: string },
+  ) => Promise<void>;
   emitirCertificado: (
     tipo: TipoCertificado,
     empleadoId: string,
