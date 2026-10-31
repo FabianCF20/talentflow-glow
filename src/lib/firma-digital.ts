@@ -1,8 +1,8 @@
 /**
- * Firma electrónica de documentos emitidos (certificados, desprendibles,
- * liquidaciones). Se calcula una huella SHA-256 del contenido normalizado y se
- * registra en Firestore (`firmas_documentos`) para permitir la verificación
- * posterior del documento por su código único — Ley 527 de 1999.
+ * Registro de huellas de integridad SHA-256 para documentos emitidos.
+ * Una huella calculada en el navegador NO constituye por sí sola una firma
+ * electrónica confiable ni acredita la identidad o voluntad del firmante.
+ * La emisión legalmente confiable requiere un servicio backend autenticado.
  */
 
 import { useMemo } from "react";
@@ -42,10 +42,7 @@ export interface RegistroFirma {
 /** Huella SHA-256 en hexadecimal del contenido normalizado. */
 export async function huella(contenido: string): Promise<string> {
   if (typeof globalThis.crypto?.subtle === "undefined") {
-    // Entorno sin Web Crypto: huella determinística de respaldo.
-    let h = 0;
-    for (let i = 0; i < contenido.length; i++) h = (h * 31 + contenido.charCodeAt(i)) | 0;
-    return Math.abs(h).toString(16).padStart(16, "0").repeat(4).slice(0, 64);
+    throw new Error("Este entorno no soporta SHA-256 seguro. No se generará una huella de respaldo.");
   }
   const bytes = new TextEncoder().encode(contenido.replace(/\s+/g, " ").trim());
   const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
@@ -59,8 +56,9 @@ export const selloLegible = (hash: string) =>
   (hash.slice(0, 32).match(/.{1,8}/g) ?? []).join(" ").toUpperCase();
 
 /**
- * Calcula el sello del documento y lo registra para verificación.
- * Devuelve el hash aunque falle la escritura, para no bloquear la descarga.
+ * Calcula y registra una huella de integridad.
+ * La operación falla si no puede persistir el registro: nunca informa éxito
+ * cuando Firestore rechaza o no confirma la escritura.
  */
 export async function sellarDocumento(input: {
   codigo: string;
@@ -90,15 +88,11 @@ export async function sellarDocumento(input: {
     emitidoPor: input.emitidoPor,
     emitidoEn: new Date().toISOString(),
   };
-  try {
-    if (!actor) throw new Error("Se requiere una sesión autenticada para registrar la firma.");
-    await setDoc(
-      doc(db, "firmas_documentos", input.codigo),
-      limpiarUndefined(registro) as unknown as Record<string, unknown>,
-    );
-  } catch (error) {
-    console.error("[firestore:firmas_documentos] no se pudo registrar la firma", error);
-  }
+  if (!actor) throw new Error("Se requiere una sesión autenticada para registrar la huella.");
+  await setDoc(
+    doc(db, "firmas_documentos", input.codigo),
+    limpiarUndefined(registro) as unknown as Record<string, unknown>,
+  );
   return { hash, sello: selloLegible(hash) };
 }
 
