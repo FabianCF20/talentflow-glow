@@ -245,8 +245,19 @@ service cloud.firestore {
     match /sst_entregas/{id} {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
       allow create: if activo() && esSst();
-      allow update: if activo() && esSst()
-        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (
+          esSst()
+          || (esMiEmpleado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceptacion'])
+            && request.resource.data.get('aceptacion', {}) is map
+            && request.resource.data.get('aceptacion', {}).keys().hasOnly([
+              'aceptado', 'nombre', 'documento', 'fecha', 'hora', 'firma'
+            ])
+            && request.resource.data.get('aceptacion', {}).get('aceptado', false) == true
+            && resource.data.get('aceptacion', {}).get('aceptado', false) != true)
+        );
       allow delete: if false;
     }
     match /sst_formularios/{id} {
