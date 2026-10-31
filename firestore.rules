@@ -314,6 +314,8 @@ service cloud.firestore {
     // GPS: las coordenadas se capturan en el dispositivo; la hora debe ser serverTimestamp().
     function puntoGpsValido(punto) {
       return punto is map
+        && punto.keys().hasOnly(['latitud', 'longitud', 'precisionMetros', 'marcadoEn'])
+        && punto.keys().hasAll(['latitud', 'longitud', 'precisionMetros', 'marcadoEn'])
         && punto.get('latitud', null) is number
         && punto.get('latitud', 0) >= -90
         && punto.get('latitud', 0) <= 90
