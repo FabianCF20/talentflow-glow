@@ -285,9 +285,10 @@ service cloud.firestore {
 
     /* Portal del empleado. */
     match /portal_solicitudes/{docId} {
-      allow read: if esRrhh() || esMando() || esMiEmpleado(resource.data.get('empleadoId', ''));
+      // Las solicitudes de actualización de datos personales solo las revisa RRHH.
+      allow read: if esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''));
       allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''));
-      allow update: if (esRrhh() || esMando()) && activo();
+      allow update: if esRrhh() && activo();
       allow delete: if false;
     }
 
