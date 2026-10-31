@@ -51,6 +51,7 @@ import {
 } from "@/lib/usuarios-admin";
 import { usePermisos, guardarPermisos } from "@/lib/permisos";
 import { mensajeAuth, useAuth } from "@/lib/auth";
+import { sincronizarSubordinadosDeMandos } from "@/lib/sincronizar-jerarquia";
 import { CambiarClaveDialog } from "@/components/usuarios/CambiarClaveDialog";
 import { cn } from "@/lib/utils";
 import { z } from "zod";
@@ -231,6 +232,14 @@ function Usuarios() {
           nivelJerarquico: nivelById(cargoById(empleadoById(form.empleadoId)?.cargoId)?.nivelId)?.nivel,
         });
         toast.success("Usuario creado en Firebase Authentication.");
+      }
+      if (form.empleadoId) {
+        try {
+          await sincronizarSubordinadosDeMandos([form.empleadoId]);
+        } catch (error) {
+          console.error("[jerarquia] no se pudieron sincronizar los subordinados de la cuenta", error);
+          toast.error("La cuenta se guardó, pero no se actualizó su proyección de subordinados.");
+        }
       }
       setDialogoAbierto(false);
     } catch (error) {
