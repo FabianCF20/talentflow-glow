@@ -35,18 +35,13 @@ service cloud.firestore {
       return activo() && id is string && id != '' && id == miEmpleadoId();
     }
 
-    // Solo se reconocen subordinados directos, según el registro organizacional persistido.
-    // No se confía en jefeInmediatoId enviado por el navegador.
-    function esResponsableDirecto(id) {
-      return activo()
-        && id is string && id != ''
-        && miEmpleadoId() is string && miEmpleadoId() != ''
-        && exists(/databases/$(database)/documents/org_empleados/$(id))
-        && get(/databases/$(database)/documents/org_empleados/$(id)).data.get('jefeInmediatoId', '') == miEmpleadoId();
-    }
+    // Proyección mínima de subordinados mantenida por RRHH en el perfil del mando.
+    // No se consulta una colección salarial desde cada evaluación de reglas.
     function esMandoAutorizado(id) {
-      return tieneAlguno(['gerente_general', 'director', 'jefe', 'supervisor'])
-        && esResponsableDirecto(id);
+      return activo()
+        && tieneAlguno(['gerente_general', 'director', 'jefe', 'supervisor'])
+        && id is string
+        && id in perfil().get('subordinadosIds', []);
     }
     function actorPropio(data) {
       return activo() && data.get('usuarioUid', '') == request.auth.uid;
@@ -94,7 +89,7 @@ service cloud.firestore {
           && request.resource.data.get('roles', []) == resource.data.get('roles', [])
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'nombres', 'apellidos', 'estado', 'estadoUsuario', 'empleadoId',
-            'nivelJerarquico', 'ultimoAcceso', 'intentosFallidos'
+            'nivelJerarquico', 'ultimoAcceso', 'intentosFallidos', 'subordinadosIds'
           ]))
         || (activo()
           && request.auth.uid == uid
