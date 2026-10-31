@@ -331,7 +331,7 @@ function AsistenciaPage() {
                       <tr key={empleado.id} className="border-t border-border align-top">
                         <td className="p-3">
                           <input
-                            aria-label={`Seleccionar ${nombreEmpleado(empleado)}`}
+                            aria-label={`Seleccionar ${empleado.nombre}`}
                             type="checkbox"
                             checked={!!registro && seleccionados.includes(registro.id)}
                             disabled={!puedeSeleccionar}
@@ -339,7 +339,7 @@ function AsistenciaPage() {
                           />
                         </td>
                         <td className="p-3">
-                          <p className="font-medium text-foreground">{nombreEmpleado(empleado)}</p>
+                          <p className="font-medium text-foreground">{empleado.nombre}</p>
                           <p className="text-xs text-muted-foreground">{empleado.id}</p>
                         </td>
                         <td className="p-3">
