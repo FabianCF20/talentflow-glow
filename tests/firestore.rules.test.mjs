@@ -107,6 +107,7 @@ test("perfiles inactivos o bloqueados no conservan permisos", async () => {
 test("el empleado registra ingreso y salida con GPS y hora del servidor; no puede alterar la evidencia", async () => {
   const employee = db("emp-a-user");
   const own = doc(employee, "op_asistencia", "emp-a_2026-10-31");
+  await assertSucceeds(getDoc(own));
   const punto = {
     latitud: 7.1193,
     longitud: -73.1227,
