@@ -100,6 +100,9 @@ test("los mandos solo acceden a registros de subordinados directos", async () =>
   await assertSucceeds(getDoc(doc(supervisor, "op_asistencia", "asis-b")));
   await assertFails(getDoc(doc(supervisor, "op_asistencia", "asis-c")));
   await assertSucceeds(getDoc(doc(supervisor, "op_solicitudes", "sol-b")));
+  await assertSucceeds(getDoc(doc(supervisor, "op_horas_extras", "he-b")));
+  await assertFails(getDoc(doc(otherSupervisor, "op_horas_extras", "he-b")));
+  await assertFails(getDoc(doc(db("director-user"), "op_horas_extras", "he-b")));
   await assertSucceeds(getDoc(doc(supervisor, "disc_observaciones", "obs-b")));
   await assertFails(getDoc(doc(otherSupervisor, "disc_observaciones", "obs-b")));
   await assertFails(getDoc(doc(supervisor, "org_empleados", "emp-b")));
