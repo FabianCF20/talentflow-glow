@@ -37,7 +37,14 @@ export const useCentrosTrabajo = () => useFirestoreState<CentroTrabajo>(COL_MAES
 function usePuedeConsultarEstructuraSensible() {
   const { perfil } = useAuth();
   return (perfil?.roles ?? []).some((rol) =>
-    ["administrador", "talento_humano", "gerente_general", "director", "nomina", "contabilidad"].includes(rol),
+    [
+      "administrador",
+      "talento_humano",
+      "gerente_general",
+      "director",
+      "nomina",
+      "contabilidad",
+    ].includes(rol),
   );
 }
 
