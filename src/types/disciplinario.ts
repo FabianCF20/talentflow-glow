@@ -215,6 +215,8 @@ export interface Evaluacion {
   tipo: TipoInstrumento;
   campos: CampoEvaluacion[];
   asignacion: AsignacionFormulario;
+  /** IDs materializados al crear la evaluación; permiten validar y consultar asignaciones sin exponer datos salariales. */
+  empleadosAsignados?: string[];
   /** Porcentaje mínimo para aprobar (solo instrumentos calificables). */
   puntajeAprobacion?: number;
   estado: RecordStatus;
