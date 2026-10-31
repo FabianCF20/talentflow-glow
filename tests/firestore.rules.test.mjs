@@ -100,8 +100,12 @@ test("los mandos solo acceden a registros de subordinados directos", async () =>
   const supervisor = db("sup-user");
   const otherSupervisor = db("other-sup-user");
   await assertSucceeds(getDoc(doc(supervisor, "op_asistencia", "asis-b")));
-  await assertSucceeds(updateDoc(doc(supervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }));
-  await assertFails(updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }));
+  await assertSucceeds(
+    updateDoc(doc(supervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
+  );
+  await assertFails(
+    updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
+  );
   await assertFails(getDoc(doc(supervisor, "op_asistencia", "asis-c")));
   await assertSucceeds(getDoc(doc(supervisor, "op_solicitudes", "sol-b")));
   await assertSucceeds(getDoc(doc(supervisor, "op_horas_extras", "he-b")));
@@ -126,27 +130,30 @@ test("las observaciones internas no son visibles para el empleado titular", asyn
 });
 
 
-
 test("las respuestas disciplinarias no aceptan puntajes enviados por el navegador", async () => {
   const store = db("emp-a-user");
-  await assertSucceeds(setDoc(doc(store, "disc_respuestas", "resp-own"), {
-    id: "resp-own",
-    evaluacionId: "eval-1",
-    empleadoId: "emp-a",
-    fecha: "2026-10-31",
-    hora: "10:00",
-    valores: { pregunta1: "respuesta" },
-  }));
-  await assertFails(setDoc(doc(store, "disc_respuestas", "resp-score"), {
-    id: "resp-score",
-    evaluacionId: "eval-1",
-    empleadoId: "emp-a",
-    fecha: "2026-10-31",
-    hora: "10:00",
-    valores: { pregunta1: "respuesta" },
-    puntaje: 100,
-    aprobado: true,
-  }));
+  await assertSucceeds(
+    setDoc(doc(store, "disc_respuestas", "resp-own"), {
+      id: "resp-own",
+      evaluacionId: "eval-1",
+      empleadoId: "emp-a",
+      fecha: "2026-10-31",
+      hora: "10:00",
+      valores: { pregunta1: "respuesta" },
+    }),
+  );
+  await assertFails(
+    setDoc(doc(store, "disc_respuestas", "resp-score"), {
+      id: "resp-score",
+      evaluacionId: "eval-1",
+      empleadoId: "emp-a",
+      fecha: "2026-10-31",
+      hora: "10:00",
+      valores: { pregunta1: "respuesta" },
+      puntaje: 100,
+      aprobado: true,
+    }),
+  );
 });
 
 test("el empleado solo puede aceptar una vez su propia entrega de dotación", async () => {
@@ -161,9 +168,11 @@ test("el empleado solo puede aceptar una vez su propia entrega de dotación", as
   };
   await assertSucceeds(updateDoc(doc(store, "sst_entregas", "dot-a"), { aceptacion }));
   await assertFails(updateDoc(doc(store, "sst_entregas", "dot-b"), { aceptacion }));
-  await assertFails(updateDoc(doc(store, "sst_entregas", "dot-a"), {
-    aceptacion: { ...aceptacion, nombre: "Otro nombre" },
-  }));
+  await assertFails(
+    updateDoc(doc(store, "sst_entregas", "dot-a"), {
+      aceptacion: { ...aceptacion, nombre: "Otro nombre" },
+    }),
+  );
 });
 
 test("el titular no puede alterar metadatos de documentos existentes", async () => {
