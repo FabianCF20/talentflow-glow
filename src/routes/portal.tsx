@@ -698,12 +698,12 @@ function PortalEmpleadoPage() {
                 onNuevaVersion={
                   gestionaDocumentacion(perfil?.roles ?? []) ||
                   ((perfil?.roles ?? []).includes("sst") && ["sst", "incapacidades"].includes(doc.categoria))
-                    ? (nota) =>
+                    ? (archivo, nota, fechaVencimiento) =>
                         nuevaVersion(doc.id, {
-                          nombreArchivo: `${doc.nombre.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v${doc.versiones.length + 1}.pdf`,
-                          tamanoKb: 260,
+                          archivo,
                           subidoPor: nombreEmpleado(empleado),
                           nota,
+                          fechaVencimiento,
                         })
                     : undefined
                 }
