@@ -45,6 +45,18 @@ service cloud.firestore {
         && id is string
         && id in perfil().get('subordinadosIds', []);
     }
+    function evaluacionActivaAsignada(evaluacionId, empleadoId) {
+      let evaluacionRef = /databases/$(database)/documents/disc_evaluaciones/$(evaluacionId);
+      return evaluacionId is string
+        && evaluacionId != ''
+        && empleadoId is string
+        && empleadoId != ''
+        && exists(evaluacionRef)
+        && get(evaluacionRef).data.get('estado', '') == 'activo'
+        && get(evaluacionRef).data.get('empleadosAsignados', []) is list
+        && empleadoId in get(evaluacionRef).data.get('empleadosAsignados', []);
+    }
+
     function actorPropio(data) {
       return activo() && data.get('usuarioUid', '') == request.auth.uid;
     }
@@ -397,7 +409,19 @@ service cloud.firestore {
     }
     // Los formularios pueden asignarse a varias personas; no se autoriza acceso por inferencia.
     match /disc_evaluaciones/{id} {
-      allow read, create, update: if activo() && (esRrhh() || tieneRol('sst'));
+      // RRHH/SST gestionan todas; cada empleado solo consulta instrumentos activos asignados.
+      allow read: if activo() && (
+        esRrhh() || tieneRol('sst')
+        || (miEmpleadoId() != ''
+          && miEmpleadoId() in resource.data.get('empleadosAsignados', []))
+      );
+      allow create: if activo()
+        && (esRrhh() || tieneRol('sst'))
+        && request.resource.data.get('empleadosAsignados', []) is list
+        && request.resource.data.get('estado', '') == 'activo';
+      allow update: if activo()
+        && (esRrhh() || tieneRol('sst'))
+        && request.resource.data.get('empleadosAsignados', []) is list;
       allow delete: if false;
     }
     match /disc_respuestas/{id} {
@@ -407,6 +431,11 @@ service cloud.firestore {
       );
       allow create: if activo()
         && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('id', '') == id
+        && evaluacionActivaAsignada(
+          request.resource.data.get('evaluacionId', ''),
+          miEmpleadoId()
+        )
         && request.resource.data.keys().hasOnly(['id', 'evaluacionId', 'empleadoId', 'fecha', 'hora', 'valores']);
       allow update, delete: if false;
     }
