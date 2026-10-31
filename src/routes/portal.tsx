@@ -697,13 +697,17 @@ function PortalEmpleadoPage() {
                 key={doc.id}
                 documento={doc}
                 empleado={empleado}
-                onNuevaVersion={(nota) =>
-                  nuevaVersion(doc.id, {
-                    nombreArchivo: `${doc.nombre.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v${doc.versiones.length + 1}.pdf`,
-                    tamanoKb: 260,
-                    subidoPor: nombreEmpleado(empleado),
-                    nota,
-                  })
+                onNuevaVersion={
+                  gestionaDocumentacion(perfil?.roles ?? []) ||
+                  ((perfil?.roles ?? []).includes("sst") && ["sst", "incapacidades"].includes(doc.categoria))
+                    ? (nota) =>
+                        nuevaVersion(doc.id, {
+                          nombreArchivo: `${doc.nombre.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v${doc.versiones.length + 1}.pdf`,
+                          tamanoKb: 260,
+                          subidoPor: nombreEmpleado(empleado),
+                          nota,
+                        })
+                    : undefined
                 }
               />
             ))}

@@ -3,13 +3,15 @@
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
+import { useAuth } from "@/lib/auth";
+import { alcancePorEmpleado } from "@/lib/acceso-operativo";
 import {
   EVALUACIONES_INICIALES,
   INCIDENCIAS_INICIALES,
   OBSERVACIONES_INICIALES,
   RESPUESTAS_EVALUACION_INICIALES,
 } from "@/data/disciplinario";
-import { calificar, consecutivoDisciplinario, horaActual, hoyISO } from "@/lib/disciplinario";
+import { consecutivoDisciplinario, horaActual, hoyISO } from "@/lib/disciplinario";
 import type { AsignacionFormulario, ValorRespuesta } from "@/types/sst";
 import type {
   ActuacionDisciplinaria,
@@ -94,10 +96,35 @@ let seq = 900;
 const nextId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
 export function DisciplinarioProvider({ children }: { children: ReactNode }) {
-  const [incidencias, setIncidencias] = useFirestoreState<Incidencia>("disc_incidencias");
-  const [observaciones, setObservaciones] = useFirestoreState<ObservacionInterna>("disc_observaciones");
-  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>("disc_evaluaciones");
-  const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>("disc_respuestas");
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  const empleadoId = perfil?.empleadoId ?? "";
+  const subordinadosIds = perfil?.subordinadosIds ?? [];
+  const rrhh = ["administrador", "talento_humano"] as RoleKey[];
+  const sst = ["administrador", "talento_humano", "sst"] as RoleKey[];
+  const [incidencias, setIncidencias] = useFirestoreState<Incidencia>(
+    "disc_incidencias",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
+  );
+  const [observaciones, setObservaciones] = useFirestoreState<ObservacionInterna>(
+    "disc_observaciones",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
+  );
+  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>(
+    "disc_evaluaciones",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst, {
+      incluirPropio: false,
+      incluirSubordinados: false,
+    }),
+  );
+  const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
+    "disc_respuestas",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst),
+  );
 
   /* ---------------------------- Disciplinario ---------------------------- */
 
@@ -325,7 +352,8 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
       setEvaluaciones((evs) => {
         const evaluacion = evs.find((e) => e.id === evaluacionId);
         if (evaluacion) {
-          const { puntaje, aprobado } = calificar(evaluacion, valores);
+          // El empleado solo envía sus respuestas. La puntuación y aprobación
+          // deben calcularse en backend confiable, nunca aceptarse del navegador.
           setRespuestas((prev) => [
             {
               id: nextId("rev"),
@@ -334,8 +362,6 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
               fecha: hoyISO(),
               hora: horaActual(),
               valores,
-              puntaje,
-              aprobado,
             },
             ...prev,
           ]);

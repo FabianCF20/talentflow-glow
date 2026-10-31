@@ -3,6 +3,8 @@
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
+import { useAuth } from "@/lib/auth";
+import { alcancePorEmpleado } from "@/lib/acceso-operativo";
 import {
   ACCIDENTES_INICIALES,
   CAPACITACIONES_INICIALES,
@@ -122,13 +124,37 @@ let seq = 500;
 const nextId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
 export function SstProvider({ children }: { children: ReactNode }) {
-  const [examenes, setExamenes] = useFirestoreState<ExamenMedico>("sst_examenes");
-  const [accidentes, setAccidentes] = useFirestoreState<AccidenteLaboral>("sst_accidentes");
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  const empleadoId = perfil?.empleadoId ?? "";
+  const sst = ["administrador", "talento_humano", "sst"] as const;
+  const [examenes, setExamenes] = useFirestoreState<ExamenMedico>(
+    "sst_examenes",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, [], [...sst]),
+  );
+  const [accidentes, setAccidentes] = useFirestoreState<AccidenteLaboral>(
+    "sst_accidentes",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, [], [...sst]),
+  );
   const [capacitaciones, setCapacitaciones] = useFirestoreState<CapacitacionSST>("sst_capacitaciones");
-  const [tallas, setTallas] = useFirestoreState<FichaTallas>("sst_tallas", "empleadoId");
-  const [entregas, setEntregas] = useFirestoreState<EntregaDotacion>("sst_entregas");
+  const [tallas, setTallas] = useFirestoreState<FichaTallas>(
+    "sst_tallas",
+    "empleadoId",
+    alcancePorEmpleado(roles, empleadoId, [], [...sst], { campo: "__name__" }),
+  );
+  const [entregas, setEntregas] = useFirestoreState<EntregaDotacion>(
+    "sst_entregas",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, [], [...sst]),
+  );
   const [formularios, setFormularios] = useFirestoreState<Formulario>("sst_formularios");
-  const [respuestas, setRespuestas] = useFirestoreState<RespuestaFormulario>("sst_respuestas");
+  const [respuestas, setRespuestas] = useFirestoreState<RespuestaFormulario>(
+    "sst_respuestas",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, [], [...sst]),
+  );
 
   /* ------------------------------ Exámenes ------------------------------ */
 

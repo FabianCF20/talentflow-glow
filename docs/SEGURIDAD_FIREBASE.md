@@ -104,3 +104,20 @@ La publicación de reglas no migra documentos ni cambia permisos IAM de Firebase
 - El alcance jerárquico usa `subordinadosIds` como proyección confiable en el perfil. Si se modifica el organigrama, esa lista debe sincronizarse desde Talento Humano o un backend confiable; no se concede acceso por inferencia ni por campos enviados por el cliente.
 - La auditoría del cliente queda autoatribuida por UID y es inmutable para el cliente, pero no es una bitácora forense infalsificable. Para garantizar eventos de cambios críticos, la escritura debe migrarse a Cloud Functions o backend con Admin SDK y controles de integridad.
 - Las reglas deben probarse en Emulator Suite antes de producción. Este cambio no se considera certificado hasta que pasen las pruebas de autorización y se valide la aplicación desplegada.
+
+
+## Compatibilidad de la aplicación con las reglas estrictas
+
+En la segunda fase de hardening:
+- Las suscripciones de operaciones, SST y disciplinario se filtran por el empleado titular o por los subordinados directos declarados en usuarios/{UID}.subordinadosIds.
+- Los hooks de centros de costo, cargos y empleados del organigrama no consultan colecciones sensibles si el rol no tiene permiso.
+- Los supervisores pueden actualizar únicamente campos de marcación de asistencia de sus subordinados directos.
+- La aplicación no envía puntaje ni aprobado al guardar respuestas disciplinarias. Esos valores no deben considerarse oficiales hasta que los calcule un backend confiable.
+- El sincronizador de colecciones no ejecuta borrados desde el cliente. Los registros deben archivarse mediante un cambio de estado; las reglas siguen denegando delete.
+
+**Límites y pendientes antes de producción:**
+- Las consultas por lista de subordinados generan filtros OR. Firestore limita la cantidad de disyunciones de una consulta; si un mando supera ese límite, se debe implementar consulta por lotes o una proyección específica.
+- La carga documental actual de la interfaz registra metadatos, pero no utiliza uploadBytes ni guarda el archivo binario en Firebase Storage. Por tanto, no debe anunciarse como carga real ni considerarse validada la integración de Storage.
+- La actualización de versiones de documentos existentes está reservada a Talento Humano y SST según categoría. El titular no puede editar los metadatos de un documento existente.
+- La emisión de certificados persistidos está restringida a Talento Humano/Nómina; la generación desde el portal del empleado requiere un flujo de solicitud o un backend confiable antes de habilitarla como certificado oficial.
+- El build, las pruebas de reglas y las pruebas de integración de Storage deben ejecutarse sobre esta segunda fase antes de aprobarla.

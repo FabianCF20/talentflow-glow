@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import {
   collection,
-  deleteDoc,
   doc,
   getDocs,
   onSnapshot,
@@ -48,11 +47,6 @@ export async function guardarDoc<T extends object>(coleccion: string, item: T, c
   );
 }
 
-/** Elimina un documento. */
-export async function eliminarDoc(coleccion: string, id: string) {
-  await deleteDoc(doc(db, coleccion, id));
-}
-
 /** Lee una colección completa una sola vez. */
 export async function leerColeccion<T extends object>(coleccion: string): Promise<T[]> {
   const snap = await getDocs(collection(db, coleccion));
@@ -77,12 +71,7 @@ async function persistirDiff<T extends object>(
       cambios++;
     }
   }
-  for (const id of antes.keys()) {
-    if (!ahora.has(id)) {
-      batch.delete(doc(db, coleccion, id));
-      cambios++;
-    }
-  }
+  // No se ejecutan borrados desde el cliente: los registros se archivan por estado.
 
   if (!cambios) return;
   try {
@@ -153,8 +142,20 @@ export function useFirestoreState<T extends object>(
     (accion: SetStateAction<T[]>) => {
       if (!auth.currentUser) return;
       const previo = ref.current;
-      const siguiente =
+      const solicitado =
         typeof accion === "function" ? (accion as (p: T[]) => T[])(previo) : accion;
+
+      // Las reglas de producción bloquean el borrado desde el cliente.
+      // Conservamos los registros omitidos: deben archivarse mediante un
+      // cambio de estado, no desaparecer del arreglo ni generar batch.delete.
+      const idsSolicitados = new Set(solicitado.map((item) => idDe(item, campoId)));
+      const omitidos = previo.filter((item) => !idsSolicitados.has(idDe(item, campoId)));
+      if (omitidos.length) {
+        console.warn(
+          `[firestore:${coleccion}] se ignoró el intento de eliminar ${omitidos.length} registro(s); use un estado de archivo.`,
+        );
+      }
+      const siguiente = omitidos.length ? [...solicitado, ...omitidos] : solicitado;
       ref.current = siguiente;
       setItems(siguiente);
       void persistirDiff(coleccion, previo, siguiente, campoId);

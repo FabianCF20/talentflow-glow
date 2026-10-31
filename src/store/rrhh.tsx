@@ -31,8 +31,11 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
   const { perfil } = useAuth();
   const rolesUsuario = perfil?.roles ?? ["empleado"];
   const empleadoPropioId = perfil?.empleadoId ?? "";
-  const puedeVerDatosLaboralesGlobales = rolesUsuario.some((rol) =>
-    ["administrador", "talento_humano", "nomina", "contabilidad"].includes(rol),
+  const puedeVerEmpleadosGlobales = rolesUsuario.some((rol) =>
+    ["administrador", "talento_humano", "nomina"].includes(rol),
+  );
+  const puedeVerEventosGlobales = rolesUsuario.some((rol) =>
+    ["administrador", "talento_humano"].includes(rol),
   );
   const filtroEmpleadoPropio = empleadoPropioId
     ? { filtros: [{ campo: "__name__", valor: empleadoPropioId }] }
@@ -43,12 +46,12 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
   const [empleados, setEmpleados] = useFirestoreState<EmpleadoRRHH>(
     "empleados_rrhh",
     "id",
-    puedeVerDatosLaboralesGlobales ? {} : filtroEmpleadoPropio,
+    puedeVerEmpleadosGlobales ? {} : filtroEmpleadoPropio,
   );
   const [eventos, setEventos] = useFirestoreState<EventoHojaVida>(
     "eventos_hoja_vida",
     "id",
-    puedeVerDatosLaboralesGlobales ? {} : filtroEventosPropios,
+    puedeVerEventosGlobales ? {} : filtroEventosPropios,
   );
   const [rolActivo, setRolActivoState] = useState<RoleKey>(
     rolesUsuario.includes("administrador")
@@ -66,7 +69,7 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
                 : "empleado",
   );
 
-  const puedeVerOtrosEmpleados = puedeVerDatosLaboralesGlobales;
+  const puedeVerOtrosEmpleados = puedeVerEmpleadosGlobales;
   const [empleadoActuandoId, setEmpleadoActuandoIdState] = useState<string>(perfil?.empleadoId ?? "e-004");
 
   useEffect(() => {

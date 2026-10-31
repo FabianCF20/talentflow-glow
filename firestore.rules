@@ -245,8 +245,19 @@ service cloud.firestore {
     match /sst_entregas/{id} {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
       allow create: if activo() && esSst();
-      allow update: if activo() && esSst()
-        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && (
+          esSst()
+          || (esMiEmpleado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['aceptacion'])
+            && request.resource.data.get('aceptacion', {}) is map
+            && request.resource.data.get('aceptacion', {}).keys().hasOnly([
+              'aceptado', 'nombre', 'documento', 'fecha', 'hora', 'firma'
+            ])
+            && request.resource.data.get('aceptacion', {}).get('aceptado', false) == true
+            && resource.data.get('aceptacion', {}).get('aceptado', false) != true)
+        );
       allow delete: if false;
     }
     match /sst_formularios/{id} {
@@ -312,6 +323,11 @@ service cloud.firestore {
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
         && (
           esRrhh()
+          || (tieneRol('supervisor')
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'horaIngreso', 'horaSalida', 'ausente', 'justificacion', 'registradoPor'
+            ]))
           || (tieneAlguno(['jefe', 'director', 'gerente_general'])
             && esMandoAutorizado(resource.data.get('empleadoId', ''))
             && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
@@ -320,7 +336,8 @@ service cloud.firestore {
     }
     match /op_horas_extras/{id} {
       allow read: if activo() && (
-        esConsultaNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        esRrhh() || tieneAlguno(['nomina', 'contabilidad'])
+        || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
       allow create: if activo()

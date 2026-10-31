@@ -2,6 +2,7 @@
  * Nombres de colecciones y hooks de los datos maestros (niveles, áreas, cargos, etc.).
  */
 import { useFirestoreState } from "./firestore";
+import { useAuth } from "./auth";
 import type {
   AreaOrg,
   CargoOrg,
@@ -32,6 +33,30 @@ export const useNiveles = () => useFirestoreState<NivelJerarquico>(COL_MAESTROS.
 export const useAreas = () => useFirestoreState<AreaOrg>(COL_MAESTROS.areas);
 export const useDependencias = () => useFirestoreState<Dependencia>(COL_MAESTROS.dependencias);
 export const useCentrosTrabajo = () => useFirestoreState<CentroTrabajo>(COL_MAESTROS.centrosTrabajo);
-export const useCentrosCosto = () => useFirestoreState<CentroCostoOrg>(COL_MAESTROS.centrosCosto);
-export const useCargos = () => useFirestoreState<CargoOrg>(COL_MAESTROS.cargos);
-export const useEmpleadosOrg = () => useFirestoreState<EmpleadoOrg>(COL_MAESTROS.empleados);
+/** Las colecciones con datos salariales solo se consultan con roles autorizados. */
+function usePuedeConsultarEstructuraSensible() {
+  const { perfil } = useAuth();
+  return (perfil?.roles ?? []).some((rol) =>
+    [
+      "administrador",
+      "talento_humano",
+      "gerente_general",
+      "director",
+      "nomina",
+      "contabilidad",
+    ].includes(rol),
+  );
+}
+
+export const useCentrosCosto = () => {
+  const enabled = usePuedeConsultarEstructuraSensible();
+  return useFirestoreState<CentroCostoOrg>(COL_MAESTROS.centrosCosto, "id", { enabled });
+};
+export const useCargos = () => {
+  const enabled = usePuedeConsultarEstructuraSensible();
+  return useFirestoreState<CargoOrg>(COL_MAESTROS.cargos, "id", { enabled });
+};
+export const useEmpleadosOrg = () => {
+  const enabled = usePuedeConsultarEstructuraSensible();
+  return useFirestoreState<EmpleadoOrg>(COL_MAESTROS.empleados, "id", { enabled });
+};

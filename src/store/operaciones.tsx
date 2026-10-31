@@ -3,6 +3,8 @@
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
+import { useAuth } from "@/lib/auth";
+import { alcanceOperacion } from "@/lib/acceso-operativo";
 import {
   ASISTENCIA_INICIAL,
   HORAS_EXTRAS_INICIALES,
@@ -102,17 +104,58 @@ let seq = 100;
 const nextId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
 export function OperacionesProvider({ children }: { children: ReactNode }) {
-  const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudOperativa>("op_solicitudes");
-  const [incapacidades, setIncapacidades] = useFirestoreState<IncapacidadOperativa>("op_incapacidades");
-  const [asistencia, setAsistencia] = useFirestoreState<RegistroAsistencia>("op_asistencia");
-  const [horasExtras, setHorasExtras] = useFirestoreState<HoraExtra>("op_horas_extras");
-  const [novedades, setNovedades] = useFirestoreState<NovedadOperativa>("op_novedades");
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  const empleadoId = perfil?.empleadoId ?? "";
+  const subordinadosIds = perfil?.subordinadosIds ?? [];
+  const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudOperativa>(
+    "op_solicitudes",
+    "id",
+    alcanceOperacion(roles, empleadoId, subordinadosIds, "solicitudes"),
+  );
+  const [incapacidades, setIncapacidades] = useFirestoreState<IncapacidadOperativa>(
+    "op_incapacidades",
+    "id",
+    alcanceOperacion(roles, empleadoId, subordinadosIds, "incapacidades"),
+  );
+  const [asistencia, setAsistencia] = useFirestoreState<RegistroAsistencia>(
+    "op_asistencia",
+    "id",
+    alcanceOperacion(roles, empleadoId, subordinadosIds, "asistencia"),
+  );
+  const [horasExtras, setHorasExtras] = useFirestoreState<HoraExtra>(
+    "op_horas_extras",
+    "id",
+    alcanceOperacion(roles, empleadoId, subordinadosIds, "horasExtras"),
+  );
+  const [novedades, setNovedades] = useFirestoreState<NovedadOperativa>(
+    "op_novedades",
+    "id",
+    alcanceOperacion(roles, empleadoId, subordinadosIds, "novedades"),
+  );
 
   const registrarNovedad = useCallback(
     (n: Omit<NovedadOperativa, "id" | "fecha" | "hora">) => {
-      setNovedades((prev) => [{ ...n, id: nextId("nov"), fecha: hoyISO(), hora: horaActual() }, ...prev]);
+      // El empleado radica su solicitud, pero no puede escribir el historial
+      // operativo interno. Solo RRHH, Nómina o un mando autorizado lo registra.
+      const puedeRegistrar = roles.some((rol) =>
+        [
+          "administrador",
+          "talento_humano",
+          "nomina",
+          "jefe",
+          "director",
+          "gerente_general",
+          "supervisor",
+        ].includes(rol),
+      );
+      if (!puedeRegistrar) return;
+      setNovedades((prev) => [
+        { ...n, id: nextId("nov"), fecha: hoyISO(), hora: horaActual() },
+        ...prev,
+      ]);
     },
-    [],
+    [roles, setNovedades],
   );
 
   const paso = (
