@@ -20,8 +20,8 @@ before(async () => {
     const profiles = [
       ["emp-a-user", { id: "emp-a-user", email: "a@example.test", roles: ["empleado"], empleadoId: "emp-a", estado: "activo" }],
       ["emp-b-user", { id: "emp-b-user", email: "b@example.test", roles: ["empleado"], empleadoId: "emp-b", estado: "activo" }],
-      ["sup-user", { id: "sup-user", email: "sup@example.test", roles: ["supervisor"], empleadoId: "sup-1", estado: "activo" }],
-      ["other-sup-user", { id: "other-sup-user", email: "other@example.test", roles: ["supervisor"], empleadoId: "sup-2", estado: "activo" }],
+      ["sup-user", { id: "sup-user", email: "sup@example.test", roles: ["supervisor"], empleadoId: "sup-1", subordinadosIds: ["emp-b"], estado: "activo" }],
+      ["other-sup-user", { id: "other-sup-user", email: "other@example.test", roles: ["supervisor"], empleadoId: "sup-2", subordinadosIds: ["emp-c"], estado: "activo" }],
       ["hr-user", { id: "hr-user", email: "hr@example.test", roles: ["talento_humano"], empleadoId: "hr-1", estado: "activo" }],
       ["pay-user", { id: "pay-user", email: "pay@example.test", roles: ["nomina"], empleadoId: "pay-1", estado: "activo" }],
       ["director-user", { id: "director-user", email: "director@example.test", roles: ["director"], empleadoId: "dir-1", estado: "activo" }],
