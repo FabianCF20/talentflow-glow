@@ -1,30 +1,54 @@
 rules_version = '2';
 
-// Reglas de Firebase Storage para el proyecto "indunilo" (SIGTH).
 service firebase.storage {
   match /b/{bucket}/o {
-    // Archivos ligados a un documento del expediente: misma autorización que Firestore.
+
     function perfil() {
-      return firestore.get(/databases/(default)/documents/usuarios/$(request.auth.uid)).data;
+      return firestore.get(
+        /databases/(default)/documents/usuarios/$(request.auth.uid)
+      ).data;
     }
+
     function activo() {
-      return request.auth != null && perfil().get('estado', 'activo') == 'activo'
-        && !(perfil().get('estadoUsuario', 'activo') in ['inactivo', 'bloqueado']);
+      return request.auth != null
+        && perfil().get('estado', 'activo') == 'activo'
+        && !(perfil().get('estadoUsuario', 'activo') in ['inactivo', 'bloqueado', 'pendiente']);
     }
+
     function autorizado(documentoId) {
-      let datos = firestore.get(/databases/(default)/documents/portal_documentos/$(documentoId)).data;
+      let datos = firestore.get(
+        /databases/(default)/documents/portal_documentos/$(documentoId)
+      ).data;
       let roles = perfil().get('roles', []);
-      return activo() && (roles.hasAny(['administrador', 'talento_humano'])
-        || (perfil().get('empleadoId', '') != '' && datos.empleadoId == perfil().empleadoId)
-        || (roles.hasAny(['sst']) && datos.get('categoria', '') in ['sst', 'incapacidades']));
+      return activo() && (
+        roles.hasAny(['administrador', 'talento_humano'])
+        || (perfil().get('empleadoId', '') != ''
+          && datos.get('empleadoId', '') == perfil().get('empleadoId', ''))
+        || (roles.hasAny(['sst'])
+          && datos.get('categoria', '') in ['sst', 'incapacidades'])
+      );
     }
+
+    // Cada archivo queda ligado a un documento existente y autorizado.
     match /documentos/{documentoId}/{archivo} {
       allow read: if request.auth != null && autorizado(documentoId);
-      allow create: if request.auth != null && autorizado(documentoId)
-        && request.resource.size <= 5 * 1024 * 1024
-        && request.resource.contentType == 'application/pdf';
+
+      // Se aceptan PDF e imágenes de soporte; máximo 10 MB por archivo.
+      allow create: if request.auth != null
+        && autorizado(documentoId)
+        && request.resource != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType in [
+          'application/pdf',
+          'image/jpeg',
+          'image/png'
+        ];
+
+      // No se permite reemplazar ni borrar archivos desde el cliente.
       allow update, delete: if false;
     }
+
+    // Denegación explícita para cualquier ruta no declarada.
     match /{allPaths=**} {
       allow read, write: if false;
     }
