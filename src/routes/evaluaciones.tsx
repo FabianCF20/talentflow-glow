@@ -30,7 +30,7 @@ import {
 } from "@/lib/disciplinario";
 import { estadisticasFormulario } from "@/lib/sst";
 import { downloadCsv } from "@/lib/export";
-import { AREAS, CARGOS } from "@/data/organizacion";
+import { AREAS, CARGOS, areasDeDireccion } from "@/data/organizacion";
 import { nombreEmpleado, ESTADOS_VINCULADOS } from "@/types/rrhh";
 import {
   TIPO_ASIGNACION_LABEL,
@@ -134,12 +134,26 @@ function EvaluacionesPage() {
       toast.error("Seleccione al menos un destinatario para la asignación.");
       return;
     }
+    const areasIncluidas = new Set(valores.flatMap((areaId) => areasDeDireccion(areaId)));
+    const empleadosAsignados = vinculados
+      .filter((empleado) => {
+        if (tipoAsignacion === "empleado") return valores.includes(empleado.id);
+        if (tipoAsignacion === "cargo") return valores.includes(empleado.laboral?.cargoId ?? "");
+        if (tipoAsignacion === "area") return areasIncluidas.has(empleado.laboral?.areaId ?? "");
+        return tipoAsignacion === "empresa";
+      })
+      .map((empleado) => empleado.id);
+    if (empleadosAsignados.length === 0) {
+      toast.error("La asignación no tiene empleados activos vinculados.");
+      return;
+    }
     disc.crearEvaluacion({
       titulo,
       descripcion,
       tipo,
       campos,
       asignacion: { tipo: tipoAsignacion, valores: tipoAsignacion === "empresa" ? [] : valores },
+      empleadosAsignados,
       puntajeAprobacion: campos.some((c) => c.correcta !== undefined) ? puntajeAprobacion : undefined,
       responsable: "Talento Humano",
     });
