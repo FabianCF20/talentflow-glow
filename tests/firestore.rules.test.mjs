@@ -126,6 +126,29 @@ test("las observaciones internas no son visibles para el empleado titular", asyn
 });
 
 
+
+test("las respuestas disciplinarias no aceptan puntajes enviados por el navegador", async () => {
+  const store = db("emp-a-user");
+  await assertSucceeds(setDoc(doc(store, "disc_respuestas", "resp-own"), {
+    id: "resp-own",
+    evaluacionId: "eval-1",
+    empleadoId: "emp-a",
+    fecha: "2026-10-31",
+    hora: "10:00",
+    valores: { pregunta1: "respuesta" },
+  }));
+  await assertFails(setDoc(doc(store, "disc_respuestas", "resp-score"), {
+    id: "resp-score",
+    evaluacionId: "eval-1",
+    empleadoId: "emp-a",
+    fecha: "2026-10-31",
+    hora: "10:00",
+    valores: { pregunta1: "respuesta" },
+    puntaje: 100,
+    aprobado: true,
+  }));
+});
+
 test("el empleado solo puede aceptar una vez su propia entrega de dotación", async () => {
   const store = db("emp-a-user");
   const aceptacion = {
