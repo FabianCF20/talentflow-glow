@@ -40,6 +40,8 @@ service cloud.firestore {
     function esMandoAutorizado(id) {
       return activo()
         && tieneAlguno(['gerente_general', 'director', 'jefe', 'supervisor'])
+        && perfil().get('empleadoId', '') is string
+        && perfil().get('empleadoId', '') != ''
         && id is string
         && id in perfil().get('subordinadosIds', []);
     }
