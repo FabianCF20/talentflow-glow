@@ -21,6 +21,7 @@ before(async () => {
       ["emp-a-user", { id: "emp-a-user", email: "a@example.test", roles: ["empleado"], empleadoId: "emp-a", estado: "activo" }],
       ["emp-b-user", { id: "emp-b-user", email: "b@example.test", roles: ["empleado"], empleadoId: "emp-b", estado: "activo" }],
       ["sup-user", { id: "sup-user", email: "sup@example.test", roles: ["supervisor"], empleadoId: "sup-1", subordinadosIds: ["emp-b"], estado: "activo" }],
+      ["jefe-user", { id: "jefe-user", email: "jefe@example.test", roles: ["jefe"], empleadoId: "jefe-1", subordinadosIds: ["emp-b"], estado: "activo" }],
       ["other-sup-user", { id: "other-sup-user", email: "other@example.test", roles: ["supervisor"], empleadoId: "sup-2", subordinadosIds: ["emp-c"], estado: "activo" }],
       ["hr-user", { id: "hr-user", email: "hr@example.test", roles: ["talento_humano"], empleadoId: "hr-1", estado: "activo" }],
       ["pay-user", { id: "pay-user", email: "pay@example.test", roles: ["nomina"], empleadoId: "pay-1", estado: "activo" }],
@@ -42,7 +43,9 @@ before(async () => {
     await setDoc(doc(store, "nomina_periodos", "periodo-1"), { periodo: "2026-10" });
     await setDoc(doc(store, "op_asistencia", "asis-b"), { empleadoId: "emp-b", fecha: "2026-10-01" });
     await setDoc(doc(store, "op_asistencia", "asis-c"), { empleadoId: "emp-c", fecha: "2026-10-01" });
-    await setDoc(doc(store, "op_solicitudes", "sol-b"), { empleadoId: "emp-b", estado: "pendiente_jefe" });
+    await setDoc(doc(store, "op_solicitudes", "sol-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
+    await setDoc(doc(store, "op_horas_extras", "he-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
+    await setDoc(doc(store, "disc_incidencias", "dis-b"), { empleadoId: "emp-b", estado: "registrada", traza: [], actuaciones: [] });
     await setDoc(doc(store, "disc_observaciones", "obs-b"), { empleadoId: "emp-b", texto: "interno" });
     await setDoc(doc(store, "portal_documentos", "doc-a"), { empleadoId: "emp-a", categoria: "personales", versiones: [] });
   });
@@ -134,4 +137,46 @@ test("auditoría solo permite anexar eventos atribuidos al UID autenticado", asy
 
 test("colecciones no declaradas quedan denegadas", async () => {
   await assertFails(getDoc(doc(db("admin-user"), "coleccion_no_autorizada", "x")));
+});
+
+test("el alcance jerárquico solo lo puede mantener Talento Humano o administración", async () => {
+  await assertFails(updateDoc(doc(db("sup-user"), "usuarios", "sup-user"), {
+    subordinadosIds: ["emp-b", "emp-c"],
+  }));
+  await assertSucceeds(updateDoc(doc(db("hr-user"), "usuarios", "sup-user"), {
+    subordinadosIds: ["emp-b", "emp-c"],
+  }));
+});
+
+test("las aprobaciones de jefe y nómina respetan las etapas del flujo", async () => {
+  const jefe = db("jefe-user");
+  const nomina = db("pay-user");
+  await assertSucceeds(updateDoc(doc(jefe, "op_solicitudes", "sol-b"), {
+    estado: "pendiente_rrhh",
+    flujo: [{ etapa: "jefe", accion: "aprobada", responsable: "Jefe", fecha: "2026-10-31" }],
+  }));
+  await assertFails(updateDoc(doc(jefe, "op_solicitudes", "sol-b"), {
+    estado: "aprobada",
+    flujo: [{ etapa: "rrhh", accion: "aprobada", responsable: "Jefe", fecha: "2026-10-31" }],
+  }));
+  await assertSucceeds(updateDoc(doc(jefe, "disc_incidencias", "dis-b"), {
+    estado: "validada",
+    traza: [{ etapa: "jefe", accion: "validada", actor: "Jefe", fecha: "2026-10-31", hora: "10:00" }],
+  }));
+  await assertFails(updateDoc(doc(jefe, "disc_incidencias", "dis-b"), {
+    estado: "sancionada",
+    traza: [{ etapa: "rrhh", accion: "sancion", actor: "Jefe", fecha: "2026-10-31", hora: "10:00" }],
+  }));
+  await assertSucceeds(updateDoc(doc(jefe, "op_horas_extras", "he-b"), {
+    estado: "pendiente_nomina",
+    flujo: [{ etapa: "jefe", accion: "aprobada", responsable: "Jefe", fecha: "2026-10-31" }],
+  }));
+  await assertFails(updateDoc(doc(jefe, "op_horas_extras", "he-b"), {
+    estado: "liquidada",
+    flujo: [{ etapa: "nomina", accion: "aprobada", responsable: "Jefe", fecha: "2026-10-31" }],
+  }));
+  await assertSucceeds(updateDoc(doc(nomina, "op_horas_extras", "he-b"), {
+    estado: "liquidada",
+    flujo: [{ etapa: "nomina", accion: "aprobada", responsable: "Nómina", fecha: "2026-10-31" }],
+  }));
 });
