@@ -207,7 +207,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /nomina_recurrentes/{id} {
-      allow read: if activo() && esNomina();
+      allow read: if activo() && esConsultaNomina();
       allow create, update: if activo() && esNomina();
       allow delete: if false;
     }
@@ -250,9 +250,8 @@ service cloud.firestore {
     }
     match /sst_respuestas/{id} {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
-      allow create: if activo()
-        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
-        && request.resource.data.get('estado', '') == 'pendiente_jefe';
+      allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.keys().hasOnly(['id', 'formularioId', 'empleadoId', 'fecha', 'hora', 'valores']);
       allow update: if activo() && esSst()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
@@ -264,14 +263,22 @@ service cloud.firestore {
         esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
-      allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''));
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente_jefe';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'estado', 'flujo', 'desde', 'hasta', 'dias', 'desdeOriginal',
           'hastaOriginal', 'comentario', 'fechaRevision', 'revisadoPor'
         ])
-        && (esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', '')));
+        && (
+          (esRrhh() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza', 'actuaciones']))
+          || (tieneAlguno(['jefe', 'director'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'traza'])
+            && request.resource.data.get('estado', '') in ['validada', 'desestimada', 'escalada_rrhh'])
+        );
       allow delete: if false;
     }
     match /op_incapacidades/{id} {
@@ -298,7 +305,12 @@ service cloud.firestore {
       );
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
-        && (esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', '')));
+        && (
+          esRrhh()
+          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
+        );
       allow delete: if false;
     }
     match /op_horas_extras/{id} {
@@ -312,7 +324,12 @@ service cloud.firestore {
         && request.resource.data.get('estado', '') == 'pendiente_jefe';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
-        && (esNomina() || esMandoAutorizado(resource.data.get('empleadoId', '')));
+        && (
+          (esNomina() && request.resource.data.get('estado', '') in ['liquidada', 'rechazada'])
+          || (tieneAlguno(['jefe', 'director', 'gerente_general'])
+            && esMandoAutorizado(resource.data.get('empleadoId', ''))
+            && request.resource.data.get('estado', '') in ['pendiente_nomina', 'rechazada'])
+        );
       allow delete: if false;
     }
     match /op_novedades/{id} {
@@ -358,7 +375,9 @@ service cloud.firestore {
         esRrhh() || esSst() || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
-      allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''));
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.keys().hasOnly(['id', 'evaluacionId', 'empleadoId', 'fecha', 'hora', 'valores']);
       allow update, delete: if false;
     }
 
