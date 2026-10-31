@@ -2,6 +2,7 @@
  * Tarjeta de documento del expediente con versiones, vigencia y descarga.
  */
 import { useState } from "react";
+import { toast } from "sonner";
 import { ChevronDown, Download, History, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,12 +53,14 @@ export function DocumentoCard({
 }: {
   documento: DocumentoEmpleado;
   empleado?: EmpleadoRRHH;
-  onNuevaVersion?: (nota: string, fechaVencimiento?: string) => void;
+  onNuevaVersion?: (archivo: File, nota: string, fechaVencimiento?: string) => Promise<void>;
   subtitulo?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [nota, setNota] = useState("");
   const [vence, setVence] = useState(documento.fechaVencimiento ?? "");
+  const [archivoVersion, setArchivoVersion] = useState<File | null>(null);
+  const [subiendoVersion, setSubiendoVersion] = useState(false);
   const ultima = ultimaVersion(documento);
 
   return (
@@ -75,8 +78,8 @@ export function DocumentoCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" onClick={() => descargarDocumento(documento, ultima, empleado)}>
-          <Download className="size-4" /> Descargar v{ultima.version}
+        <Button size="sm" variant="outline" disabled={!ultima.storagePath} onClick={() => void descargarDocumento(documento, ultima, empleado).catch((error) => toast.error(error instanceof Error ? error.message : "No se pudo descargar el archivo."))}>
+          <Download className="size-4" /> {ultima.storagePath ? "Descargar v" + ultima.version : "Archivo no disponible"}
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setAbierto((v) => !v)}>
           <History className="size-4" /> Historial ({documento.versiones.length})
@@ -98,12 +101,8 @@ export function DocumentoCard({
                     {v.fecha} · {v.subidoPor} · {v.tamanoKb} KB · {v.nota ?? "Sin observaciones"}
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => descargarDocumento(documento, v, empleado)}
-                >
-                  <Download className="size-3.5" /> Descargar
+                <Button size="sm" variant="ghost" disabled={!v.storagePath} onClick={() => void descargarDocumento(documento, v, empleado).catch((error) => toast.error(error instanceof Error ? error.message : "No se pudo descargar el archivo."))}>
+                  <Download className="size-3.5" /> {v.storagePath ? "Descargar" : "Sin archivo"}
                 </Button>
               </div>
             ))}
@@ -117,14 +116,26 @@ export function DocumentoCard({
                 className="h-9 flex-1"
                 onChange={(e) => setNota(e.target.value)}
               />
-              <Button
-                size="sm"
-                onClick={() => {
-                  onNuevaVersion(nota.trim() || `Nueva versión v${documento.versiones.length + 1}`, vence || undefined);
+              <Input type="file" accept=".pdf,application/pdf" className="max-w-xs" onChange={(event) => setArchivoVersion(event.target.files?.[0] ?? null)} />
+              <Button size="sm" disabled={!archivoVersion || subiendoVersion} onClick={async () => {
+                if (!archivoVersion) return;
+                if (archivoVersion.type !== "application/pdf" || archivoVersion.size <= 0 || archivoVersion.size > 5 * 1024 * 1024 || (await archivoVersion.slice(0, 5).text()) !== "%PDF-") {
+                  toast.error("Selecciona un PDF válido de máximo 5 MB.");
+                  return;
+                }
+                setSubiendoVersion(true);
+                try {
+                  await onNuevaVersion(archivoVersion, nota.trim() || ("Nueva versión v" + (documento.versiones.length + 1)), vence || undefined);
+                  setArchivoVersion(null);
                   setNota("");
-                }}
-              >
-                <Upload className="size-4" /> Cargar nueva versión
+                  toast.success("Nueva versión almacenada correctamente.");
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "No se pudo cargar la nueva versión.");
+                } finally {
+                  setSubiendoVersion(false);
+                }
+              }}>
+                <Upload className="size-4" /> {subiendoVersion ? "Cargando..." : "Cargar nueva versión"}
               </Button>
               <div className="w-full space-y-1">
                 <label htmlFor={`vence-${documento.id}`} className="text-xs text-muted-foreground">Nueva fecha de vencimiento</label>
