@@ -25,6 +25,10 @@ service cloud.firestore {
     function esAdmin() { return tieneRol('administrador'); }
     function esRrhh() { return tieneAlguno(['administrador', 'talento_humano']); }
     function esNomina() { return tieneAlguno(['administrador', 'nomina', 'contabilidad']); }
+    // Consulta de nómina: gerencia y dirección pueden consultar, pero no liquidar ni modificar.
+    function esConsultaNomina() {
+      return esRrhh() || tieneAlguno(['gerente_general', 'director', 'nomina', 'contabilidad']);
+    }
     function esSst() { return tieneAlguno(['administrador', 'sst', 'talento_humano']); }
     function miEmpleadoId() { return activo() ? perfil().get('empleadoId', '') : ''; }
     function esMiEmpleado(id) {
@@ -160,18 +164,18 @@ service cloud.firestore {
       allow write: if activo() && esRrhh();
     }
     match /org_centros_costo/{id} {
-      allow read: if activo() && esNomina();
+      allow read: if activo() && esConsultaNomina();
       allow create, update: if activo() && (esRrhh() || esNomina());
       allow delete: if false;
     }
     match /org_cargos/{id} {
-      allow read: if activo() && esNomina();
+      allow read: if activo() && esConsultaNomina();
       allow create, update: if activo() && esRrhh();
       allow delete: if false;
     }
     // org_empleados incluye salario: no se entrega a mandos ni empleados.
     match /org_empleados/{empleadoId} {
-      allow read: if activo() && esNomina();
+      allow read: if activo() && esConsultaNomina();
       allow create, update: if activo() && esRrhh();
       allow delete: if false;
     }
@@ -193,13 +197,15 @@ service cloud.firestore {
 
     // Nómina: no se permite lectura global a gerentes, directores, jefes o supervisores.
     match /nomina_periodos/{id} {
-      allow read, write: if activo() && esNomina();
+      allow read: if activo() && esConsultaNomina();
+      allow create, update: if activo() && esNomina();
+      allow delete: if false;
     }
     match /nomina_recurrentes/{id} {
       allow read, write: if activo() && esNomina();
     }
     match /nomina_liquidaciones/{id} {
-      allow read: if activo() && (esNomina() || esMiEmpleado(resource.data.get('empleadoId', '')));
+      allow read: if activo() && (esConsultaNomina() || esMiEmpleado(resource.data.get('empleadoId', '')));
       allow create, update: if activo() && esNomina();
       allow delete: if false;
     }
