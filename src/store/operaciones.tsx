@@ -150,7 +150,10 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
         ].includes(rol),
       );
       if (!puedeRegistrar) return;
-      setNovedades((prev) => [{ ...n, id: nextId("nov"), fecha: hoyISO(), hora: horaActual() }, ...prev]);
+      setNovedades((prev) => [
+        { ...n, id: nextId("nov"), fecha: hoyISO(), hora: horaActual() },
+        ...prev,
+      ]);
     },
     [roles, setNovedades],
   );
