@@ -15,14 +15,12 @@ import { doc as firestoreDoc, setDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes } from "firebase/storage";
 import { DOCUMENTOS_INICIALES, SOLICITUDES_INICIALES } from "@/data/portal";
 import { EXPEDIENTES } from "@/data/rrhh";
-import { generarCodigo } from "@/lib/certificados";
 import type {
   CampoAutogestion,
   CategoriaDocumento,
   CertificadoEmitido,
   DocumentoEmpleado,
   SolicitudCambio,
-  TipoCertificado,
 } from "@/types/portal";
 import type { DatosPersonales, Familiar } from "@/types/rrhh";
 import { hoyISO as hoy } from "@/lib/fechas";
@@ -70,12 +68,7 @@ interface PortalContextValue {
     documentoId: string,
     input: { archivo: File; subidoPor: string; nota?: string; fechaVencimiento?: string },
   ) => Promise<void>;
-  emitirCertificado: (
-    tipo: TipoCertificado,
-    empleadoId: string,
-    solicitadoPor: string,
-    incluyeSalario: boolean,
-  ) => CertificadoEmitido;
+
 }
 
 // Se conserva una sola instancia del contexto aunque el módulo se recargue en caliente.
@@ -264,23 +257,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     };
     await setDoc(firestoreDoc(db, "portal_documentos", documentoId), limpiarUndefined(actualizado) as Record<string, unknown>);
   }, [roles, documentosLeidos]);
-  const emitirCertificado = useCallback<PortalContextValue["emitirCertificado"]>(
-    (tipo, empleadoId, solicitadoPor, incluyeSalario) => {
-      const cert: CertificadoEmitido = {
-        id: `cert-${Date.now()}`,
-        codigo: generarCodigo(tipo),
-        tipo,
-        empleadoId,
-        fechaEmision: hoy(),
-        incluyeSalario,
-        solicitadoPor,
-      };
-      setCertificados((prev) => [cert, ...prev]);
-      return cert;
-    },
-    [setCertificados],
-  );
-
   const value = useMemo<PortalContextValue>(
     () => ({
       solicitudes,
@@ -293,7 +269,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       rechazarSolicitud,
       cargarDocumento,
       nuevaVersion,
-      emitirCertificado,
     }),
     [
       solicitudes,
@@ -306,7 +281,6 @@ export function PortalProvider({ children }: { children: ReactNode }) {
       rechazarSolicitud,
       cargarDocumento,
       nuevaVersion,
-      emitirCertificado,
     ],
   );
 
