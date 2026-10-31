@@ -412,7 +412,8 @@ service cloud.firestore {
       // RRHH/SST gestionan todas; cada empleado solo consulta instrumentos activos asignados.
       allow read: if activo() && (
         esRrhh() || tieneRol('sst')
-        || (miEmpleadoId() != ''
+        || (resource.data.get('estado', '') == 'activo'
+          && miEmpleadoId() != ''
           && miEmpleadoId() in resource.data.get('empleadosAsignados', []))
       );
       allow create: if activo()
