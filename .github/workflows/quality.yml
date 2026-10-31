@@ -32,3 +32,29 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+  firestore-rules:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java for Firebase Emulator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install temporary rules test tools
+        run: npm install --no-save --package-lock=false firebase-tools @firebase/rules-unit-testing
+
+      - name: Run Firestore Security Rules tests
+        run: npx firebase emulators:exec --only firestore --project demo-talentflow-rules "node --test tests/firestore.rules.test.mjs"
