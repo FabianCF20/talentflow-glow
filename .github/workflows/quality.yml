@@ -57,10 +57,10 @@ jobs:
         run: |
           mkdir -p /tmp/firestore-rules-test/tests
           cp firebase.json firestore.rules storage.rules /tmp/firestore-rules-test/
-          cp tests/firestore.rules.test.mjs /tmp/firestore-rules-test/tests/
+          cp tests/firestore.rules.test.mjs tests/storage.rules.test.mjs /tmp/firestore-rules-test/tests/
           cd /tmp/firestore-rules-test
           npm init -y
           npm install --no-save --package-lock=false --no-audit --no-fund "firebase@^12.17.1" firebase-tools @firebase/rules-unit-testing
 
       - name: Run Firestore Security Rules tests
-        run: cd /tmp/firestore-rules-test && npx firebase emulators:exec --only firestore --project demo-talentflow-rules "node --test tests/firestore.rules.test.mjs"
+        run: cd /tmp/firestore-rules-test && npx firebase emulators:exec --only firestore,storage --project demo-talentflow-rules "node --test tests/firestore.rules.test.mjs tests/storage.rules.test.mjs"
