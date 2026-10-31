@@ -24,6 +24,7 @@ import type {
 import type { DatosPersonales, Familiar } from "@/types/rrhh";
 import { hoyISO as hoy } from "@/lib/fechas";
 import { useAuth } from "@/lib/auth";
+import { alcancePorEmpleado } from "@/lib/acceso-operativo";
 import { alcanceConsultaDocumental, puedeLeerDocumento, categoriasGestionables, gestionaDocumentacion } from "@/lib/acceso-documental";
 
 /**
@@ -89,7 +90,18 @@ export function PortalProvider({ children }: { children: ReactNode }) {
   const [solicitudes, setSolicitudes] = useFirestoreState<SolicitudCambio>("portal_solicitudes", "id", propio);
   const [documentosLeidos, setDocumentos] = useFirestoreState<DocumentoEmpleado>("portal_documentos", "id", alcanceConsultaDocumental(roles, propioId, true));
   const documentos = documentosLeidos.filter((d) => puedeLeerDocumento(roles, propioId, d));
-  const [certificados, setCertificados] = useFirestoreState<CertificadoEmitido>("portal_certificados", "id", propio);
+  const alcanceCertificados = alcancePorEmpleado(
+    roles,
+    propioId,
+    [],
+    ["administrador", "talento_humano", "nomina"],
+    { incluirSubordinados: false },
+  );
+  const [certificados, setCertificados] = useFirestoreState<CertificadoEmitido>(
+    "portal_certificados",
+    "id",
+    alcanceCertificados,
+  );
   const [aprobados, setAprobados] = useState<Record<string, Partial<CamposPersonalesEditables>>>({});
   const [familiaresExtra, setFamiliaresExtra] = useState<Record<string, Familiar[]>>({});
 
