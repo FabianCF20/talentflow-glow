@@ -160,7 +160,7 @@ service cloud.firestore {
     match /org_dependencias/{docId}    { allow read: if activo(); allow write: if esRrhh() && activo(); }
     match /org_centros_trabajo/{docId} { allow read: if activo(); allow write: if esRrhh() && activo(); }
     match /org_centros_costo/{docId}   { allow read: if activo() && (esRrhh() || esNomina()); allow write: if (esRrhh() || esNomina()) && activo(); }
-    match /org_cargos/{docId}          { allow read: if activo(); allow write: if esRrhh() && activo(); }
+    match /org_cargos/{docId}          { allow read: if esRrhh() || esNomina(); allow write: if esRrhh() && activo(); }
 
     // Esta colección contiene salario: no se expone a todos los usuarios autenticados.
     match /org_empleados/{docId} {
@@ -208,7 +208,7 @@ service cloud.firestore {
       allow write: if esSst() && activo();
     }
     match /sst_accidentes/{docId} {
-      allow read: if esSst() || esMando();
+      allow read: if esSst();
       allow write: if esSst() && activo();
     }
     match /sst_capacitaciones/{docId} {
