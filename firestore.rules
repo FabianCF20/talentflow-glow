@@ -220,12 +220,16 @@ service cloud.firestore {
     // SST y datos ocupacionales.
     match /sst_examenes/{id} {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
-      allow create, update: if activo() && esSst();
+      allow create: if activo() && esSst();
+      allow update: if activo() && esSst()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
     }
     match /sst_accidentes/{id} {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
-      allow create, update: if activo() && esSst();
+      allow create: if activo() && esSst();
+      allow update: if activo() && esSst()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
     }
     match /sst_capacitaciones/{id} {
@@ -235,12 +239,16 @@ service cloud.firestore {
     }
     match /sst_tallas/{empleadoId} {
       allow read: if activo() && (esSst() || esMiEmpleado(empleadoId));
-      allow create, update: if activo() && (esSst() || esMiEmpleado(empleadoId));
+      allow create, update: if activo()
+        && (esSst() || esMiEmpleado(empleadoId))
+        && request.resource.data.get('empleadoId', empleadoId) == empleadoId;
       allow delete: if false;
     }
     match /sst_entregas/{id} {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
-      allow create, update: if activo() && esSst();
+      allow create: if activo() && esSst();
+      allow update: if activo() && esSst()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
     }
     match /sst_formularios/{id} {
@@ -393,9 +401,14 @@ service cloud.firestore {
       allow read: if activo() && (
         esRrhh() || esMiEmpleado(resource.data.get('empleadoId', ''))
       );
-      allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''));
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente';
       allow update: if activo() && esRrhh()
-        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estado', 'fechaRevision', 'revisadoPor', 'comentarioRrhh'
+        ]);
       allow delete: if false;
     }
     match /portal_documentos/{id} {
