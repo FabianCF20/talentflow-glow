@@ -212,3 +212,27 @@ Se añadió `src/lib/sincronizar-jerarquia.ts`:
 - La operación requiere RR. HH./Administración y las reglas de Firestore limitan los campos que pueden cambiar.
 
 Pendiente de esta mejora: pruebas de integración del flujo completo y un trigger/backend para cubrir escrituras que no pasen por esas pantallas.
+
+
+## Fase de endurecimiento de certificados y evaluaciones — rama `security/certificates-evaluations-hardening`
+
+### Certificados y huellas de integridad
+
+- Se retiró del portal la emisión y descarga de certificados generados exclusivamente en el navegador. Los controles quedan deshabilitados hasta implementar un servicio backend que valide permisos, datos vigentes, autorización del emisor, persistencia y trazabilidad.
+- Se eliminó el mecanismo de hash de respaldo no criptográfico. Si Web Crypto / SHA-256 no está disponible, la operación falla.
+- El registro de huella ahora falla de forma cerrada si no hay sesión o si Firestore no confirma la escritura; ya no se registra un error y se devuelve un sello como si hubiera sido exitoso.
+- Una huella SHA-256 generada por el navegador no se debe presentar como firma electrónica confiable ni como prueba de identidad o voluntad del firmante. La emisión confiable y cualquier firma electrónica deben implementarse del lado servidor.
+
+### Evaluaciones disciplinarias
+
+La autorización completa de lectura y respuesta de evaluaciones asignadas sigue pendiente. La regla actual de `disc_respuestas` comprueba que el empleado responda por sí mismo y rechaza campos de puntaje/aprobación enviados por el cliente, pero todavía debe comprobar la asignación activa contra `disc_evaluaciones` antes de permitir lectura y creación. No se debe habilitar esta función a empleados en producción hasta completar esa comprobación y sus pruebas positivas/negativas.
+
+### Validaciones pendientes de esta fase
+
+- Ejecutar build, ESLint y pruebas Firestore/Storage sobre esta rama.
+- Implementar endpoint/backend confiable para solicitud, emisión y firma de certificados.
+- Materializar y validar destinatarios de evaluaciones para asignaciones por empleado, cargo, área y empresa, sin exponer datos salariales.
+- Calcular puntajes y aprobación en backend; nunca confiar en valores enviados por el navegador.
+- Añadir pruebas que demuestren que un empleado asignado puede responder, uno no asignado no puede leer ni responder, y que una evaluación archivada no acepta respuestas.
+
+**Estado:** cambios en rama de trabajo; no fusionados, no desplegados y sin publicación de reglas Firebase.
