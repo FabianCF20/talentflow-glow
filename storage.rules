@@ -11,8 +11,9 @@ service firebase.storage {
 
     function activo() {
       return request.auth != null
-        && perfil().get('estado', 'activo') == 'activo'
-        && !(perfil().get('estadoUsuario', 'activo') in ['inactivo', 'bloqueado', 'pendiente']);
+        && perfil().get('estado', '') == 'activo'
+        && perfil().get('estadoUsuario', 'activo') == 'activo'
+        && perfil().get('bloqueado', false) == false;
     }
 
     function autorizado(documentoId) {
