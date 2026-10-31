@@ -89,7 +89,7 @@ async function persistirDiff<T extends object>(
 export function useFirestoreState<T extends object>(
   coleccion: string,
   campoId = "id",
-  opciones: { enabled?: boolean; filtros?: { campo: string; valor: string | string[] }[] } = {},
+  opciones: { enabled?: boolean; filtros?: { campo: string; valor: string | string[]; operador?: "==" | "in" | "array-contains" }[] } = {},
 ): [T[], (accion: SetStateAction<T[]>) => void] {
   const [items, setItems] = useState<T[]>([]);
   const ref = useRef<T[]>([]);
@@ -111,9 +111,17 @@ export function useFirestoreState<T extends object>(
       setItems([]);
       return;
     }
-    const filtros = JSON.parse(filtrosClave) as { campo: string; valor: string | string[] }[];
+    const filtros = JSON.parse(filtrosClave) as {
+      campo: string;
+      valor: string | string[];
+      operador?: "==" | "in" | "array-contains";
+    }[];
     const condiciones = filtros.map((f) =>
-      where(f.campo === "__name__" ? documentId() : f.campo, Array.isArray(f.valor) ? "in" : "==", f.valor),
+      where(
+        f.campo === "__name__" ? documentId() : f.campo,
+        f.operador ?? (Array.isArray(f.valor) ? "in" : "=="),
+        f.valor,
+      ),
     );
     const origen = collection(db, coleccion);
     const consulta = condiciones.length === 1
