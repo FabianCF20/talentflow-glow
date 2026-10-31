@@ -32,7 +32,9 @@ export function alcanceOperacion(
   // Las novedades operativas no son un historial personal para empleados.
   if (modulo === "novedades") {
     const ids = [...new Set(subordinadosIds.filter(Boolean))];
-    return ids.length ? { filtros: ids.map((id) => ({ campo: "empleadoId", valor: id })) } : { enabled: false };
+    return ids.length
+      ? { filtros: ids.map((id) => ({ campo: "empleadoId", valor: id })) }
+      : { enabled: false };
   }
 
   const ids = [...new Set([empleadoId, ...subordinadosIds].filter(Boolean))];
