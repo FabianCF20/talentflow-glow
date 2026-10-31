@@ -335,9 +335,25 @@ service cloud.firestore {
         && data.get('observacion', '') is string
         && (data.get('estado', '') != 'observada' || data.get('observacion', '').size() >= 5);
     }
+    function esMiAsistenciaId(id) {
+      let empleadoId = perfil().get('empleadoId', '');
+      return empleadoId is string
+        && empleadoId.size() > 0
+        && id is string
+        && id.size() == empleadoId.size() + 11
+        && id[0:empleadoId.size()] == empleadoId
+        && id[empleadoId.size()] == '_';
+    }
     match /op_asistencia/{id} {
-      // Nómina no recibe acceso general a asistencia; cada empleado ve solo su registro.
-      allow read: if activo() && (
+      // La lectura directa del documento propio también funciona antes de la primera marcación.
+      allow get: if activo() && (
+        esRrhh()
+        || esMiAsistenciaId(id)
+        || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      // Las consultas de lista deben incluir el filtro que prueba el alcance por empleado.
+      allow list: if activo() && (
         esRrhh()
         || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
