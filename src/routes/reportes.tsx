@@ -81,6 +81,17 @@ function ReportesPage() {
   // Saldos de vacaciones: aún no se calculan automáticamente.
   const vacacionesPendientes: Record<string, number> = {};
 
+  const anios = useMemo(() => {
+    const actual = new Date().getFullYear();
+    const deHoras = horasExtras.map((h) => Number(h.fecha?.slice(0, 4))).filter(Boolean);
+    return Array.from(new Set([actual, ...deHoras])).sort((a, b) => b - a);
+  }, [horasExtras]);
+  const [filtro, setFiltro] = useState<FiltroReportes>({
+    anio: anios[0] ?? new Date().getFullYear(),
+    areaId: "todas",
+    centroCostoId: "todos",
+  });
+
   useEffect(() => {
     if (!esRrhh) {
       setAsistencia([]);
@@ -103,17 +114,6 @@ function ReportesPage() {
       },
     );
   }, [filtro.anio, esRrhh]);
-
-  const anios = useMemo(() => {
-    const actual = new Date().getFullYear();
-    const deHoras = horasExtras.map((h) => Number(h.fecha?.slice(0, 4))).filter(Boolean);
-    return Array.from(new Set([actual, ...deHoras])).sort((a, b) => b - a);
-  }, [horasExtras]);
-  const [filtro, setFiltro] = useState<FiltroReportes>({
-    anio: anios[0] ?? new Date().getFullYear(),
-    areaId: "todas",
-    centroCostoId: "todos",
-  });
 
   const filtrados = useMemo(
     () =>
