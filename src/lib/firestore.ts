@@ -153,8 +153,20 @@ export function useFirestoreState<T extends object>(
     (accion: SetStateAction<T[]>) => {
       if (!auth.currentUser) return;
       const previo = ref.current;
-      const siguiente =
+      const solicitado =
         typeof accion === "function" ? (accion as (p: T[]) => T[])(previo) : accion;
+
+      // Las reglas de producción bloquean el borrado desde el cliente.
+      // Conservamos los registros omitidos: deben archivarse mediante un
+      // cambio de estado, no desaparecer del arreglo ni generar batch.delete.
+      const idsSolicitados = new Set(solicitado.map((item) => idDe(item, campoId)));
+      const omitidos = previo.filter((item) => !idsSolicitados.has(idDe(item, campoId)));
+      if (omitidos.length) {
+        console.warn(
+          `[firestore:${coleccion}] se ignoró el intento de eliminar ${omitidos.length} registro(s); use un estado de archivo.`,
+        );
+      }
+      const siguiente = omitidos.length ? [...solicitado, ...omitidos] : solicitado;
       ref.current = siguiente;
       setItems(siguiente);
       void persistirDiff(coleccion, previo, siguiente, campoId);
