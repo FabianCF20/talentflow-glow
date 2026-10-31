@@ -2,7 +2,7 @@ import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from "firebase/firestore";
 
 const projectId = "demo-talentflow-rules";
 let env;
@@ -158,6 +158,20 @@ test("los mandos solo consultan subordinados y validan sin alterar las marcacion
   }));
   await assertFails(updateDoc(subordinate, { "ingreso.latitud": 0 }));
   await assertFails(getDoc(doc(supervisor, "op_asistencia", "asis-c")));
+  await assertSucceeds(getDocs(query(
+    collection(supervisor, "op_asistencia"),
+    where("fecha", "==", "2026-10-01"),
+    where("empleadoId", "in", ["emp-b"]),
+  )));
+  await assertFails(getDocs(query(
+    collection(supervisor, "op_asistencia"),
+    where("fecha", "==", "2026-10-01"),
+  )));
+  await assertFails(getDoc(doc(db("pay-user"), "op_asistencia", "asis-b")));
+  await assertSucceeds(getDocs(query(
+    collection(db("hr-user"), "op_asistencia"),
+    where("fecha", "==", "2026-10-01"),
+  )));
   await assertSucceeds(getDoc(doc(supervisor, "op_solicitudes", "sol-b")));
   await assertSucceeds(getDoc(doc(supervisor, "op_horas_extras", "he-b")));
   await assertFails(getDoc(doc(otherSupervisor, "op_horas_extras", "he-b")));
