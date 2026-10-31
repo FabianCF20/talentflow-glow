@@ -68,6 +68,7 @@ import { can } from "@/config/roles";
 import { gestionaDocumentacion } from "@/lib/acceso-documental";
 import { ResumenMini } from "@/components/portal/ResumenMini";
 import { ResponderFormulario } from "@/components/sst/ResponderFormulario";
+import { MarcacionAsistencia } from "@/components/portal/MarcacionAsistencia";
 import { useSst } from "@/store/sst";
 import { formulariosPara } from "@/lib/sst";
 import { TIPO_ASIGNACION_LABEL } from "@/types/sst";
@@ -397,6 +398,7 @@ function PortalEmpleadoPage() {
           <TabsTrigger value="actualizar">Actualizar datos</TabsTrigger>
           <TabsTrigger value="documentos">Mis documentos</TabsTrigger>
           <TabsTrigger value="certificados">Certificados</TabsTrigger>
+          <TabsTrigger value="asistencia">Mi asistencia</TabsTrigger>
           <TabsTrigger value="formularios">
             Formularios
             {misFormularios.filter((f) => !yaRespondio(f.id)).length > 0 && (
@@ -833,7 +835,11 @@ function PortalEmpleadoPage() {
             })
           )}
         </TabsContent>
-      </Tabs>
+      <TabsContent value="asistencia" className="mt-4">
+          <MarcacionAsistencia />
+        </TabsContent>
+
+        </Tabs>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <ResumenMini icon={CalendarDays} label="Saldo de vacaciones" valor={`${vacaciones.reduce((a, v) => a + (v.diasCausados - v.diasTomados), 0)} días`} />
