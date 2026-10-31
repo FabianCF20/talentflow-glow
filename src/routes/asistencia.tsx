@@ -5,7 +5,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { collection, doc, onSnapshot, query, serverTimestamp, where, writeBatch } from "firebase/firestore";
-import { AlertTriangle, CheckCircle2, Clock, MapPin, Users } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatCard } from "@/components/common/StatCard";
@@ -127,7 +127,6 @@ function AsistenciaPage() {
         );
 
     const resultados = new Map<number, RegistroDia[]>();
-    const errores: (() => void)[] = [];
     const unsubs = consultas.map((consulta, indice) =>
       onSnapshot(
         consulta,
@@ -158,7 +157,6 @@ function AsistenciaPage() {
     );
     return () => {
       unsubs.forEach((unsub) => unsub());
-      errores.forEach((cancelar) => cancelar());
     };
   }, [fecha, puedeConsultar, esRrhh, subordinados.join("|")]);
 
