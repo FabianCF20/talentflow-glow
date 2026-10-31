@@ -4,7 +4,6 @@
 import { useCallback, useEffect, useRef, useState, type SetStateAction } from "react";
 import {
   collection,
-  deleteDoc,
   doc,
   getDocs,
   onSnapshot,
@@ -46,11 +45,6 @@ export async function guardarDoc<T extends object>(coleccion: string, item: T, c
     doc(db, coleccion, idDe(item, campoId)),
     limpiarUndefined(item) as Record<string, unknown>,
   );
-}
-
-/** Elimina un documento. */
-export async function eliminarDoc(coleccion: string, id: string) {
-  await deleteDoc(doc(db, coleccion, id));
 }
 
 /** Lee una colección completa una sola vez. */
