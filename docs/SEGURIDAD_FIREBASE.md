@@ -225,14 +225,18 @@ Pendiente de esta mejora: pruebas de integración del flujo completo y un trigge
 
 ### Evaluaciones disciplinarias
 
-La autorización completa de lectura y respuesta de evaluaciones asignadas sigue pendiente. La regla actual de `disc_respuestas` comprueba que el empleado responda por sí mismo y rechaza campos de puntaje/aprobación enviados por el cliente, pero todavía debe comprobar la asignación activa contra `disc_evaluaciones` antes de permitir lectura y creación. No se debe habilitar esta función a empleados en producción hasta completar esa comprobación y sus pruebas positivas/negativas.
+- Al crear una evaluación, el flujo de Talento Humano/SST materializa los IDs de empleados activos destinatarios en `empleadosAsignados`, calculados desde la ficha laboral actual y la asignación por empleado, cargo, área (incluye subáreas) o empresa.
+- Los empleados consultan únicamente evaluaciones activas que contienen su ID en `empleadosAsignados`; la consulta usa `array-contains` y las reglas validan el mismo alcance.
+- Firestore solo acepta respuestas del titular autenticado cuando la evaluación existe, sigue activa y lo incluye en `empleadosAsignados`.
+- Se rechazan campos de puntaje/aprobación enviados por el navegador y las respuestas no se pueden editar ni borrar.
+- Las asignaciones antiguas sin `empleadosAsignados` quedan inaccesibles para empleados hasta que Talento Humano las vuelva a emitir o se migren de forma controlada.
 
 ### Validaciones pendientes de esta fase
 
 - Ejecutar build, ESLint y pruebas Firestore/Storage sobre esta rama.
 - Implementar endpoint/backend confiable para solicitud, emisión y firma de certificados.
-- Materializar y validar destinatarios de evaluaciones para asignaciones por empleado, cargo, área y empresa, sin exponer datos salariales.
 - Calcular puntajes y aprobación en backend; nunca confiar en valores enviados por el navegador.
-- Añadir pruebas que demuestren que un empleado asignado puede responder, uno no asignado no puede leer ni responder, y que una evaluación archivada no acepta respuestas.
+- Añadir pruebas de integración del flujo de creación de evaluaciones con usuarios reales de prueba y verificar asignaciones por cargo, área y empresa.
+- Revisar si una evaluación debe limitarse a una sola respuesta por empleado; actualmente la regla valida asignación y titular, pero no impone unicidad de respuesta.
 
 **Estado:** cambios en rama de trabajo; no fusionados, no desplegados y sin publicación de reglas Firebase.
