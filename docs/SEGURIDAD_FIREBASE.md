@@ -188,3 +188,13 @@ Esta fase implementa el flujo de binarios del portal documental, sin publicar re
 - Completar backend confiable de certificados, sincronización de subordinados y auditoría server-side.
 
 **Estado:** cambios propuestos en rama independiente. No se han integrado a `main`, no se han desplegado reglas ni se han subido archivos al bucket productivo.
+
+
+### Separación de lint y formato
+
+La ejecución CI de esta fase confirmó que los errores de lint existentes eran reportes de `prettier/prettier` (deuda de formato extendida), no errores funcionales de ESLint. Para no mezclar formato masivo con el hardening:
+
+- ESLint se conserva para reglas de código y React/TypeScript.
+- Se añadió `npm run format:check` como verificación explícita de Prettier.
+- No se ejecutó `prettier --write .` ni se reformateó masivamente el repositorio.
+- La deuda de formato queda pendiente y debe resolverse en un cambio separado, revisando el diff completo antes de integrarlo.
