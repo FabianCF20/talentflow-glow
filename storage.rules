@@ -20,13 +20,14 @@ service firebase.storage {
 
     function autorizado(empleadoId, categoria) {
       let roles = perfil().get('roles', []);
-      return activo() && (
-        roles.hasAny(['administrador', 'talento_humano'])
-        || perfil().get('empleadoId', '') == empleadoId
-        || (roles.hasAny(['sst']) && categoria in ['sst', 'incapacidades'])
-      );
+      return activo()
+        && categoria in ['personales', 'academicos', 'contractuales', 'sst', 'disciplinarios', 'incapacidades']
+        && (
+          roles.hasAny(['administrador', 'talento_humano'])
+          || perfil().get('empleadoId', '') == empleadoId
+          || (roles.hasAny(['sst']) && categoria in ['sst', 'incapacidades'])
+        );
     }
-
     // Ruta privada: documentos/{empleadoId}/{categoria}/{documentoId}/{archivo}
     // La ruta es la frontera de autorización; no se exponen URLs públicas.
     match /documentos/{empleadoId}/{categoria}/{documentoId}/{archivo} {
