@@ -61,8 +61,6 @@ interface PortalContextValue {
     empleadoId: string;
     categoria: CategoriaDocumento;
     nombre: string;
-    nombreArchivo: string;
-    tamanoKb: number;
     subidoPor: string;
     fechaVencimiento?: string;
     nota?: string;
@@ -204,55 +202,68 @@ export function PortalProvider({ children }: { children: ReactNode }) {
     [setSolicitudes],
   );
 
-  const cargarDocumento = useCallback<PortalContextValue["cargarDocumento"]>((input) => {
-    if (!gestionaDocumentacion(roles) && input.empleadoId !== propioId && !categoriasGestionables(roles).includes(input.categoria)) return;
-    setDocumentos((prev) => [
-      {
-        id: `doc-${Date.now()}`,
-        empleadoId: input.empleadoId,
-        categoria: input.categoria,
-        nombre: input.nombre,
-        fechaVencimiento: input.fechaVencimiento,
-        versiones: [
-          {
-            version: 1,
-            nombreArchivo: input.nombreArchivo,
-            tamanoKb: input.tamanoKb,
-            subidoPor: input.subidoPor,
-            fecha: hoy(),
-            nota: input.nota ?? "Carga inicial",
-          },
-        ],
-      },
-      ...prev,
-    ]);
-  }, [roles, propioId, setDocumentos]);
+  const cargarDocumento = useCallback<PortalContextValue["cargarDocumento"]>(async (input) => {
+    const actor = auth.currentUser;
+    if (!actor) throw new Error("Debes iniciar sesión para cargar documentos.");
+    if (!gestionaDocumentacion(roles) && input.empleadoId !== propioId && !(roles.includes("sst") && categoriasGestionables(roles).includes(input.categoria))) {
+      throw new Error("No tienes permiso para cargar documentos de este empleado.");
+    }
+    if (input.archivo.type !== "application/pdf" || input.archivo.size <= 0 || input.archivo.size > 5 * 1024 * 1024 || (await input.archivo.slice(0, 5).text()) !== "%PDF-") {
+      throw new Error("Selecciona un PDF válido de máximo 5 MB.");
+    }
+    const id = crypto.randomUUID();
+    const safeName = input.archivo.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
+    const path = "documentos/" + input.empleadoId + "/" + input.categoria + "/" + id + "/v1-" + safeName;
+    await uploadBytes(storageRef(storage, path), input.archivo, {
+      contentType: "application/pdf",
+      customMetadata: { empleadoId: input.empleadoId, categoria: input.categoria, documentoId: id, uploadedBy: actor.uid },
+    });
+    const documento: DocumentoEmpleado = {
+      id, empleadoId: input.empleadoId, categoria: input.categoria, nombre: input.nombre,
+      fechaVencimiento: input.fechaVencimiento,
+      versiones: [{
+        version: 1, nombreArchivo: input.archivo.name,
+        tamanoKb: Math.max(1, Math.ceil(input.archivo.size / 1024)),
+        subidoPor: input.subidoPor, fecha: hoy(),
+        nota: input.nota ?? "Carga inicial", storagePath: path,
+      }],
+    };
+    try {
+      await setDoc(firestoreDoc(db, "portal_documentos", id), limpiarUndefined(documento) as Record<string, unknown>);
+    } catch (error) {
+      console.error("[portal_documentos] el archivo se cargó pero no se guardaron los metadatos", error);
+      throw new Error("El archivo se almacenó, pero no se pudo registrar el expediente. Contacta a Talento Humano para regularizarlo.");
+    }
+  }, [roles, propioId]);
 
-  const nuevaVersion = useCallback<PortalContextValue["nuevaVersion"]>((documentoId, input) => {
-    setDocumentos((prev) =>
-      prev.map((d) => {
-        if (d.id !== documentoId) return d;
-        if (!gestionaDocumentacion(roles) && d.empleadoId !== propioId && !categoriasGestionables(roles).includes(d.categoria)) return d;
-        const siguiente = Math.max(...d.versiones.map((v) => v.version)) + 1;
-        return {
-          ...d,
-          fechaVencimiento: input.fechaVencimiento ?? d.fechaVencimiento,
-          versiones: [
-            ...d.versiones,
-            {
-              version: siguiente,
-              nombreArchivo: input.nombreArchivo,
-              tamanoKb: input.tamanoKb,
-              subidoPor: input.subidoPor,
-              fecha: hoy(),
-              nota: input.nota ?? `Nueva versión v${siguiente}`,
-            },
-          ],
-        };
-      }),
-    );
-  }, [roles, propioId, setDocumentos]);
-
+  const nuevaVersion = useCallback<PortalContextValue["nuevaVersion"]>(async (documentoId, input) => {
+    const actual = documentosLeidos.find((d) => d.id === documentoId);
+    const actor = auth.currentUser;
+    if (!actual || !actor) throw new Error("No se encontró el documento o la sesión expiró.");
+    if (!gestionaDocumentacion(roles) && !(roles.includes("sst") && ["sst", "incapacidades"].includes(actual.categoria))) {
+      throw new Error("No tienes permiso para versionar este documento.");
+    }
+    if (input.archivo.type !== "application/pdf" || input.archivo.size <= 0 || input.archivo.size > 5 * 1024 * 1024 || (await input.archivo.slice(0, 5).text()) !== "%PDF-") {
+      throw new Error("Selecciona un PDF válido de máximo 5 MB.");
+    }
+    const siguiente = Math.max(...actual.versiones.map((v) => v.version), 0) + 1;
+    const safeName = input.archivo.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
+    const path = "documentos/" + actual.empleadoId + "/" + actual.categoria + "/" + actual.id + "/v" + siguiente + "-" + safeName;
+    await uploadBytes(storageRef(storage, path), input.archivo, {
+      contentType: "application/pdf",
+      customMetadata: { empleadoId: actual.empleadoId, categoria: actual.categoria, documentoId: actual.id, uploadedBy: actor.uid },
+    });
+    const actualizado: DocumentoEmpleado = {
+      ...actual, fechaVencimiento: input.fechaVencimiento ?? actual.fechaVencimiento,
+      versiones: [...actual.versiones, {
+        version: siguiente, nombreArchivo: input.archivo.name,
+        tamanoKb: Math.max(1, Math.ceil(input.archivo.size / 1024)),
+        subidoPor: input.subidoPor, fecha: hoy(),
+        nota: input.nota ?? ("Nueva versión v" + siguiente), storagePath: path,
+      }],
+    };
+    await setDoc(firestoreDoc(db, "portal_documentos", documentoId), limpiarUndefined(actualizado) as Record<string, unknown>);
+  }, [roles, documentosLeidos]);
   const emitirCertificado = useCallback<PortalContextValue["emitirCertificado"]>(
     (tipo, empleadoId, solicitadoPor, incluyeSalario) => {
       const cert: CertificadoEmitido = {
