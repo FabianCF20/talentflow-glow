@@ -3,6 +3,8 @@
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
+import { useAuth } from "@/lib/auth";
+import { alcancePorEmpleado } from "@/lib/acceso-operativo";
 import {
   EVALUACIONES_INICIALES,
   INCIDENCIAS_INICIALES,
@@ -94,10 +96,32 @@ let seq = 900;
 const nextId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
 export function DisciplinarioProvider({ children }: { children: ReactNode }) {
-  const [incidencias, setIncidencias] = useFirestoreState<Incidencia>("disc_incidencias");
-  const [observaciones, setObservaciones] = useFirestoreState<ObservacionInterna>("disc_observaciones");
-  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>("disc_evaluaciones");
-  const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>("disc_respuestas");
+  const { perfil } = useAuth();
+  const roles = perfil?.roles ?? [];
+  const empleadoId = perfil?.empleadoId ?? "";
+  const subordinadosIds = perfil?.subordinadosIds ?? [];
+  const rrhh = ["administrador", "talento_humano"] as RoleKey[];
+  const sst = ["administrador", "talento_humano", "sst"] as RoleKey[];
+  const [incidencias, setIncidencias] = useFirestoreState<Incidencia>(
+    "disc_incidencias",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
+  );
+  const [observaciones, setObservaciones] = useFirestoreState<ObservacionInterna>(
+    "disc_observaciones",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
+  );
+  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>(
+    "disc_evaluaciones",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst, { incluirPropio: false, incluirSubordinados: false }),
+  );
+  const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
+    "disc_respuestas",
+    "id",
+    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst),
+  );
 
   /* ---------------------------- Disciplinario ---------------------------- */
 
