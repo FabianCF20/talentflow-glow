@@ -24,7 +24,7 @@ service cloud.firestore {
     function tieneAlguno(lista) { return roles().hasAny(lista); }
     function esAdmin() { return tieneRol('administrador'); }
     function esRrhh() { return tieneAlguno(['administrador', 'talento_humano']); }
-    function esNomina() { return tieneAlguno(['administrador', 'nomina', 'contabilidad']); }
+    function esNomina() { return tieneAlguno(['administrador', 'nomina']); }
     // Consulta de nómina: gerencia y dirección pueden consultar, pero no liquidar ni modificar.
     function esConsultaNomina() {
       return esRrhh() || tieneAlguno(['gerente_general', 'director', 'nomina', 'contabilidad']);
@@ -250,7 +250,9 @@ service cloud.firestore {
     }
     match /sst_respuestas/{id} {
       allow read: if activo() && (esSst() || esMiEmpleado(resource.data.get('empleadoId', '')));
-      allow create: if activo() && esMiEmpleado(request.resource.data.get('empleadoId', ''));
+      allow create: if activo()
+        && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente_jefe';
       allow update: if activo() && esSst()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '');
       allow delete: if false;
@@ -277,7 +279,9 @@ service cloud.firestore {
         esRrhh() || esSst() || esMiEmpleado(resource.data.get('empleadoId', ''))
       );
       allow create: if activo() && (
-        esMiEmpleado(request.resource.data.get('empleadoId', '')) || esRrhh() || esSst()
+        (esMiEmpleado(request.resource.data.get('empleadoId', ''))
+          && request.resource.data.get('estado', '') == 'radicada')
+        || esRrhh() || esSst()
       );
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
@@ -299,12 +303,13 @@ service cloud.firestore {
     }
     match /op_horas_extras/{id} {
       allow read: if activo() && (
-        esNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
+        esConsultaNomina() || esMiEmpleado(resource.data.get('empleadoId', ''))
         || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
       allow create: if activo()
-        && tieneAlguno(['supervisor', 'jefe', 'director'])
-        && esResponsableDirecto(request.resource.data.get('empleadoId', ''));
+        && tieneRol('supervisor')
+        && esResponsableDirecto(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'pendiente_jefe';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
         && (esNomina() || esMandoAutorizado(resource.data.get('empleadoId', '')));
@@ -326,8 +331,9 @@ service cloud.firestore {
         esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', ''))
       );
       allow create: if activo()
-        && tieneAlguno(['supervisor', 'jefe', 'director'])
-        && esResponsableDirecto(request.resource.data.get('empleadoId', ''));
+        && tieneRol('supervisor')
+        && esResponsableDirecto(request.resource.data.get('empleadoId', ''))
+        && request.resource.data.get('estado', '') == 'registrada';
       allow update: if activo()
         && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
         && (esRrhh() || esMandoAutorizado(resource.data.get('empleadoId', '')));
