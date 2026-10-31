@@ -205,7 +205,7 @@ function PortalEmpleadoPage() {
     }
 
     const nombre = archivo.name.toLowerCase();
-    if (!nombre.endsWith(".pdf") && archivo.type !== "application/pdf") {
+    if (!nombre.endsWith(".pdf") || archivo.type !== "application/pdf") {
       toast.error("Solo se permiten archivos en formato PDF.");
       event.target.value = "";
       setArchivoPdf(null);
