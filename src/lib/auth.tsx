@@ -22,6 +22,7 @@ export interface PerfilUsuario {
   apellidos: string;
   roles: RoleKey[];
   empleadoId?: string;
+  subordinadosIds?: string[];
   estado: "activo" | "inactivo";
   creadoEn: string;
 }
