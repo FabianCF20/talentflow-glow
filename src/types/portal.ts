@@ -65,6 +65,8 @@ export interface VersionDocumento {
   subidoPor: string;
   fecha: string;
   nota?: string;
+  /** Ruta privada del binario en Firebase Storage; nunca una URL pública. */
+  storagePath?: string;
 }
 
 export interface DocumentoEmpleado {
