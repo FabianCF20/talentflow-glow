@@ -41,10 +41,11 @@ exports.listarEmpleadosEvaluacion=onCall(async req=>{
       id:d.id,
       nombres:typeof e.nombres==="string"?e.nombres:"",
       apellidos:typeof e.apellidos==="string"?e.apellidos:"",
+      estado:e.estado||"inactivo",
       estadoLaboral:e.estadoLaboral||"retirado",
       laboral:{cargoId:laboral.cargoId||"",areaId:laboral.areaId||""}
     };
-  }).filter(e=>["activo","vacaciones","incapacidad","licencia","suspendido"].includes(e.estadoLaboral));
+  }).filter(e=>e.estado==="activo"&&["activo","vacaciones","incapacidad","licencia","suspendido"].includes(e.estadoLaboral));
 });
 exports.listarEvaluaciones=onCall(async req=>{
   if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
