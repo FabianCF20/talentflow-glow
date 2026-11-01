@@ -118,6 +118,9 @@ function EvaluacionesPage() {
   const [descripcion, setDescripcion] = useState("");
   const [tipo, setTipo] = useState<TipoInstrumento>("evaluacion");
   const [puntajeAprobacion, setPuntajeAprobacion] = useState(70);
+  const [abreEn, setAbreEn] = useState("");
+  const [cierraEn, setCierraEn] = useState("");
+  const [maxIntentos, setMaxIntentos] = useState(1);
   const [campos, setCampos] = useState<CampoEvaluacion[]>([nuevoCampo(1)]);
   const [tipoAsignacion, setTipoAsignacion] = useState<TipoAsignacion>("empresa");
   const [valores, setValores] = useState<string[]>([]);
@@ -128,6 +131,14 @@ function EvaluacionesPage() {
   const crear = () => {
     if (titulo.trim().length < 5 || campos.some((c) => !c.etiqueta.trim())) {
       toast.error("Complete el título y las preguntas del instrumento.");
+      return;
+    }
+    if (abreEn && cierraEn && new Date(cierraEn) <= new Date(abreEn)) {
+      toast.error("La fecha de cierre debe ser posterior a la apertura.");
+      return;
+    }
+    if (!Number.isInteger(maxIntentos) || maxIntentos < 1 || maxIntentos > 20) {
+      toast.error("El límite debe estar entre 1 y 20 intentos.");
       return;
     }
     if (tipoAsignacion !== "empresa" && valores.length === 0) {
@@ -141,10 +152,16 @@ function EvaluacionesPage() {
       campos,
       asignacion: { tipo: tipoAsignacion, valores: tipoAsignacion === "empresa" ? [] : valores },
       puntajeAprobacion: campos.some((c) => c.correcta !== undefined) ? puntajeAprobacion : undefined,
+      abreEn: abreEn ? new Date(abreEn).toISOString() : undefined,
+      cierraEn: cierraEn ? new Date(cierraEn).toISOString() : undefined,
+      maxIntentos,
       responsable: "Talento Humano",
     });
     setTitulo("");
     setDescripcion("");
+    setAbreEn("");
+    setCierraEn("");
+    setMaxIntentos(1);
     setCampos([nuevoCampo(1)]);
     setValores([]);
     toast.success("Instrumento creado y asignado.");
@@ -166,9 +183,21 @@ function EvaluacionesPage() {
       toast.error("Responda todas las preguntas obligatorias.");
       return;
     }
+    const ahora = Date.now();
+    const abre = evaluacion.abreEn ? new Date(evaluacion.abreEn).getTime() : undefined;
+    const cierra = evaluacion.cierraEn ? new Date(evaluacion.cierraEn).getTime() : undefined;
+    const intentos = disc.respuestas.filter((r) => r.evaluacionId === evaluacion.id && r.empleadoId === empleadoActuandoId).length;
+    if (evaluacion.estado !== "activo" || (abre !== undefined && ahora < abre) || (cierra !== undefined && ahora > cierra)) {
+      toast.error("Esta evaluación no está dentro de su periodo habilitado.");
+      return;
+    }
+    if (intentos >= (evaluacion.maxIntentos ?? 1)) {
+      toast.error("Ya alcanzaste el máximo de intentos permitidos.");
+      return;
+    }
     disc.responderEvaluacion(evaluacion.id, empleadoActuandoId, respuestasForm);
     setRespuestasForm({});
-    toast.success("Respuestas registradas. Los resultados se actualizaron.");
+    toast.success("Respuestas enviadas.");
   };
 
   /* ------------------------------ Resultados ------------------------------ */
@@ -498,6 +527,10 @@ function EvaluacionesPage() {
                 </div>
               ))}
 
+              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Intentos utilizados: {disc.respuestas.filter((x) => x.evaluacionId === evaluacion.id && x.empleadoId === empleadoActuandoId).length} de {evaluacion.maxIntentos ?? 1}
+                {evaluacion.cierraEn ? ` · Cierra: ${new Date(evaluacion.cierraEn).toLocaleString("es-CO")}` : ""}
+              </div>
               <Button onClick={responder}>Enviar respuestas</Button>
             </section>
           )}
@@ -521,6 +554,11 @@ function EvaluacionesPage() {
                     <StatusBadge status={e.estado} />
                   </div>
                   <p className="text-sm text-muted-foreground">{e.descripcion}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {e.abreEn ? `Apertura: ${new Date(e.abreEn).toLocaleString("es-CO")}` : "Disponible inmediatamente"}
+                    {e.cierraEn ? ` · Cierre: ${new Date(e.cierraEn).toLocaleString("es-CO")}` : " · Sin fecha de cierre"}
+                    {` · Máximo ${e.maxIntentos ?? 1} intento(s)`}
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     {TIPO_ASIGNACION_LABEL[e.asignacion.tipo]} · {ind.destinatarios} destinatarios ·{" "}
                     {ind.respuestas} respuestas ({ind.cobertura}%)
@@ -582,6 +620,18 @@ function EvaluacionesPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Apertura (opcional)</Label>
+                  <Input type="datetime-local" value={abreEn} onChange={(e) => setAbreEn(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Cierre (opcional)</Label>
+                  <Input type="datetime-local" value={cierraEn} onChange={(e) => setCierraEn(e.target.value)} min={abreEn || undefined} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Máximo de intentos (1–20)</Label>
+                  <Input type="number" min={1} max={20} value={maxIntentos} onChange={(e) => setMaxIntentos(Number(e.target.value) || 1)} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Puntaje mínimo aprobatorio (%)</Label>
