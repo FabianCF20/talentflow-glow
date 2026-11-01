@@ -119,7 +119,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
   );
   // Las evaluaciones publicadas no contienen claves correctas.
   const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
-  const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
+  const [respuestas] = useFirestoreState<RespuestaEvaluacion>(
     "disc_respuestas",
     "id",
     alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst),
@@ -343,6 +343,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
         puntajeAprobacion: input.puntajeAprobacion, abreEn: input.abreEn,
         cierraEn: input.cierraEn, maxIntentos: input.maxIntentos,
       });
+      await cargarEvaluaciones();
     }, [funciones, cargarEvaluaciones],
   );
 
