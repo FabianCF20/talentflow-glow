@@ -6,7 +6,7 @@ const db = getFirestore();
 const rolesPermitidos = ["administrador", "talento_humano", "sst"];
 async function perfil(uid) {
   const s = await db.doc("usuarios/" + uid).get();
-  if (!s.exists || s.data().estado !== "activo" || s.data().bloqueado === true) throw new HttpsError("permission-denied", "Cuenta no activa.");
+  if (!s.exists || s.data().estado !== "activo" || s.data().estadoUsuario === "inactivo" || s.data().bloqueado === true) throw new HttpsError("permission-denied", "Cuenta no activa.");
   return s.data();
 }
 function comparar(a,b) {
