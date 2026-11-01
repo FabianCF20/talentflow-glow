@@ -43,6 +43,12 @@ before(async () => {
     await setDoc(doc(store, "nomina_periodos", "periodo-1"), { periodo: "2026-10" });
     await setDoc(doc(store, "op_asistencia", "asis-b"), { empleadoId: "emp-b", fecha: "2026-10-01" });
     await setDoc(doc(store, "op_asistencia", "asis-c"), { empleadoId: "emp-c", fecha: "2026-10-01" });
+    await setDoc(doc(store, "op_marcaciones", "mark-manual"), {
+      id: "mark-manual", empleadoId: "emp-b", fecha: "2026-10-31", tipo: "ingreso",
+      hora: "07:30", latitud: 7.12, longitud: -73.11, precisionMetros: 8,
+      origen: "supervisor", registradoPorUid: "sup-user", registradoPor: "Supervisor",
+      registradoEn: "2026-10-31T07:30:00.000Z", estado: "pendiente_rrhh",
+    });
     await setDoc(doc(store, "op_solicitudes", "sol-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "op_horas_extras", "he-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "disc_incidencias", "dis-b"), { empleadoId: "emp-b", estado: "registrada", traza: [], actuaciones: [] });
@@ -190,6 +196,60 @@ test("auditoría solo permite anexar eventos atribuidos al UID autenticado", asy
     usuarioUid: "emp-b-user", accion: "consultar", modulo: "portal", fecha: "2026-10-31",
   }));
   await assertFails(updateDoc(doc(store, "auditoria", "audit-own"), { accion: "editar" }));
+});
+
+
+test("las marcaciones GPS respetan titular, subordinados y aprobación separada", async () => {
+  const empleadoA = db("emp-a-user", "a@example.test");
+  const empleadoB = db("emp-b-user", "b@example.test");
+  const supervisor = db("sup-user");
+  const rrhh = db("hr-user");
+
+  const marcaA = {
+    id: "mark-employee-a", empleadoId: "emp-a", fecha: "2026-10-31", tipo: "ingreso",
+    hora: "07:30", latitud: 7.12, longitud: -73.11, precisionMetros: 8,
+    origen: "empleado", registradoPorUid: "emp-a-user", registradoPor: "Empleado A",
+    registradoEn: "2026-10-31T07:30:00.000Z", estado: "pendiente_supervisor",
+  };
+  await assertSucceeds(setDoc(doc(empleadoA, "op_marcaciones", "mark-employee-a"), marcaA));
+  await assertFails(setDoc(doc(empleadoA, "op_marcaciones", "mark-for-b"), {
+    ...marcaA, id: "mark-for-b", empleadoId: "emp-b",
+  }));
+
+  const marcaB = {
+    ...marcaA, id: "mark-employee-b", empleadoId: "emp-b",
+    registradoPorUid: "emp-b-user", registradoPor: "Empleado B",
+  };
+  await assertSucceeds(setDoc(doc(empleadoB, "op_marcaciones", "mark-employee-b"), marcaB));
+  await assertSucceeds(updateDoc(doc(supervisor, "op_marcaciones", "mark-employee-b"), {
+    estado: "validada", validadoPorUid: "sup-user", validadoPor: "Supervisor",
+    validadoEn: "2026-10-31T08:00:00.000Z",
+  }));
+
+  await assertSucceeds(getDoc(doc(supervisor, "op_marcaciones", "mark-employee-b")));
+  await assertFails(getDoc(doc(supervisor, "op_marcaciones", "mark-employee-a")));
+
+  await assertFails(updateDoc(doc(supervisor, "op_marcaciones", "mark-manual"), {
+    estado: "validada", validadoPorUid: "sup-user", validadoPor: "Supervisor",
+    validadoEn: "2026-10-31T08:00:00.000Z",
+  }));
+  await assertSucceeds(updateDoc(doc(rrhh, "op_marcaciones", "mark-manual"), {
+    estado: "validada", validadoPorUid: "hr-user", validadoPor: "Talento Humano",
+    validadoEn: "2026-10-31T09:00:00.000Z",
+  }));
+
+  const marcaRechazo = {
+    ...marcaB, id: "mark-reject", estado: "pendiente_supervisor",
+  };
+  await assertSucceeds(setDoc(doc(empleadoB, "op_marcaciones", "mark-reject"), marcaRechazo));
+  await assertFails(updateDoc(doc(supervisor, "op_marcaciones", "mark-reject"), {
+    estado: "rechazada", validadoPorUid: "sup-user", validadoPor: "Supervisor",
+    validadoEn: "2026-10-31T08:00:00.000Z",
+  }));
+  await assertSucceeds(updateDoc(doc(supervisor, "op_marcaciones", "mark-reject"), {
+    estado: "rechazada", validadoPorUid: "sup-user", validadoPor: "Supervisor",
+    validadoEn: "2026-10-31T08:00:00.000Z", motivoRechazo: "Ubicación fuera del centro",
+  }));
 });
 
 test("colecciones no declaradas quedan denegadas", async () => {
