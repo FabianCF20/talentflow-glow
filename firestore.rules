@@ -183,12 +183,12 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /empleados_rrhh/{empleadoId} {
-      allow read: if activo() && (esRrhh() || esNomina() || esMiEmpleado(empleadoId));
+      allow read: if activo() && (esRrhh() || esNomina() || esMiEmpleado(empleadoId) || esMandoAutorizado(empleadoId));
       allow create, update: if activo() && esRrhh();
       allow delete: if false;
     }
     match /expedientes/{empleadoId} {
-      allow read: if activo() && (esRrhh() || esMiEmpleado(empleadoId) || esMandoAutorizado(empleadoId));
+      allow read: if activo() && (esRrhh() || esMiEmpleado(empleadoId));
       allow create, update: if activo() && esRrhh();
       allow delete: if false;
     }
