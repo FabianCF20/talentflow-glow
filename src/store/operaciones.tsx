@@ -530,7 +530,7 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     (input) => {
       if (!usuario?.uid || !perfil?.empleadoId) return;
       const rrhh = roles.some((r) => r === "administrador" || r === "talento_humano");
-      const mando = roles.some((r) => ["administrador", "talento_humano", "supervisor", "jefe", "director", "gerente_general"].includes(r));
+      const mando = roles.some((r) => ["supervisor", "jefe"].includes(r));
       if (input.registradoPorUid !== usuario.uid) return;
       if (input.origen === "empleado" && input.empleadoId !== perfil.empleadoId) return;
       if (input.origen === "supervisor" && !rrhh && !(mando && subordinadosIds.includes(input.empleadoId))) return;
