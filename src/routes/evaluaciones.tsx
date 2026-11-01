@@ -186,6 +186,16 @@ function EvaluacionesPage() {
     toast.success("Instrumento creado y asignado.");
   };
 
+  const archivar = async (id: string) => {
+    try {
+      await disc.archivarEvaluacion(id);
+      toast.success("Estado de la evaluación actualizado.");
+    } catch (error) {
+      console.error("[evaluaciones] cambio de estado", error);
+      toast.error("No fue posible cambiar el estado de la evaluación.");
+    }
+  };
+
   /* ---------------------------- Diligenciamiento ---------------------------- */
   const [respuestasForm, setRespuestasForm] = useState<Record<string, ValorRespuesta>>({});
 
@@ -601,7 +611,7 @@ function EvaluacionesPage() {
                     Seleccionar
                   </Button>
                   {gestiona && (
-                    <Button size="sm" variant="ghost" onClick={() => disc.archivarEvaluacion(e.id)}>
+                    <Button size="sm" variant="ghost" onClick={() => void archivar(e.id)}>
                       {e.estado === "activo" ? "Archivar" : "Reactivar"}
                     </Button>
                   )}
