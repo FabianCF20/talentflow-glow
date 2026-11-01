@@ -176,7 +176,7 @@ function AsistenciaPage() {
         <section className="surface-panel space-y-3 p-4">
           <div>
             <h2 className="text-base font-semibold text-foreground">Registro de marcación por supervisor</h2>
-            <p className="text-sm text-muted-foreground">Puedes registrar ingreso o salida de un subordinado cuando sea necesario. Estas marcaciones quedan pendientes de Talento Humano.</p>
+            <p className="text-sm text-muted-foreground">Puedes registrar ingreso o salida de un subordinado cuando sea necesario. Se guardará el GPS del dispositivo del supervisor (no una ubicación comprobada del empleado) y la marcación quedará pendiente de Talento Humano.</p>
           </div>
           {subordinados.length === 0 ? (
             <p className="text-sm text-muted-foreground">No hay subordinados asignados a tu perfil. Solicita a Talento Humano que revise tu organigrama y la lista de subordinados.</p>
