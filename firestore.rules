@@ -505,7 +505,7 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     // Las evaluaciones públicas no incluyen las claves correctas.
-    match /disc_evaluaciones/{id} { allow read: if activo(); allow create, update, delete: if false; }
+    match /disc_evaluaciones/{id} { allow read: if activo() && (esRrhh() || esSst()); allow create, update, delete: if false; }
     match /disc_claves_evaluacion/{id} { allow read, write: if false; }
     match /disc_intentos_evaluacion/{id} { allow read, write: if false; }
     match /disc_respuestas/{id} {
