@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { guardarDoc } from "@/lib/firestore";
+import { sincronizarSubordinadosDeMandos } from "@/lib/sincronizar-jerarquia";
 import { nuevoId } from "@/lib/maestros";
 import { AREAS, CARGOS, CENTROS_COSTO, CENTROS_TRABAJO, DEPENDENCIAS } from "@/data/organizacion";
 import { EXPEDIENTES } from "@/data/rrhh";
@@ -275,6 +276,15 @@ export function EmpleadoDialog({
 
       await guardarDoc("empleados_rrhh", registro);
       await guardarDoc("org_empleados", orgRow);
+      try {
+        await sincronizarSubordinadosDeMandos([
+          empleado?.laboral.jefeInmediatoId,
+          laboral.jefeInmediatoId,
+        ]);
+      } catch (error) {
+        console.error("[jerarquia] no se pudieron sincronizar los subordinados", error);
+        toast.error("La ficha se guardó, pero no se actualizó la jerarquía de permisos. Reintente la sincronización.");
+      }
       await guardarDoc("expedientes", { ...exp, empleadoId: id, id }, "id");
 
       if (!editando) {

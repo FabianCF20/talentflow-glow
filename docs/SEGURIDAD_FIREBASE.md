@@ -86,7 +86,7 @@ Antes de publicar:
 - Revisar los errores de permisos en las pantallas de empleado, Talento Humano, Nómina y SST.
 - Confirmar que los perfiles existentes tengan `estado` y `estadoUsuario` correctos, y que el UID del documento coincida con Authentication.
 - Confirmar que cada documento de empleado use como ID el `empleadoId` vinculado al perfil.
-- Revisar y mantener `subordinadosIds` en los perfiles de mandos cuando cambie el organigrama. La lista debe ser actualizada por Talento Humano o por un backend confiable; si está vacía, el acceso jerárquico queda denegado.
+- La aplicación recalcula `subordinadosIds` cuando RR. HH. guarda cambios de jefe inmediato o vincula una cuenta a un empleado. Debe verificarse en pruebas con datos reales de prueba y cubrir cualquier proceso alternativo de edición; si la lista está vacía, el acceso jerárquico queda denegado.
 - Revisar que las consultas de listas estén filtradas de forma compatible con las reglas.
 
 Publicación desde la raíz del proyecto, después de superar las pruebas:
@@ -101,7 +101,7 @@ La publicación de reglas no migra documentos ni cambia permisos IAM de Firebase
 ## Limitaciones pendientes después de la segunda fase
 
 - El organigrama completo no se entrega a empleados ni mandos que no tengan acceso a los datos salariales, porque `org_empleados` contiene el campo salario. Para recuperar el organigrama sin exponer salarios se debe crear una proyección pública sin datos sensibles, generada por un backend confiable (Cloud Functions/Admin SDK), y adaptar la pantalla a esa colección.
-- El alcance jerárquico usa `subordinadosIds` como proyección confiable en el perfil. Si se modifica el organigrama, esa lista debe sincronizarse desde Talento Humano o un backend confiable; no se concede acceso por inferencia ni por campos enviados por el cliente.
+- El alcance jerárquico usa `subordinadosIds` como proyección de autorización. La sincronización se ejecuta desde acciones de RR. HH. y las reglas impiden que empleados o mandos editen la lista; aún se recomienda un backend/trigger para cubrir cambios hechos fuera de la interfaz.
 - La auditoría del cliente queda autoatribuida por UID y es inmutable para el cliente, pero no es una bitácora forense infalsificable. Para garantizar eventos de cambios críticos, la escritura debe migrarse a Cloud Functions o backend con Admin SDK y controles de integridad.
 - Las reglas deben probarse en Emulator Suite antes de producción. Este cambio no se considera certificado hasta que pasen las pruebas de autorización y se valide la aplicación desplegada.
 
@@ -156,9 +156,59 @@ Commit de integración final en `main`: `65eacb333f452511b733a9c5495113e3bd8c850
 1. Implementar y probar la carga/descarga real de archivos binarios en Firebase Storage; la interfaz actual registra metadatos y no demuestra una carga real.
 2. Ejecutar Storage Emulator con pruebas positivas y negativas de titularidad, roles, MIME, tamaño, actualización y borrado.
 3. Completar el flujo confiable de emisión/solicitud de certificados.
-4. Verificar y mantener `subordinadosIds` al cambiar el organigrama; las consultas con listas extensas pueden superar los límites de disyunciones de Firestore.
+4. Probar la sincronización de `subordinadosIds` en altas, cambios de jefe, cambios de vinculación y bajas; las consultas con listas extensas pueden superar los límites de disyunciones de Firestore.
 5. Probar las pantallas completas con usuarios de cada rol y datos sintéticos, verificando que todas las consultas cumplan las reglas.
 6. Resolver la deuda de lint y volver a ejecutar el pipeline completo.
 7. Provisionar y verificar el primer administrador mediante un procedimiento controlado, nunca desde el registro público.
 
 **Estado de publicación:** los cambios están integrados en GitHub `main`, pero no se han publicado reglas en Firebase ni desplegado la aplicación. No cargar datos personales, laborales o salariales reales hasta cerrar los pendientes y validar el entorno de producción.
+
+
+## Fase de integración de Firebase Storage — rama `security/real-document-storage`
+
+Esta fase implementa el flujo de binarios del portal documental, sin publicar reglas en el proyecto Firebase:
+
+- Los PDF se cargan con Firebase Storage SDK, con límite de 5 MB, MIME PDF y comprobación de cabecera `%PDF-` en cliente.
+- La ruta privada vincula empleado, categoría y documento: `documentos/{empleadoId}/{categoria}/{documentoId}/{archivo}`.
+- Storage permite cargar al titular, Talento Humano/Administración y SST únicamente para categorías ocupacionales.
+- La lectura requiere perfil activo y autorización por titular/rol sobre la ruta privada (empleado y categoría). La ruta no depende de metadatos Firestore para evitar una ventana de bloqueo entre carga y registro; el identificador aleatorio reduce la exposición, y el acceso sigue cerrado a otros empleados.
+- No se permiten sobrescrituras ni borrados desde cliente.
+- Las descargas usan Firebase Storage SDK autenticado (`getBlob`); no se generan URLs de descarga persistentes.
+- El versionamiento de documentos existentes carga un nuevo binario y actualiza metadatos solo para Talento Humano o SST según categoría.
+- Las versiones antiguas sin `storagePath` quedan marcadas como archivo no disponible; no se genera un PDF ficticio como si fuera el original.
+- Se añadieron pruebas de Storage Emulator y se incluyeron junto con Firestore en CI. Las reglas usan `resource == null` para permitir solo creación y bloquear sobrescritura/borrado.
+
+### Validaciones aún necesarias
+
+- GitHub Actions de la rama: build y ESLint aprobados; 14 pruebas Firestore y 7 pruebas Storage aprobadas (21 en total, 0 fallidas).
+- Confirmar comportamiento real en navegador contra un proyecto Firebase de pruebas y validar CORS/descarga.
+- Verificar CORS y descarga real en el bucket de pruebas.
+- Añadir limpieza confiable de objetos huérfanos si se carga el binario pero falla la escritura de metadatos.
+- Implementar inspección de contenido del archivo en backend; MIME y cabecera PDF comprobados en cliente no sustituyen análisis antivirus/validación del lado servidor.
+- Completar backend confiable de certificados, sincronización de subordinados y auditoría server-side.
+
+**Estado:** cambios propuestos en rama independiente. No se han integrado a `main`, no se han desplegado reglas ni se han subido archivos al bucket productivo.
+
+
+### Separación de lint y formato
+
+La ejecución CI de esta fase confirmó que los errores de lint existentes eran reportes de `prettier/prettier` (deuda de formato extendida), no errores funcionales de ESLint. Para no mezclar formato masivo con el hardening:
+
+- ESLint se conserva para reglas de código y React/TypeScript.
+- Se añadió `npm run format:check` como verificación explícita de Prettier.
+- No se ejecutó `prettier --write .` ni se reformateó masivamente el repositorio.
+- La deuda de formato queda pendiente y debe resolverse en un cambio separado, revisando el diff completo antes de integrarlo.
+
+
+Validación CI de la fase documental: build y ESLint aprobados; 21 pruebas combinadas Firestore/Storage aprobadas (14 + 7).
+
+## Sincronización de jerarquía
+
+Se añadió `src/lib/sincronizar-jerarquia.ts`:
+
+- Recalcula subordinados activos consultando `org_empleados.jefeInmediatoId`.
+- Actualiza `usuarios/{uid}.subordinadosIds` para las cuentas vinculadas al jefe.
+- Se invoca al guardar una ficha de empleado (jefe anterior y nuevo) y al crear/editar una cuenta vinculada a un empleado.
+- La operación requiere RR. HH./Administración y las reglas de Firestore limitan los campos que pueden cambiar.
+
+Pendiente de esta mejora: pruebas de integración del flujo completo y un trigger/backend para cubrir escrituras que no pasen por esas pantallas.

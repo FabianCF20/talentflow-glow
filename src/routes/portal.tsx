@@ -195,6 +195,7 @@ function PortalEmpleadoPage() {
   const [docCategoria, setDocCategoria] = useState<CategoriaDocumento>("personales");
   const [docVence, setDocVence] = useState("");
   const [archivoPdf, setArchivoPdf] = useState<File | null>(null);
+  const [subiendoDocumento, setSubiendoDocumento] = useState(false);
 
   const manejarArchivo = (event: React.ChangeEvent<HTMLInputElement>) => {
     const archivo = event.target.files?.[0];
@@ -204,7 +205,7 @@ function PortalEmpleadoPage() {
     }
 
     const nombre = archivo.name.toLowerCase();
-    if (!nombre.endsWith(".pdf") && archivo.type !== "application/pdf") {
+    if (!nombre.endsWith(".pdf") || archivo.type !== "application/pdf") {
       toast.error("Solo se permiten archivos en formato PDF.");
       event.target.value = "";
       setArchivoPdf(null);
@@ -243,7 +244,7 @@ function PortalEmpleadoPage() {
     );
   }
 
-  const subir = () => {
+  const subir = async () => {
     const nombre = docNombre.trim();
     const nombreBase = nombre.length ? nombre : archivoPdf?.name.replace(/\.pdf$/i, "") ?? "documento";
 
@@ -252,37 +253,34 @@ function PortalEmpleadoPage() {
       return;
     }
 
-    if (docCategoria === "incapacidades" && !archivoPdf) {
-      toast.error("Adjunta el PDF de la incapacidad antes de enviarlo.");
+    if (!archivoPdf) {
+      toast.error("Adjunta el PDF que deseas almacenar.");
       return;
     }
-
-    const nombreArchivo = archivoPdf ? archivoPdf.name : `${nombreBase.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v1.pdf`;
-    const tamanoKb = archivoPdf ? Math.max(1, Math.round(archivoPdf.size / 1024)) : 240;
-
-    cargarDocumento({
-      empleadoId: id,
-      categoria: docCategoria,
-      nombre: nombreBase,
-      nombreArchivo,
-      tamanoKb,
-      subidoPor: nombreEmpleado(empleado),
-      fechaVencimiento: docVence || undefined,
-      nota:
-        docCategoria === "incapacidades"
-          ? "Incapacidad cargada desde el portal del empleado"
-          : "Cargado desde el Portal del Empleado",
-    });
-    setDocNombre("");
-    setDocVence("");
-    setArchivoPdf(null);
-    const input = document.getElementById("portal-documento-file") as HTMLInputElement | null;
-    if (input) input.value = "";
-    toast.success(
-      docCategoria === "incapacidades"
-        ? "PDF de incapacidad cargado correctamente."
-        : "Documento cargado en la categoría seleccionada.",
-    );
+    if (archivoPdf.type !== "application/pdf" || archivoPdf.size <= 0 || archivoPdf.size > 5 * 1024 * 1024) {
+      toast.error("Selecciona un PDF válido de máximo 5 MB.");
+      return;
+    }
+    if ((await archivoPdf.slice(0, 5).text()) !== "%PDF-") {
+      toast.error("El archivo no contiene una cabecera PDF válida.");
+      return;
+    }
+    setSubiendoDocumento(true);
+    try {
+      await cargarDocumento({
+        empleadoId: id, categoria: docCategoria, nombre: nombreBase, archivo: archivoPdf,
+        subidoPor: nombreEmpleado(empleado), fechaVencimiento: docVence || undefined,
+        nota: docCategoria === "incapacidades" ? "Incapacidad cargada desde el portal del empleado" : "Cargado desde el Portal del Empleado",
+      });
+      setDocNombre(""); setDocVence(""); setArchivoPdf(null);
+      const input = document.getElementById("portal-documento-file") as HTMLInputElement | null;
+      if (input) input.value = "";
+      toast.success("Documento almacenado correctamente en Firebase Storage.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo cargar el documento.");
+    } finally {
+      setSubiendoDocumento(false);
+    }
   };
 
   /* ------------------------------- Certificados ------------------------------- */
@@ -615,7 +613,7 @@ function PortalEmpleadoPage() {
         <TabsContent value="documentos" className="mt-4 space-y-4">
           <SeccionExpediente
             titulo="Cargar documento"
-            descripcion="Categorías: personales, académicos, contractuales, SST, disciplinarios e incapacidades."
+            descripcion="Puedes cargar documentos personales, académicos, SST, disciplinarios e incapacidades. Los contratos los gestiona Talento Humano."
           >
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
@@ -650,7 +648,7 @@ function PortalEmpleadoPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIAS_DOC.map((c) => (
+                    {CATEGORIAS_DOC.filter((c) => c !== "contractuales").map((c) => (
                       <SelectItem key={c} value={c}>
                         {CATEGORIA_DOC_LABEL[c]}
                       </SelectItem>
@@ -685,8 +683,8 @@ function PortalEmpleadoPage() {
             </div>
 
             <div className="mt-4 flex justify-end">
-              <Button size="sm" onClick={subir}>
-                <Upload className="size-4" /> Cargar documento
+              <Button size="sm" onClick={() => void subir()} disabled={subiendoDocumento}>
+                <Upload className="size-4" /> {subiendoDocumento ? "Cargando..." : "Cargar documento"}
               </Button>
             </div>
           </SeccionExpediente>
@@ -700,12 +698,12 @@ function PortalEmpleadoPage() {
                 onNuevaVersion={
                   gestionaDocumentacion(perfil?.roles ?? []) ||
                   ((perfil?.roles ?? []).includes("sst") && ["sst", "incapacidades"].includes(doc.categoria))
-                    ? (nota) =>
+                    ? (archivo, nota, fechaVencimiento) =>
                         nuevaVersion(doc.id, {
-                          nombreArchivo: `${doc.nombre.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-v${doc.versiones.length + 1}.pdf`,
-                          tamanoKb: 260,
+                          archivo,
                           subidoPor: nombreEmpleado(empleado),
                           nota,
+                          fechaVencimiento,
                         })
                     : undefined
                 }

@@ -181,6 +181,15 @@ test("el titular no puede alterar metadatos de documentos existentes", async () 
   }));
 });
 
+test("el empleado no puede crear metadatos de documentos contractuales", async () => {
+  await assertFails(setDoc(doc(db("emp-a-user"), "portal_documentos", "contrato-auto"), {
+    id: "contrato-auto", empleadoId: "emp-a", categoria: "contractuales", versiones: [],
+  }));
+  await assertSucceeds(setDoc(doc(db("hr-user"), "portal_documentos", "contrato-hr"), {
+    id: "contrato-hr", empleadoId: "emp-a", categoria: "contractuales", versiones: [],
+  }));
+});
+
 test("auditoría solo permite anexar eventos atribuidos al UID autenticado", async () => {
   const store = db("emp-a-user", "a@example.test");
   await assertSucceeds(setDoc(doc(store, "auditoria", "audit-own"), {
