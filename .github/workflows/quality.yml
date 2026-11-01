@@ -35,6 +35,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Validate Firebase Functions
+        run: |
+          cd functions
+          npm install --no-package-lock --no-audit --no-fund
+          npm run lint
+
   firestore-rules:
     runs-on: ubuntu-latest
     steps:
