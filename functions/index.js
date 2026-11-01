@@ -30,6 +30,24 @@ async function asignado(tx, a, empleadoId) {
   const ids=a.tipo==="cargo"?data.flatMap(x=>[x.cargoId,x.laboral?.cargoId]):data.flatMap(x=>[x.areaId,x.laboral?.areaId]);
   return ids.some(id=>id && a.valores.includes(id));
 }
+exports.listarEvaluaciones=onCall(async req=>{
+  if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
+  const p=await perfil(req.auth.uid);
+  const esGestor=Array.isArray(p.roles)&&p.roles.some(r=>rolesPermitidos.includes(r));
+  const empleadoId=p.empleadoId;
+  if(!esGestor&&(typeof empleadoId!=="string"||!empleadoId)) return [];
+  const snap=await db.collection("disc_evaluaciones").get();
+  const resultado=[];
+  for(const docSnap of snap.docs){
+    const e=docSnap.data();
+    if(!esGestor){
+      if(e.estado!=="activo"||!(await db.runTransaction(tx=>asignado(tx,e.asignacion,empleadoId)))) continue;
+    }
+    const campos=Array.isArray(e.campos)?e.campos.map(({correcta,...campo})=>campo):[];
+    resultado.push({...e,id:docSnap.id,campos});
+  }
+  return resultado;
+});
 exports.crearEvaluacion=onCall(async req=>{
   if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
   const p=await perfil(req.auth.uid), d=req.data||{};
