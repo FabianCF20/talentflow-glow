@@ -116,6 +116,27 @@ export interface IncapacidadOperativa {
 
 /* --------------------------- Control de asistencia -------------------------- */
 
+/** Marcación individual con ubicación y trazabilidad de quién la registró y validó. */
+export interface MarcacionAsistencia {
+  id: string;
+  empleadoId: string;
+  fecha: string;
+  tipo: "ingreso" | "salida";
+  hora: string;
+  latitud: number;
+  longitud: number;
+  precisionMetros: number;
+  origen: "empleado" | "supervisor";
+  registradoPorUid: string;
+  registradoPor: string;
+  registradoEn: string;
+  estado: "pendiente_supervisor" | "pendiente_rrhh" | "validada" | "rechazada";
+  validadoPorUid?: string;
+  validadoPor?: string;
+  validadoEn?: string;
+  motivoRechazo?: string;
+}
+
 /** Horas diarias de llegada y salida registradas por el supervisor. */
 export interface RegistroAsistencia {
   id: string;
