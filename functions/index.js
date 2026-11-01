@@ -133,10 +133,20 @@ exports.responderEvaluacion=onCall(async req=>{
   const now=new Date(), fh=fechaHora(now);
   await db.runTransaction(async tx=>{
     const [es,ks,cs]=await Promise.all([tx.get(er),tx.get(kr),tx.get(cr)]);
-    if(!es.exists||!ks.exists) throw new HttpsError("not-found","Evaluación no encontrada.");
+    if(!es.exists) throw new HttpsError("not-found","Evaluación no encontrada.");
     const e=es.data();
     if(e.estado!=="activo"||(e.abreEn&&now<new Date(e.abreEn))||(e.cierraEn&&now>new Date(e.cierraEn))) throw new HttpsError("failed-precondition","Evaluación fuera de su periodo.");
     if(!(await asignado(tx,e.asignacion,empleadoId))) throw new HttpsError("permission-denied","No estás asignado.");
+    const camposPublicos=Array.isArray(e.campos)?e.campos.map(({correcta,...campo})=>campo):[];
+    const clavesAntiguas=Object.fromEntries((Array.isArray(e.campos)?e.campos:[])
+      .filter(c=>c.correcta!==undefined)
+      .map(c=>[c.id,{correcta:c.correcta,peso:Number.isFinite(c.peso)&&c.peso>0?c.peso:1}]));
+    const claves=ks.exists?(ks.data().claves||{}):clavesAntiguas;
+    // Migración segura y automática de evaluaciones antiguas al primer envío.
+    if(!ks.exists) tx.create(kr,{evaluacionId,claves});
+    if((Array.isArray(e.campos)?e.campos:[]).some(c=>c.correcta!==undefined)){
+      tx.update(er,{campos:camposPublicos,actualizadoEn:FieldValue.serverTimestamp()});
+    }
     if(!valores||typeof valores!=="object"||Array.isArray(valores)) throw new HttpsError("invalid-argument","Respuestas inválidas.");
     const fields=new Map(e.campos.map(c=>[c.id,c]));
     if(Object.keys(valores).some(k=>!fields.has(k))) throw new HttpsError("invalid-argument","Pregunta desconocida.");
@@ -152,7 +162,7 @@ exports.responderEvaluacion=onCall(async req=>{
     }
     const count=cs.exists?(cs.data().cantidad||0):0;
     if(count>=(e.maxIntentos||1)) throw new HttpsError("resource-exhausted","Máximo de intentos alcanzado.");
-    const keys=ks.data().claves||{}, entries=Object.entries(keys);
+    const entries=Object.entries(claves);
     let score, passed;
     if(entries.length){
       const total=entries.reduce((s,[,k])=>s+k.peso,0);
