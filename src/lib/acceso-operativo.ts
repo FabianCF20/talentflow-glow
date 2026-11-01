@@ -12,7 +12,7 @@ export function alcanceOperacion(
   roles: RoleKey[],
   empleadoId: string,
   subordinadosIds: string[],
-  modulo: "solicitudes" | "incapacidades" | "asistencia" | "horasExtras" | "novedades",
+  modulo: "solicitudes" | "incapacidades" | "asistencia" | "marcaciones" | "horasExtras" | "novedades",
 ): Alcance {
   const rrhh = roles.some((r) => r === "administrador" || r === "talento_humano");
   const nomina = roles.some((r) => r === "administrador" || r === "nomina");
@@ -23,10 +23,19 @@ export function alcanceOperacion(
     (modulo === "solicitudes" && rrhh) ||
     (modulo === "incapacidades" && sst) ||
     (modulo === "asistencia" && (rrhh || nomina)) ||
+    (modulo === "marcaciones" && rrhh) ||
     (modulo === "horasExtras" && consultaNomina) ||
     (modulo === "novedades" && (rrhh || nomina))
   ) {
     return { enabled: true };
+  }
+
+  // Marcaciones: el empleado consulta las propias y los mandos las de sus subordinados.
+  if (modulo === "marcaciones") {
+    const ids = [...new Set([empleadoId, ...subordinadosIds].filter(Boolean))];
+    return ids.length
+      ? { filtros: ids.map((id) => ({ campo: "empleadoId", valor: id })) }
+      : { enabled: false };
   }
 
   // Las novedades operativas no son un historial personal para empleados.
