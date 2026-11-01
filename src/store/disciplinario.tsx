@@ -80,6 +80,9 @@ interface DisciplinarioContextValue {
     campos: CampoEvaluacion[];
     asignacion: AsignacionFormulario;
     puntajeAprobacion?: number;
+    abreEn?: string;
+    cierraEn?: string;
+    maxIntentos?: number;
     responsable: string;
   }) => void;
   archivarEvaluacion: (id: string) => void;
@@ -318,7 +321,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
   /* ----------------------------- Evaluaciones ----------------------------- */
 
   const crearEvaluacion = useCallback<DisciplinarioContextValue["crearEvaluacion"]>(
-    ({ titulo, descripcion, tipo, campos, asignacion, puntajeAprobacion, responsable }) => {
+    ({ titulo, descripcion, tipo, campos, asignacion, puntajeAprobacion, abreEn, cierraEn, maxIntentos, responsable }) => {
       setEvaluaciones((prev) => [
         {
           id: nextId("ev"),
@@ -332,6 +335,9 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
           estado: "activo",
           creadoPor: responsable,
           creadoEn: hoyISO(),
+          abreEn: abreEn || undefined,
+          cierraEn: cierraEn || undefined,
+          maxIntentos: Math.max(1, Math.min(20, Math.floor(maxIntentos ?? 1))),
         },
         ...prev,
       ]);
@@ -352,6 +358,11 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
       setEvaluaciones((evs) => {
         const evaluacion = evs.find((e) => e.id === evaluacionId);
         if (evaluacion) {
+          const ahora = Date.now();
+          const abre = evaluacion.abreEn ? new Date(evaluacion.abreEn).getTime() : undefined;
+          const cierra = evaluacion.cierraEn ? new Date(evaluacion.cierraEn).getTime() : undefined;
+          const intentosPrevios = respuestas.filter((r) => r.evaluacionId === evaluacionId && r.empleadoId === empleadoId).length;
+          if (evaluacion.estado !== "activo" || (abre !== undefined && ahora < abre) || (cierra !== undefined && ahora > cierra) || intentosPrevios >= (evaluacion.maxIntentos ?? 1)) return evs;
           // El empleado solo envía sus respuestas. La puntuación y aprobación
           // deben calcularse en backend confiable, nunca aceptarse del navegador.
           setRespuestas((prev) => [
