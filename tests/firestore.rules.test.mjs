@@ -35,6 +35,9 @@ before(async () => {
     await setDoc(doc(store, "org_empleados", "emp-b"), { id: "emp-b", jefeInmediatoId: "sup-1", salario: 2500000 });
     await setDoc(doc(store, "org_empleados", "emp-c"), { id: "emp-c", jefeInmediatoId: "sup-2", salario: 2700000 });
     await setDoc(doc(store, "org_empleados", "emp-a"), { id: "emp-a", jefeInmediatoId: "sup-2", salario: 2300000 });
+    await setDoc(doc(store, "empleados_rrhh", "emp-a"), { id: "emp-a", nombres: "Empleado", apellidos: "A" });
+    await setDoc(doc(store, "empleados_rrhh", "emp-b"), { id: "emp-b", nombres: "Empleado", apellidos: "B" });
+    await setDoc(doc(store, "empleados_rrhh", "emp-c"), { id: "emp-c", nombres: "Empleado", apellidos: "C" });
 
     await setDoc(doc(store, "expedientes", "emp-a"), { empleadoId: "emp-a", datos: "privado-a" });
     await setDoc(doc(store, "expedientes", "emp-b"), { empleadoId: "emp-b", datos: "privado-b" });
@@ -113,6 +116,8 @@ test("los mandos solo acceden a registros de subordinados directos", async () =>
     updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
   );
   await assertFails(getDoc(doc(supervisor, "op_asistencia", "asis-c")));
+  await assertSucceeds(getDoc(doc(supervisor, "empleados_rrhh", "emp-b")));
+  await assertFails(getDoc(doc(supervisor, "empleados_rrhh", "emp-c")));
   await assertSucceeds(getDoc(doc(supervisor, "op_solicitudes", "sol-b")));
   await assertSucceeds(getDoc(doc(supervisor, "op_horas_extras", "he-b")));
   await assertFails(getDoc(doc(otherSupervisor, "op_horas_extras", "he-b")));
@@ -221,6 +226,16 @@ test("las marcaciones GPS respetan titular, subordinados y aprobación separada"
     registradoPorUid: "emp-b-user", registradoPor: "Empleado B",
   };
   await assertSucceeds(setDoc(doc(empleadoB, "op_marcaciones", "mark-employee-b"), marcaB));
+  const marcaManualSupervisor = {
+    ...marcaB, id: "mark-manual-supervisor", origen: "supervisor",
+    registradoPorUid: "sup-user", registradoPor: "Supervisor",
+    estado: "pendiente_rrhh",
+  };
+  await assertSucceeds(setDoc(doc(supervisor, "op_marcaciones", "mark-manual-supervisor"), marcaManualSupervisor));
+  await assertFails(updateDoc(doc(supervisor, "op_marcaciones", "mark-manual-supervisor"), {
+    estado: "validada", validadoPorUid: "sup-user", validadoPor: "Supervisor",
+    validadoEn: "2026-10-31T08:00:00.000Z",
+  }));
   await assertSucceeds(updateDoc(doc(supervisor, "op_marcaciones", "mark-employee-b"), {
     estado: "validada", validadoPorUid: "sup-user", validadoPor: "Supervisor",
     validadoEn: "2026-10-31T08:00:00.000Z",
