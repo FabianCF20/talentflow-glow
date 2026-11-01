@@ -1,7 +1,7 @@
 /**
  * Estado compartido del módulo disciplinario sincronizado con Firestore.
  */
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { app } from "@/lib/firebase";
@@ -118,7 +118,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
   );
   // Las evaluaciones publicadas no contienen claves correctas.
-  const [evaluaciones] = useFirestoreState<Evaluacion>("disc_evaluaciones", "id");
+  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
   const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
     "disc_respuestas",
     "id",
@@ -317,6 +317,24 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
   /* ----------------------------- Evaluaciones ----------------------------- */
 
   const funciones = getFunctions(app);
+  const cargarEvaluaciones = useCallback(async () => {
+    const resultado = await httpsCallable<void, Evaluacion[]>(funciones, "listarEvaluaciones")();
+    setEvaluaciones(Array.isArray(resultado.data) ? resultado.data : []);
+  }, [funciones]);
+
+  useEffect(() => {
+    if (!perfil?.id) {
+      setEvaluaciones([]);
+      return;
+    }
+    let vigente = true;
+    httpsCallable<void, Evaluacion[]>(funciones, "listarEvaluaciones")()
+      .then((resultado) => {
+        if (vigente) setEvaluaciones(Array.isArray(resultado.data) ? resultado.data : []);
+      })
+      .catch((error) => console.error("[evaluaciones] carga", error));
+    return () => { vigente = false; };
+  }, [funciones, perfil?.id, perfil?.empleadoId, perfil?.roles?.join(",")]);
   const crearEvaluacion = useCallback<DisciplinarioContextValue["crearEvaluacion"]>(
     async (input) => {
       await httpsCallable(funciones, "crearEvaluacion")({
@@ -325,12 +343,13 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
         puntajeAprobacion: input.puntajeAprobacion, abreEn: input.abreEn,
         cierraEn: input.cierraEn, maxIntentos: input.maxIntentos,
       });
-    }, [funciones],
+    }, [funciones, cargarEvaluaciones],
   );
 
   const archivarEvaluacion = useCallback(async (id: string) => {
     await httpsCallable(funciones, "archivarEvaluacion")({ evaluacionId: id });
-  }, [funciones]);
+    await cargarEvaluaciones();
+  }, [funciones, cargarEvaluaciones]);
 
   const responderEvaluacion = useCallback<DisciplinarioContextValue["responderEvaluacion"]>(
     async (evaluacionId, _empleadoId, valores) => {
