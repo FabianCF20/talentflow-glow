@@ -74,7 +74,6 @@ function AsistenciaPage() {
   const esMando = roles.some((r) => r === "supervisor" || r === "jefe");
   const empleadoPropio = empleados.find((e) => e.id === empleadoId);
   const subordinados = empleados.filter((e) => e.id !== empleadoId && (perfil?.subordinadosIds ?? []).includes(e.id));
-  const personalVisible = esRrhh ? empleados : subordinados;
   const marcacionesPropias = op.marcaciones.filter((m) => m.empleadoId === empleadoId);
   const pendientes = op.marcaciones.filter((m) =>
     esRrhh
