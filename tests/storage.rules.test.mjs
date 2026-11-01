@@ -59,6 +59,15 @@ test("Talento Humano puede cargar un documento para un empleado", async () => {
   await assertSucceeds(uploadBytes(ref(storage("hr"), path), pdf(), { contentType: "application/pdf" }));
 });
 
+test("los contratos solo pueden ser cargados por Talento Humano", async () => {
+  const ownContract = "documentos/trab-a/contractuales/doc-contrato/empleado.pdf";
+  const hrContract = "documentos/trab-a/contractuales/doc-contrato/rrhh.pdf";
+  await assertFails(uploadBytes(ref(storage("emp-a"), ownContract), pdf(), { contentType: "application/pdf" }));
+  await assertSucceeds(uploadBytes(ref(storage("hr"), hrContract), pdf(), { contentType: "application/pdf" }));
+  // El titular conserva lectura de su contrato una vez cargado por RR. HH.
+  await assertSucceeds(getBytes(ref(storage("emp-a"), hrContract)));
+});
+
 test("SST puede cargar documentos ocupacionales pero no documentos personales", async () => {
   const allowed = "documentos/trab-a/incapacidades/doc-inc/incapacidad.pdf";
   const denied = "documentos/trab-a/personales/doc-a/personal.pdf";
