@@ -6,7 +6,6 @@ import { useFirestoreState } from "@/lib/firestore";
 import { useAuth } from "@/lib/auth";
 import { alcanceOperacion } from "@/lib/acceso-operativo";
 import {
-  ASISTENCIA_INICIAL,
   HORAS_EXTRAS_INICIALES,
   INCAPACIDADES_OP_INICIALES,
   NOVEDADES_INICIALES,
@@ -20,7 +19,6 @@ import type {
   IncapacidadOperativa,
   NovedadOperativa,
   PasoFlujo,
-  RegistroAsistencia,
   SolicitudOperativa,
   TipoHoraExtra,
   TipoIncapacidadOp,
@@ -38,7 +36,6 @@ import type {
 interface OperacionesContextValue {
   solicitudes: SolicitudOperativa[];
   incapacidades: IncapacidadOperativa[];
-  asistencia: RegistroAsistencia[];
   horasExtras: HoraExtra[];
   novedades: NovedadOperativa[];
 
@@ -76,15 +73,6 @@ interface OperacionesContextValue {
   rechazarIncapacidad: (id: string, responsable: string, observacion?: string) => void;
   transcribirIncapacidad: (id: string, responsable: string) => void;
 
-  registrarMarcacion: (input: {
-    empleadoId: string;
-    fecha: string;
-    campo: "horaIngreso" | "horaSalida";
-    valor: string;
-    responsable: string;
-  }) => void;
-  marcarAusencia: (empleadoId: string, fecha: string, justificacion: string, responsable: string) => void;
-
   registrarHoraExtra: (input: {
     empleadoId: string;
     fecha: string;
@@ -117,11 +105,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     "op_incapacidades",
     "id",
     alcanceOperacion(roles, empleadoId, subordinadosIds, "incapacidades"),
-  );
-  const [asistencia, setAsistencia] = useFirestoreState<RegistroAsistencia>(
-    "op_asistencia",
-    "id",
-    alcanceOperacion(roles, empleadoId, subordinadosIds, "asistencia"),
   );
   const [horasExtras, setHorasExtras] = useFirestoreState<HoraExtra>(
     "op_horas_extras",
@@ -468,77 +451,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     [mutarIncapacidad],
   );
 
-  /* --------------------------- Control asistencia --------------------------- */
-
-  const upsertAsistencia = useCallback(
-    (
-      empleadoId: string,
-      fecha: string,
-      responsable: string,
-      cambios: (r: RegistroAsistencia) => RegistroAsistencia,
-    ) => {
-      setAsistencia((prev) => {
-        const existe = prev.find((r) => r.empleadoId === empleadoId && r.fecha === fecha);
-        if (existe) return prev.map((r) => (r === existe ? cambios(r) : r));
-        const base: RegistroAsistencia = {
-          id: nextId("as"),
-          empleadoId,
-          fecha,
-          ausente: false,
-          registradoPor: responsable,
-        };
-        return [cambios(base), ...prev];
-      });
-    },
-    [],
-  );
-
-  const registrarMarcacion = useCallback<OperacionesContextValue["registrarMarcacion"]>(
-    ({ empleadoId, fecha, campo, valor, responsable }) => {
-      upsertAsistencia(empleadoId, fecha, responsable, (r) => {
-        const actualizado = { ...r, [campo]: valor, ausente: false, registradoPor: responsable };
-        return actualizado;
-      });
-      const etiqueta: Record<typeof campo, string> = {
-        horaIngreso: "Hora de ingreso",
-        horaSalida: "Hora de salida",
-      };
-      registrarNovedad({
-        empleadoId,
-        tipo: "asistencia",
-        titulo: `${etiqueta[campo]} registrada`,
-        detalle: `${fecha} · ${valor}`,
-        etapa: "jefe",
-        responsable,
-        referencia: `AS-${fecha}`,
-      });
-    },
-    [registrarNovedad, upsertAsistencia],
-  );
-
-  const marcarAusencia = useCallback<OperacionesContextValue["marcarAusencia"]>(
-    (empleadoId, fecha, justificacion, responsable) => {
-      upsertAsistencia(empleadoId, fecha, responsable, (r) => ({
-        ...r,
-        ausente: true,
-        horaIngreso: undefined,
-        horaSalida: undefined,
-        justificacion,
-        registradoPor: responsable,
-      }));
-      registrarNovedad({
-        empleadoId,
-        tipo: "asistencia",
-        titulo: "Ausencia registrada",
-        detalle: `${fecha} · ${justificacion || "Sin justificación"}`,
-        etapa: "jefe",
-        responsable,
-        referencia: `AS-${fecha}`,
-      });
-    },
-    [registrarNovedad, upsertAsistencia],
-  );
-
   /* ------------------------------ Horas extras ----------------------------- */
 
   const registrarHoraExtra = useCallback<OperacionesContextValue["registrarHoraExtra"]>(
@@ -657,7 +569,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     () => ({
       solicitudes,
       incapacidades,
-      asistencia,
       horasExtras,
       novedades,
       radicarSolicitud,
@@ -670,8 +581,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       validarIncapacidad,
       rechazarIncapacidad,
       transcribirIncapacidad,
-      registrarMarcacion,
-      marcarAusencia,
       registrarHoraExtra,
       aprobarHoraExtraJefe,
       liquidarHoraExtra,
@@ -680,7 +589,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     [
       solicitudes,
       incapacidades,
-      asistencia,
       horasExtras,
       novedades,
       radicarSolicitud,
@@ -693,8 +601,6 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       validarIncapacidad,
       rechazarIncapacidad,
       transcribirIncapacidad,
-      registrarMarcacion,
-      marcarAusencia,
       registrarHoraExtra,
       aprobarHoraExtraJefe,
       liquidarHoraExtra,

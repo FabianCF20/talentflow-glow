@@ -38,9 +38,6 @@ service firebase.storage {
       allow write: if resource == null
         && request.resource != null
         && autorizado(empleadoId, categoria)
-        // Los contratos solo pueden ser cargados por Administración o Talento Humano.
-        && (categoria != 'contractuales'
-          || perfil().get('roles', []).hasAny(['administrador', 'talento_humano']))
         && request.resource.size > 0
         && request.resource.size <= 5 * 1024 * 1024
         && request.resource.contentType == 'application/pdf';

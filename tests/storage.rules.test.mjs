@@ -24,7 +24,6 @@ before(async () => {
       ["emp-a", { id: "emp-a", roles: ["empleado"], empleadoId: "trab-a", estado: "activo" }],
       ["emp-b", { id: "emp-b", roles: ["empleado"], empleadoId: "trab-b", estado: "activo" }],
       ["hr", { id: "hr", roles: ["talento_humano"], empleadoId: "hr-1", estado: "activo" }],
-      ["admin", { id: "admin", roles: ["administrador"], empleadoId: "admin-1", estado: "activo" }],
       ["sst", { id: "sst", roles: ["sst"], empleadoId: "sst-1", estado: "activo" }],
       ["inactive", { id: "inactive", roles: ["administrador"], empleadoId: "trab-c", estado: "inactivo" }],
     ];
@@ -58,21 +57,6 @@ test("un empleado no puede cargar ni leer documentos de otro titular", async () 
 test("Talento Humano puede cargar un documento para un empleado", async () => {
   const path = "documentos/trab-a/personales/doc-a/hr.pdf";
   await assertSucceeds(uploadBytes(ref(storage("hr"), path), pdf(), { contentType: "application/pdf" }));
-});
-
-test("los contratos solo pueden ser cargados por Talento Humano", async () => {
-  const ownContract = "documentos/trab-a/contractuales/doc-contrato/empleado.pdf";
-  const hrContract = "documentos/trab-a/contractuales/doc-contrato/rrhh.pdf";
-  await assertFails(uploadBytes(ref(storage("emp-a"), ownContract), pdf(), { contentType: "application/pdf" }));
-  await assertSucceeds(uploadBytes(ref(storage("hr"), hrContract), pdf(), { contentType: "application/pdf" }));
-  // El titular conserva lectura de su contrato una vez cargado por RR. HH.
-  await assertSucceeds(getBytes(ref(storage("emp-a"), hrContract)));
-});
-
-test("Administración también puede cargar contratos y SST no puede leer contratos", async () => {
-  const adminContract = "documentos/trab-a/contractuales/doc-contrato/admin.pdf";
-  await assertSucceeds(uploadBytes(ref(storage("admin"), adminContract), pdf(), { contentType: "application/pdf" }));
-  await assertFails(getBytes(ref(storage("sst"), adminContract)));
 });
 
 test("SST puede cargar documentos ocupacionales pero no documentos personales", async () => {

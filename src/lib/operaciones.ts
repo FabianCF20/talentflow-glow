@@ -7,6 +7,7 @@ import {
   JORNADA,
   type CalculoAsistencia,
   type RegistroAsistencia,
+  type PuntoMarcacionAsistencia,
   type TipoHoraExtra,
 } from "@/types/operaciones";
 // Utilidades de fecha compartidas (se re-exportan para no romper importaciones existentes).
@@ -20,6 +21,19 @@ export const aMinutos = (hhmm?: string) => {
   if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return null;
   const [h, m] = hhmm.split(":").map(Number);
   return h! * 60 + m!;
+};
+
+const horaDesdePunto = (punto?: PuntoMarcacionAsistencia) => {
+  const marca = punto?.marcadoEn as { toDate?: () => Date } | undefined;
+  const fecha = marca?.toDate?.();
+  return fecha
+    ? fecha.toLocaleTimeString("en-GB", {
+        timeZone: "America/Bogota",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      })
+    : undefined;
 };
 
 export const formatoHoras = (minutos: number) => {
@@ -40,8 +54,8 @@ export function calcularAsistencia(r: RegistroAsistencia): CalculoAsistencia {
     };
   }
 
-  const ingreso = aMinutos(r.horaIngreso);
-  const salida = aMinutos(r.horaSalida);
+  const ingreso = aMinutos(r.horaIngreso ?? horaDesdePunto(r.ingreso));
+  const salida = aMinutos(r.horaSalida ?? horaDesdePunto(r.salida));
   const entradaEsperada = aMinutos(JORNADA.horaEntrada)!;
   const minutosTardanza =
     ingreso !== null ? Math.max(0, ingreso - entradaEsperada - JORNADA.toleranciaMinutos) : 0;

@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "op_asistencia",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha", "order": "ASCENDING" },
+        { "fieldPath": "empleadoId", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
