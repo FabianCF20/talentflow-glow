@@ -380,7 +380,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
         return evs;
       });
     },
-    [],
+    [respuestas],
   );
 
   const value = useMemo<DisciplinarioContextValue>(
