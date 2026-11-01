@@ -432,7 +432,7 @@ service cloud.firestore {
         || (activo()
           && esMiEmpleado(request.resource.data.get('empleadoId', ''))
           && request.resource.data.get('categoria', '') in [
-            'personales', 'academicos', 'contractuales', 'sst', 'disciplinarios', 'incapacidades'
+            'personales', 'academicos', 'sst', 'disciplinarios', 'incapacidades'
           ]);
       // El titular no puede modificar metadatos ni rutas de archivos ya existentes.
       allow update: if puedeGestionarDocumento(resource.data)
