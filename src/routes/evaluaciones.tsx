@@ -141,7 +141,7 @@ function EvaluacionesPage() {
   const actualizarCampo = (id: string, cambios: Partial<CampoEvaluacion>) =>
     setCampos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
 
-  const crear = () => {
+  const crear = async () => {
     if (titulo.trim().length < 5 || campos.some((c) => !c.etiqueta.trim())) {
       toast.error("Complete el título y las preguntas del instrumento.");
       return;
@@ -158,7 +158,8 @@ function EvaluacionesPage() {
       toast.error("Seleccione al menos un destinatario para la asignación.");
       return;
     }
-    disc.crearEvaluacion({
+    try {
+      await disc.crearEvaluacion({
       titulo,
       descripcion,
       tipo,
@@ -169,7 +170,12 @@ function EvaluacionesPage() {
       cierraEn: cierraEn ? new Date(cierraEn).toISOString() : undefined,
       maxIntentos,
       responsable: "Talento Humano",
-    });
+      });
+    } catch (error) {
+      console.error("[evaluaciones] creación", error);
+      toast.error("No fue posible crear el instrumento.");
+      return;
+    }
     setTitulo("");
     setDescripcion("");
     setAbreEn("");
@@ -183,7 +189,7 @@ function EvaluacionesPage() {
   /* ---------------------------- Diligenciamiento ---------------------------- */
   const [respuestasForm, setRespuestasForm] = useState<Record<string, ValorRespuesta>>({});
 
-  const responder = () => {
+  const responder = async () => {
     if (!evaluacion) return;
     if (!estaAsignado) {
       toast.error("Esta evaluación no está asignada a este empleado.");
@@ -212,9 +218,14 @@ function EvaluacionesPage() {
       toast.error("Ya alcanzaste el máximo de intentos permitidos.");
       return;
     }
-    disc.responderEvaluacion(evaluacion.id, empleadoActuandoId, respuestasForm);
-    setRespuestasForm({});
-    toast.success("Respuestas enviadas.");
+    try {
+      await disc.responderEvaluacion(evaluacion.id, empleadoActuandoId, respuestasForm);
+      setRespuestasForm({});
+      toast.success("Respuestas enviadas y calificadas.");
+    } catch (error) {
+      console.error("[evaluaciones] envío", error);
+      toast.error("No fue posible enviar la evaluación. Verifica asignación, periodo e intentos.");
+    }
   };
 
   /* ------------------------------ Resultados ------------------------------ */

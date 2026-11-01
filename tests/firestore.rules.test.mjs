@@ -287,7 +287,7 @@ test("las observaciones internas no son visibles para el empleado titular", asyn
 
 test("las respuestas disciplinarias no aceptan puntajes enviados por el navegador", async () => {
   const store = db("emp-a-user");
-  await assertSucceeds(
+  await assertFails(
     setDoc(doc(store, "disc_respuestas", "resp-own"), {
       id: "resp-own",
       evaluacionId: "eval-1",

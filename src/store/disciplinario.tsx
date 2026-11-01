@@ -3,6 +3,8 @@
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
 import { alcancePorEmpleado } from "@/lib/acceso-operativo";
 import {
@@ -84,13 +86,13 @@ interface DisciplinarioContextValue {
     cierraEn?: string;
     maxIntentos?: number;
     responsable: string;
-  }) => void;
+  }) => Promise<void>;
   archivarEvaluacion: (id: string) => void;
   responderEvaluacion: (
     evaluacionId: string,
     empleadoId: string,
     valores: Record<string, ValorRespuesta>,
-  ) => void;
+  ) => Promise<void>;
 }
 
 const DisciplinarioContext = createContext<DisciplinarioContextValue | null>(null);
@@ -115,14 +117,8 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     "id",
     alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
   );
-  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>(
-    "disc_evaluaciones",
-    "id",
-    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst, {
-      incluirPropio: false,
-      incluirSubordinados: false,
-    }),
-  );
+  // Las evaluaciones publicadas no contienen claves correctas.
+  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>("disc_evaluaciones", "id");
   const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
     "disc_respuestas",
     "id",
@@ -320,29 +316,16 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
 
   /* ----------------------------- Evaluaciones ----------------------------- */
 
+  const funciones = getFunctions(app);
   const crearEvaluacion = useCallback<DisciplinarioContextValue["crearEvaluacion"]>(
-    ({ titulo, descripcion, tipo, campos, asignacion, puntajeAprobacion, abreEn, cierraEn, maxIntentos, responsable }) => {
-      setEvaluaciones((prev) => [
-        {
-          id: nextId("ev"),
-          codigo: `EVA-${String(prev.length + 1).padStart(3, "0")}`,
-          titulo,
-          descripcion,
-          tipo,
-          campos,
-          asignacion,
-          puntajeAprobacion,
-          estado: "activo",
-          creadoPor: responsable,
-          creadoEn: hoyISO(),
-          abreEn: abreEn || undefined,
-          cierraEn: cierraEn || undefined,
-          maxIntentos: Math.max(1, Math.min(20, Math.floor(maxIntentos ?? 1))),
-        },
-        ...prev,
-      ]);
-    },
-    [],
+    async (input) => {
+      await httpsCallable(funciones, "crearEvaluacion")({
+        titulo: input.titulo, descripcion: input.descripcion, tipo: input.tipo,
+        campos: input.campos, asignacion: input.asignacion,
+        puntajeAprobacion: input.puntajeAprobacion, abreEn: input.abreEn,
+        cierraEn: input.cierraEn, maxIntentos: input.maxIntentos,
+      });
+    }, [funciones],
   );
 
   const archivarEvaluacion = useCallback((id: string) => {
@@ -354,33 +337,9 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const responderEvaluacion = useCallback<DisciplinarioContextValue["responderEvaluacion"]>(
-    (evaluacionId, empleadoId, valores) => {
-      setEvaluaciones((evs) => {
-        const evaluacion = evs.find((e) => e.id === evaluacionId);
-        if (evaluacion) {
-          const ahora = Date.now();
-          const abre = evaluacion.abreEn ? new Date(evaluacion.abreEn).getTime() : undefined;
-          const cierra = evaluacion.cierraEn ? new Date(evaluacion.cierraEn).getTime() : undefined;
-          const intentosPrevios = respuestas.filter((r) => r.evaluacionId === evaluacionId && r.empleadoId === empleadoId).length;
-          if (evaluacion.estado !== "activo" || (abre !== undefined && ahora < abre) || (cierra !== undefined && ahora > cierra) || intentosPrevios >= (evaluacion.maxIntentos ?? 1)) return evs;
-          // El empleado solo envía sus respuestas. La puntuación y aprobación
-          // deben calcularse en backend confiable, nunca aceptarse del navegador.
-          setRespuestas((prev) => [
-            {
-              id: nextId("rev"),
-              evaluacionId,
-              empleadoId,
-              fecha: hoyISO(),
-              hora: horaActual(),
-              valores,
-            },
-            ...prev,
-          ]);
-        }
-        return evs;
-      });
-    },
-    [respuestas],
+    async (evaluacionId, _empleadoId, valores) => {
+      await httpsCallable(funciones, "responderEvaluacion")({ evaluacionId, valores });
+    }, [funciones],
   );
 
   const value = useMemo<DisciplinarioContextValue>(
