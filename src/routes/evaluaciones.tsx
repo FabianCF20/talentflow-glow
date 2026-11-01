@@ -3,7 +3,9 @@
  * Ruta: /evaluaciones
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/lib/firebase";
+import { useEffect, useMemo, useState } from "react";
 import { ClipboardCheck, Users, BarChart3, Plus, Trash2, Award } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
@@ -31,7 +33,7 @@ import {
 import { estadisticasFormulario } from "@/lib/sst";
 import { downloadCsv } from "@/lib/export";
 import { AREAS, CARGOS } from "@/data/organizacion";
-import { nombreEmpleado, ESTADOS_VINCULADOS } from "@/types/rrhh";
+import { nombreEmpleado, ESTADOS_VINCULADOS, type EmpleadoRRHH } from "@/types/rrhh";
 import {
   TIPO_ASIGNACION_LABEL,
   TIPO_CAMPO_LABEL,
@@ -69,6 +71,10 @@ export const Route = createFileRoute("/evaluaciones")({
   component: EvaluacionesPage,
 });
 
+type EmpleadoEvaluacion = Pick<EmpleadoRRHH, "id" | "nombres" | "apellidos" | "estadoLaboral"> & {
+  laboral: Pick<EmpleadoRRHH["laboral"], "cargoId" | "areaId">;
+};
+
 const TIPOS: TipoInstrumento[] = ["encuesta", "evaluacion", "cuestionario", "prueba_sst"];
 
 const nuevoCampo = (n: number): CampoEvaluacion => ({
@@ -83,20 +89,38 @@ function EvaluacionesPage() {
   const { empleados, rolActivo, empleadoActuandoId } = useRrhh();
   const disc = useDisciplinario();
   const gestiona = puedeGestionarEvaluaciones(rolActivo);
+  const funciones = getFunctions(app);
+  const [empleadosSst, setEmpleadosSst] = useState<EmpleadoEvaluacion[]>([]);
 
+  useEffect(() => {
+    if (rolActivo !== "sst") {
+      setEmpleadosSst([]);
+      return;
+    }
+    let vigente = true;
+    httpsCallable<void, EmpleadoEvaluacion[]>(funciones, "listarEmpleadosEvaluacion")()
+      .then(({ data }) => {
+        if (vigente) setEmpleadosSst(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => console.error("[evaluaciones] destinatarios SST", error));
+    return () => { vigente = false; };
+  }, [funciones, rolActivo]);
+
+  const empleadosParaEvaluaciones: EmpleadoEvaluacion[] =
+    rolActivo === "sst" ? empleadosSst : empleados;
   const vinculados = useMemo(
-    () => empleados.filter((e) => ESTADOS_VINCULADOS.includes(e.estadoLaboral)),
-    [empleados],
+    () => empleadosParaEvaluaciones.filter((e) => ESTADOS_VINCULADOS.includes(e.estadoLaboral)),
+    [empleadosParaEvaluaciones],
   );
   const nombrePor = useMemo(
-    () => Object.fromEntries(empleados.map((e) => [e.id, nombreEmpleado(e)])) as Record<string, string>,
-    [empleados],
+    () => Object.fromEntries(empleadosParaEvaluaciones.map((e) => [e.id, nombreEmpleado(e)])) as Record<string, string>,
+    [empleadosParaEvaluaciones],
   );
 
   const activas = disc.evaluaciones.filter((e) => e.estado === "activo");
   const [activoId, setActivoId] = useState<string>(disc.evaluaciones[0]?.id ?? "");
   const evaluacion = disc.evaluaciones.find((e) => e.id === activoId) ?? disc.evaluaciones[0] ?? null;
-  const empleadoEvaluacion = empleados.find((e) => e.id === empleadoActuandoId);
+  const empleadoEvaluacion = empleadosParaEvaluaciones.find((e) => e.id === empleadoActuandoId);
   const estaAsignado = Boolean(
     evaluacion &&
       (evaluacion.asignacion.tipo === "empresa" ||
