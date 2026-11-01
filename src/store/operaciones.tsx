@@ -13,6 +13,7 @@ import {
   SOLICITUDES_OP_INICIALES,
 } from "@/data/operaciones";
 import { calcularAsistencia, consecutivo, diasEntre, horaActual, hoyISO, supervisorDe } from "@/lib/operaciones";
+import type { MarcacionAsistencia } from "@/types/operaciones";
 import { empleadoById } from "@/data/organizacion";
 import { nombreCompleto } from "@/types/organizacion";
 import type {
@@ -21,6 +22,7 @@ import type {
   NovedadOperativa,
   PasoFlujo,
   RegistroAsistencia,
+  MarcacionAsistencia,
   SolicitudOperativa,
   TipoHoraExtra,
   TipoIncapacidadOp,
@@ -39,6 +41,7 @@ interface OperacionesContextValue {
   solicitudes: SolicitudOperativa[];
   incapacidades: IncapacidadOperativa[];
   asistencia: RegistroAsistencia[];
+  marcaciones: MarcacionAsistencia[];
   horasExtras: HoraExtra[];
   novedades: NovedadOperativa[];
 
@@ -83,6 +86,8 @@ interface OperacionesContextValue {
     valor: string;
     responsable: string;
   }) => void;
+  registrarMarcacionGPS: (input: Omit<MarcacionAsistencia, "id" | "registradoEn" | "estado">) => void;
+  validarMarcaciones: (ids: string[], estado: "validada" | "rechazada", responsable: string, responsableUid: string, motivo?: string) => void;
   marcarAusencia: (empleadoId: string, fecha: string, justificacion: string, responsable: string) => void;
 
   registrarHoraExtra: (input: {
@@ -104,7 +109,7 @@ let seq = 100;
 const nextId = (p: string) => `${p}-${Date.now()}-${seq++}`;
 
 export function OperacionesProvider({ children }: { children: ReactNode }) {
-  const { perfil } = useAuth();
+  const { perfil, usuario } = useAuth();
   const roles = perfil?.roles ?? [];
   const empleadoId = perfil?.empleadoId ?? "";
   const subordinadosIds = perfil?.subordinadosIds ?? [];
@@ -122,6 +127,11 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     "op_asistencia",
     "id",
     alcanceOperacion(roles, empleadoId, subordinadosIds, "asistencia"),
+  );
+  const [marcaciones, setMarcaciones] = useFirestoreState<MarcacionAsistencia>(
+    "op_marcaciones",
+    "id",
+    alcanceOperacion(roles, empleadoId, subordinadosIds, "marcaciones"),
   );
   const [horasExtras, setHorasExtras] = useFirestoreState<HoraExtra>(
     "op_horas_extras",
@@ -516,6 +526,52 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
     [registrarNovedad, upsertAsistencia],
   );
 
+  const registrarMarcacionGPS = useCallback<OperacionesContextValue["registrarMarcacionGPS"]>(
+    (input) => {
+      if (!usuario?.uid || !perfil?.empleadoId) return;
+      const rrhh = roles.some((r) => r === "administrador" || r === "talento_humano");
+      const mando = roles.some((r) => ["administrador", "talento_humano", "supervisor", "jefe", "director", "gerente_general"].includes(r));
+      if (input.registradoPorUid !== usuario.uid) return;
+      if (input.origen === "empleado" && input.empleadoId !== perfil.empleadoId) return;
+      if (input.origen === "supervisor" && !rrhh && !(mando && subordinadosIds.includes(input.empleadoId))) return;
+      const registro: MarcacionAsistencia = {
+        ...input,
+        id: nextId("mar"),
+        registradoEn: new Date().toISOString(),
+        estado: input.origen === "empleado" ? "pendiente_supervisor" : "pendiente_rrhh",
+      };
+      setMarcaciones((prev) => [registro, ...prev]);
+    },
+    [usuario?.uid, perfil?.empleadoId, roles, subordinadosIds, setMarcaciones],
+  );
+
+  const validarMarcaciones = useCallback<OperacionesContextValue["validarMarcaciones"]>(
+    (ids, estado, responsable, responsableUid, motivo) => {
+      if (!usuario?.uid || usuario.uid !== responsableUid || (estado === "rechazada" && !motivo?.trim())) return;
+      const rrhh = roles.some((r) => r === "administrador" || r === "talento_humano");
+      const mando = roles.some((r) => ["supervisor", "jefe"].includes(r));
+      if (!rrhh && !mando) return;
+      const seleccion = new Set(ids);
+      setMarcaciones((prev) => prev.map((m) => {
+        if (!seleccion.has(m.id)) return m;
+        const puedeValidar = rrhh
+          ? m.estado === "pendiente_supervisor" || m.estado === "pendiente_rrhh"
+          : m.estado === "pendiente_supervisor" && m.origen === "empleado"
+            && subordinadosIds.includes(m.empleadoId) && m.registradoPorUid !== usuario.uid;
+        if (!puedeValidar) return m;
+        return {
+          ...m,
+          estado,
+          validadoPorUid: usuario.uid,
+          validadoPor: responsable,
+          validadoEn: new Date().toISOString(),
+          motivoRechazo: estado === "rechazada" ? motivo!.trim() : undefined,
+        };
+      }));
+    },
+    [usuario?.uid, roles, subordinadosIds, setMarcaciones],
+  );
+
   const marcarAusencia = useCallback<OperacionesContextValue["marcarAusencia"]>(
     (empleadoId, fecha, justificacion, responsable) => {
       upsertAsistencia(empleadoId, fecha, responsable, (r) => ({
@@ -658,6 +714,7 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       solicitudes,
       incapacidades,
       asistencia,
+      marcaciones,
       horasExtras,
       novedades,
       radicarSolicitud,
@@ -671,6 +728,8 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       rechazarIncapacidad,
       transcribirIncapacidad,
       registrarMarcacion,
+      registrarMarcacionGPS,
+      validarMarcaciones,
       marcarAusencia,
       registrarHoraExtra,
       aprobarHoraExtraJefe,
@@ -681,6 +740,7 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       solicitudes,
       incapacidades,
       asistencia,
+      marcaciones,
       horasExtras,
       novedades,
       radicarSolicitud,
@@ -694,6 +754,8 @@ export function OperacionesProvider({ children }: { children: ReactNode }) {
       rechazarIncapacidad,
       transcribirIncapacidad,
       registrarMarcacion,
+      registrarMarcacionGPS,
+      validarMarcaciones,
       marcarAusencia,
       registrarHoraExtra,
       aprobarHoraExtraJefe,
