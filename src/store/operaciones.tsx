@@ -86,7 +86,7 @@ interface OperacionesContextValue {
     valor: string;
     responsable: string;
   }) => void;
-  registrarMarcacionGPS: (input: Omit<MarcacionAsistencia, "id" | "registradoEn" | "estado">) => void;
+  registrarMarcacionGPS: (input: Omit<MarcacionAsistencia, "id" | "registradoEn" | "estado" | "validadoPorUid" | "validadoPor" | "validadoEn" | "motivoRechazo">) => void;
   validarMarcaciones: (ids: string[], estado: "validada" | "rechazada", responsable: string, responsableUid: string, motivo?: string) => void;
   marcarAusencia: (empleadoId: string, fecha: string, justificacion: string, responsable: string) => void;
 
