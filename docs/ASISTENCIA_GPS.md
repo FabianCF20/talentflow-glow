@@ -6,8 +6,9 @@
 2. El navegador solicita permiso de ubicación y captura latitud, longitud y precisión reportada por el dispositivo.
 3. Firestore guarda la hora con `serverTimestamp()`; las reglas exigen que coincida con `request.time`.
 4. Al terminar la jornada, el empleado registra la salida con una segunda captura GPS.
-5. El superior consulta el día, revisa horas y ubicaciones, y valida u observa cada registro.
-6. El superior también puede validar en lote los registros completos que seleccione.
+5. El superior consulta el día, revisa horas y ubicaciones, y valida u observa individualmente o en lote las marcas registradas por el empleado.
+6. Si el empleado no puede marcar, el supervisor puede registrar ingreso o salida desde su propia sesión y ubicación GPS; el sistema guarda UID y nombre del supervisor.
+7. Las marcas hechas por supervisor quedan pendientes de Talento Humano; el supervisor no puede aprobar sus propios registros.
 
 ## Documento diario
 
@@ -24,6 +25,8 @@ Campos nuevos:
 ## Permisos
 
 - El empleado solo puede crear su ingreso y agregar una salida una sola vez.
+- Un supervisor autorizado puede crear el ingreso o completar la salida de un subordinado; cada punto identifica origen y UID del registrador.
+- Una marca registrada por supervisor queda pendiente de Talento Humano y no puede ser aprobada por ese supervisor.
 - El empleado no puede cambiar la hora, coordenadas, precisión ni validación.
 - El superior solo puede validar registros de personas que estén en `usuarios/{uid}.subordinadosIds`.
 - Talento Humano y administración pueden consultar y validar globalmente.
