@@ -188,7 +188,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /expedientes/{empleadoId} {
-      allow read: if activo() && (esRrhh() || esMiEmpleado(empleadoId));
+      allow read: if activo() && (esRrhh() || esMiEmpleado(empleadoId) || esMandoAutorizado(empleadoId));
       allow create, update: if activo() && esRrhh();
       allow delete: if false;
     }
@@ -332,6 +332,73 @@ service cloud.firestore {
             && esMandoAutorizado(resource.data.get('empleadoId', ''))
             && request.resource.data.get('estado', '') in ['pendiente_rrhh', 'rechazada'])
         );
+      allow delete: if false;
+    }
+
+    // Cada ingreso/salida es un evento independiente: se conserva incluso si se rechaza.
+    match /op_marcaciones/{id} {
+      function datosValidos() {
+        return request.resource.data.keys().hasAll([
+          'id', 'empleadoId', 'fecha', 'tipo', 'hora', 'latitud', 'longitud',
+          'precisionMetros', 'origen', 'registradoPorUid', 'registradoPor',
+          'registradoEn', 'estado'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'id', 'empleadoId', 'fecha', 'tipo', 'hora', 'latitud', 'longitud',
+          'precisionMetros', 'origen', 'registradoPorUid', 'registradoPor',
+          'registradoEn', 'estado', 'validadoPorUid', 'validadoPor',
+          'validadoEn', 'motivoRechazo'
+        ])
+        && request.resource.data.get('id', '') == id
+        && request.resource.data.get('tipo', '') in ['ingreso', 'salida']
+        && request.resource.data.get('latitud', null) is number
+        && request.resource.data.get('longitud', null) is number
+        && request.resource.data.get('precisionMetros', 999999) is number
+        && request.resource.data.get('precisionMetros', 999999) >= 0
+        && request.resource.data.get('registradoPorUid', '') == request.auth.uid;
+      }
+      allow read: if activo() && (
+        esRrhh()
+        || esMiEmpleado(resource.data.get('empleadoId', ''))
+        || esMandoAutorizado(resource.data.get('empleadoId', ''))
+      );
+      allow create: if activo()
+        && datosValidos()
+        && (
+          (request.resource.data.get('origen', '') == 'empleado'
+            && esMiEmpleado(request.resource.data.get('empleadoId', ''))
+            && request.resource.data.get('estado', '') == 'pendiente_supervisor')
+          || (request.resource.data.get('origen', '') == 'supervisor'
+            && (esRrhh() || esMandoAutorizado(request.resource.data.get('empleadoId', '')))
+            && request.resource.data.get('estado', '') == 'pendiente_rrhh')
+        );
+      allow update: if activo()
+        && request.resource.data.get('empleadoId', '') == resource.data.get('empleadoId', '')
+        && request.resource.data.get('fecha', '') == resource.data.get('fecha', '')
+        && request.resource.data.get('tipo', '') == resource.data.get('tipo', '')
+        && request.resource.data.get('hora', '') == resource.data.get('hora', '')
+        && request.resource.data.get('latitud', null) == resource.data.get('latitud', null)
+        && request.resource.data.get('longitud', null) == resource.data.get('longitud', null)
+        && request.resource.data.get('precisionMetros', null) == resource.data.get('precisionMetros', null)
+        && request.resource.data.get('origen', '') == resource.data.get('origen', '')
+        && request.resource.data.get('registradoPorUid', '') == resource.data.get('registradoPorUid', '')
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'estado', 'validadoPorUid', 'validadoPor', 'validadoEn', 'motivoRechazo'
+        ])
+        && request.resource.data.get('validadoPorUid', '') == request.auth.uid
+        && request.resource.data.get('estado', '') in ['validada', 'rechazada']
+        && (
+          (esRrhh()
+            && resource.data.get('estado', '') in ['pendiente_supervisor', 'pendiente_rrhh'])
+          || (tieneAlguno(['supervisor', 'jefe'])
+            && resource.data.get('estado', '') == 'pendiente_supervisor'
+            && resource.data.get('origen', '') == 'empleado'
+            && resource.data.get('registradoPorUid', '') != request.auth.uid
+            && esMandoAutorizado(resource.data.get('empleadoId', '')))
+        )
+        && (request.resource.data.get('estado', '') != 'rechazada'
+          || request.resource.data.get('motivoRechazo', '') is string
+            && request.resource.data.get('motivoRechazo', '').size() > 0);
       allow delete: if false;
     }
     match /op_horas_extras/{id} {
