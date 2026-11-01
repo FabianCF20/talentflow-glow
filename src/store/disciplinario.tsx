@@ -118,7 +118,7 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
   );
   // Las evaluaciones publicadas no contienen claves correctas.
-  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>("disc_evaluaciones", "id");
+  const [evaluaciones] = useFirestoreState<Evaluacion>("disc_evaluaciones", "id");
   const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
     "disc_respuestas",
     "id",
