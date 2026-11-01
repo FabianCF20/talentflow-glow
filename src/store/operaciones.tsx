@@ -13,7 +13,6 @@ import {
   SOLICITUDES_OP_INICIALES,
 } from "@/data/operaciones";
 import { calcularAsistencia, consecutivo, diasEntre, horaActual, hoyISO, supervisorDe } from "@/lib/operaciones";
-import type { MarcacionAsistencia } from "@/types/operaciones";
 import { empleadoById } from "@/data/organizacion";
 import { nombreCompleto } from "@/types/organizacion";
 import type {
