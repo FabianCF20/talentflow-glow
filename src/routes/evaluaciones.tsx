@@ -71,7 +71,7 @@ export const Route = createFileRoute("/evaluaciones")({
   component: EvaluacionesPage,
 });
 
-type EmpleadoEvaluacion = Pick<EmpleadoRRHH, "id" | "nombres" | "apellidos" | "estadoLaboral"> & {
+type EmpleadoEvaluacion = Pick<EmpleadoRRHH, "id" | "nombres" | "apellidos" | "estado" | "estadoLaboral"> & {
   laboral: Pick<EmpleadoRRHH["laboral"], "cargoId" | "areaId">;
 };
 
@@ -109,7 +109,7 @@ function EvaluacionesPage() {
   const empleadosParaEvaluaciones: EmpleadoEvaluacion[] =
     rolActivo === "sst" ? empleadosSst : empleados;
   const vinculados = useMemo(
-    () => empleadosParaEvaluaciones.filter((e) => ESTADOS_VINCULADOS.includes(e.estadoLaboral)),
+    () => empleadosParaEvaluaciones.filter((e) => e.estado === "activo" && ESTADOS_VINCULADOS.includes(e.estadoLaboral)),
     [empleadosParaEvaluaciones],
   );
   const nombrePor = useMemo(
