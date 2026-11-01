@@ -11,6 +11,8 @@ type PuntoGps = {
   longitud: number;
   precisionMetros: number;
   marcadoEn: { toDate: () => Date } | null;
+  origen?: "empleado" | "supervisor";
+  registradoPor?: string;
 };
 
 type RegistroDia = {
@@ -20,7 +22,7 @@ type RegistroDia = {
   ingreso?: PuntoGps;
   salida?: PuntoGps;
   validacion?: {
-    estado: "pendiente" | "validada" | "observada";
+    estado: "pendiente" | "pendiente_rrhh" | "validada" | "observada";
     usuarioUid?: string;
     fecha?: { toDate: () => Date };
     observacion?: string;
@@ -111,7 +113,14 @@ export function MarcacionAsistencia() {
       const id = `${empleadoId}_${fecha}`;
       const referencia = doc(db, "op_asistencia", id);
       const actual = await getDoc(referencia);
-      const punto = { ...gps, marcadoEn: serverTimestamp() };
+      const actor = `${perfil?.nombres ?? ""} ${perfil?.apellidos ?? ""}`.trim() || "Empleado";
+      const punto = {
+        ...gps,
+        marcadoEn: serverTimestamp(),
+        origen: "empleado" as const,
+        registradoPorUid: perfil?.id ?? "",
+        registradoPor: actor,
+      };
 
       if (tipo === "ingreso") {
         const registrosPrevios = await getDocs(query(
@@ -159,7 +168,8 @@ export function MarcacionAsistencia() {
   const estado = registro?.validacion?.estado ?? "pendiente";
   const etiquetaEstado =
     estado === "validada" ? "Validada por tu superior" :
-    estado === "observada" ? "Requiere revisión" : "Pendiente de validación";
+    estado === "observada" ? "Requiere revisión" :
+    estado === "pendiente_rrhh" ? "Pendiente de Talento Humano" : "Pendiente de validación";
 
   return (
     <section className="space-y-4 rounded-xl border border-border bg-card p-4">
@@ -187,6 +197,7 @@ export function MarcacionAsistencia() {
               {registro?.ingreso && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   GPS: precisión ±{Math.round(registro.ingreso.precisionMetros)} m
+                  {registro.ingreso.origen === "supervisor" ? ` · Registrado por supervisor: ${registro.ingreso.registradoPor ?? "No identificado"}` : ""}
                 </p>
               )}
             </div>
@@ -199,6 +210,7 @@ export function MarcacionAsistencia() {
               {registro?.salida && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   GPS: precisión ±{Math.round(registro.salida.precisionMetros)} m
+                  {registro.salida.origen === "supervisor" ? ` · Registrado por supervisor: ${registro.salida.registradoPor ?? "No identificado"}` : ""}
                 </p>
               )}
             </div>
