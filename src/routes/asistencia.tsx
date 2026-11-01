@@ -287,7 +287,7 @@ function AsistenciaPage() {
   const exportar = () =>
     downloadCsv(
       `asistencia-${fecha}.csv`,
-      ["Empleado", "ID", "Fecha", "Ingreso", "Salida", "GPS ingreso", "GPS salida", "Precisión ingreso (m)", "Precisión salida (m)", "Estado", "Observación"],
+      ["Empleado", "ID", "Fecha", "Ingreso", "Salida", "GPS ingreso", "GPS salida", "Precisión ingreso (m)", "Precisión salida (m)", "Origen ingreso", "Registró ingreso", "Origen salida", "Registró salida", "Estado", "Observación"],
       filas.map(({ empleado, registro }) => [
         empleado.nombre,
         empleado.id,
@@ -298,6 +298,10 @@ function AsistenciaPage() {
         registro?.salida ? `${registro.salida.latitud},${registro.salida.longitud}` : "",
         registro?.ingreso?.precisionMetros ?? "",
         registro?.salida?.precisionMetros ?? "",
+        registro?.ingreso?.origen ?? "Histórico",
+        registro?.ingreso?.registradoPor ?? "",
+        registro?.salida?.origen ?? "Histórico",
+        registro?.salida?.registradoPor ?? "",
         registro?.validacion?.estado ?? (registro ? "Pendiente" : "Sin marcación"),
         registro?.validacion?.observacion ?? registro?.justificacion ?? "",
       ]),
@@ -533,6 +537,8 @@ function AsistenciaPage() {
                             </div>
                           ) : legacy ? (
                             <span className="text-xs text-muted-foreground">Solo consulta histórica</span>
+                          ) : registro && estado === "pendiente_rrhh" ? (
+                            <span className="text-xs text-muted-foreground">Pendiente de validación por Talento Humano</span>
                           ) : registro ? (
                             <span className="text-xs text-muted-foreground">Pendiente de marcación completa</span>
                           ) : (
