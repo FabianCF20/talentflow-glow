@@ -30,6 +30,22 @@ async function asignado(tx, a, empleadoId) {
   const ids=a.tipo==="cargo"?data.flatMap(x=>[x.cargoId,x.laboral?.cargoId]):data.flatMap(x=>[x.areaId,x.laboral?.areaId]);
   return ids.some(id=>id && a.valores.includes(id));
 }
+exports.listarEmpleadosEvaluacion=onCall(async req=>{
+  if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
+  const p=await perfil(req.auth.uid);
+  if(!Array.isArray(p.roles)||!p.roles.some(r=>rolesPermitidos.includes(r))) throw new HttpsError("permission-denied","Sin permiso para consultar destinatarios.");
+  const snap=await db.collection("empleados_rrhh").get();
+  return snap.docs.map(d=>{
+    const e=d.data(), laboral=e.laboral||{};
+    return {
+      id:d.id,
+      nombres:typeof e.nombres==="string"?e.nombres:"",
+      apellidos:typeof e.apellidos==="string"?e.apellidos:"",
+      estadoLaboral:e.estadoLaboral||"retirado",
+      laboral:{cargoId:laboral.cargoId||"",areaId:laboral.areaId||""}
+    };
+  }).filter(e=>["activo","vacaciones","incapacidad","licencia","suspendido"].includes(e.estadoLaboral));
+});
 exports.listarEvaluaciones=onCall(async req=>{
   if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
   const p=await perfil(req.auth.uid);
