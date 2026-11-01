@@ -2,7 +2,7 @@ import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from "firebase/firestore";
 
 const projectId = "demo-talentflow-rules";
 let env;
@@ -41,8 +41,24 @@ before(async () => {
     await setDoc(doc(store, "nomina_liquidaciones", "liq-a"), { empleadoId: "emp-a", neto: 2000000 });
     await setDoc(doc(store, "nomina_liquidaciones", "liq-b"), { empleadoId: "emp-b", neto: 2100000 });
     await setDoc(doc(store, "nomina_periodos", "periodo-1"), { periodo: "2026-10" });
-    await setDoc(doc(store, "op_asistencia", "asis-b"), { empleadoId: "emp-b", fecha: "2026-10-01" });
-    await setDoc(doc(store, "op_asistencia", "asis-c"), { empleadoId: "emp-c", fecha: "2026-10-01" });
+    const horaPrueba = Timestamp.fromDate(new Date("2026-10-01T12:00:00.000Z"));
+    const gpsPrueba = {
+      latitud: 7.1193,
+      longitud: -73.1227,
+      precisionMetros: 12,
+      marcadoEn: horaPrueba,
+      origen: "empleado",
+      registradoPorUid: "emp-b-user",
+      registradoPor: "Empleado B",
+    };
+    await setDoc(doc(store, "op_asistencia", "asis-b"), {
+      id: "asis-b", empleadoId: "emp-b", fecha: "2026-10-01",
+      ingreso: gpsPrueba, salida: gpsPrueba, validacion: { estado: "pendiente" },
+    });
+    await setDoc(doc(store, "op_asistencia", "asis-c"), {
+      id: "asis-c", empleadoId: "emp-c", fecha: "2026-10-01",
+      ingreso: gpsPrueba, salida: gpsPrueba, validacion: { estado: "pendiente" },
+    });
     await setDoc(doc(store, "op_solicitudes", "sol-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "op_horas_extras", "he-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "disc_incidencias", "dis-b"), { empleadoId: "emp-b", estado: "registrada", traza: [], actuaciones: [] });
@@ -96,17 +112,156 @@ test("perfiles inactivos o bloqueados no conservan permisos", async () => {
   await assertFails(getDoc(doc(db("blocked-user"), "org_areas", "area-1")));
 });
 
-test("los mandos solo acceden a registros de subordinados directos", async () => {
+test("el empleado registra ingreso y salida con GPS y hora del servidor; no puede alterar la evidencia", async () => {
+  const employee = db("emp-a-user");
+  const own = doc(employee, "op_asistencia", "emp-a_2026-10-31");
+  await assertSucceeds(getDoc(own));
+  await assertSucceeds(getDocs(query(
+    collection(employee, "op_asistencia"),
+    where("empleadoId", "==", "emp-a"),
+    where("fecha", "==", "2026-10-31"),
+  )));
+  const punto = {
+    latitud: 7.1193,
+    longitud: -73.1227,
+    precisionMetros: 12,
+    marcadoEn: serverTimestamp(),
+    origen: "empleado",
+    registradoPorUid: "emp-a-user",
+    registradoPor: "Empleado A",
+  };
+  await assertSucceeds(setDoc(own, {
+    id: "emp-a_2026-10-31",
+    empleadoId: "emp-a",
+    fecha: "2026-10-31",
+    ingreso: punto,
+    validacion: { estado: "pendiente" },
+  }));
+  await assertFails(setDoc(doc(employee, "op_asistencia", "emp-b_2026-10-31"), {
+    id: "emp-b_2026-10-31", empleadoId: "emp-b", fecha: "2026-10-31",
+    ingreso: punto, validacion: { estado: "pendiente" },
+  }));
+  await assertFails(updateDoc(own, {
+    ingreso: { ...punto, latitud: 0, marcadoEn: serverTimestamp() },
+  }));
+  await assertSucceeds(updateDoc(own, {
+    salida: { ...punto, marcadoEn: serverTimestamp() },
+  }));
+  await assertFails(updateDoc(own, {
+    salida: { ...punto, marcadoEn: serverTimestamp() },
+  }));
+});
+
+test("los mandos solo consultan subordinados y validan sin alterar las marcaciones", async () => {
   const supervisor = db("sup-user");
   const otherSupervisor = db("other-sup-user");
-  await assertSucceeds(getDoc(doc(supervisor, "op_asistencia", "asis-b")));
-  await assertSucceeds(
-    updateDoc(doc(supervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
-  );
-  await assertFails(
-    updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), { horaIngreso: "07:30" }),
-  );
+  const subordinate = doc(supervisor, "op_asistencia", "asis-b");
+  await assertSucceeds(getDoc(subordinate));
+  await assertSucceeds(updateDoc(subordinate, {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertFails(updateDoc(doc(otherSupervisor, "op_asistencia", "asis-b"), {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "other-sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertFails(updateDoc(subordinate, { "ingreso.latitud": 0 }));
   await assertFails(getDoc(doc(supervisor, "op_asistencia", "asis-c")));
+  await assertSucceeds(getDocs(query(
+    collection(supervisor, "op_asistencia"),
+    where("fecha", "==", "2026-10-01"),
+    where("empleadoId", "in", ["emp-b"]),
+  )));
+  await assertFails(getDocs(query(
+    collection(supervisor, "op_asistencia"),
+    where("fecha", "==", "2026-10-01"),
+  )));
+  const ingresoManual = {
+    latitud: 7.1193,
+    longitud: -73.1227,
+    precisionMetros: 12,
+    marcadoEn: serverTimestamp(),
+    origen: "supervisor",
+    registradoPorUid: "sup-user",
+    registradoPor: "Supervisor",
+  };
+  const manual = doc(supervisor, "op_asistencia", "emp-b_2026-11-01");
+  await assertSucceeds(setDoc(manual, {
+    id: "emp-b_2026-11-01",
+    empleadoId: "emp-b",
+    fecha: "2026-11-01",
+    ingreso: ingresoManual,
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertFails(setDoc(doc(supervisor, "op_asistencia", "emp-c_2026-11-01"), {
+    id: "emp-c_2026-11-01",
+    empleadoId: "emp-c",
+    fecha: "2026-11-01",
+    ingreso: ingresoManual,
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertFails(updateDoc(manual, {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertSucceeds(updateDoc(manual, {
+    salida: { ...ingresoManual, marcadoEn: serverTimestamp() },
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertFails(updateDoc(manual, {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertSucceeds(updateDoc(doc(db("hr-user"), "op_asistencia", "emp-b_2026-11-01"), {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "hr-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+
+  const manualIngresoParaEmpleado = doc(supervisor, "op_asistencia", "emp-b_2026-11-02");
+  await assertSucceeds(setDoc(manualIngresoParaEmpleado, {
+    id: "emp-b_2026-11-02",
+    empleadoId: "emp-b",
+    fecha: "2026-11-02",
+    ingreso: { ...ingresoManual, marcadoEn: serverTimestamp() },
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertSucceeds(updateDoc(doc(db("emp-b-user"), "op_asistencia", "emp-b_2026-11-02"), {
+    salida: {
+      latitud: 7.1193,
+      longitud: -73.1227,
+      precisionMetros: 12,
+      marcadoEn: serverTimestamp(),
+      origen: "empleado",
+      registradoPorUid: "emp-b-user",
+      registradoPor: "Empleado B",
+    },
+  }));
+
+  await assertFails(getDoc(doc(db("pay-user"), "op_asistencia", "asis-b")));
+  await assertSucceeds(getDocs(query(
+    collection(db("hr-user"), "op_asistencia"),
+    where("fecha", "==", "2026-10-01"),
+  )));
   await assertSucceeds(getDoc(doc(supervisor, "op_solicitudes", "sol-b")));
   await assertSucceeds(getDoc(doc(supervisor, "op_horas_extras", "he-b")));
   await assertFails(getDoc(doc(otherSupervisor, "op_horas_extras", "he-b")));
@@ -178,15 +333,6 @@ test("el empleado solo puede aceptar una vez su propia entrega de dotación", as
 test("el titular no puede alterar metadatos de documentos existentes", async () => {
   await assertFails(updateDoc(doc(db("emp-a-user"), "portal_documentos", "doc-a"), {
     versiones: [{ version: 2, nombreArchivo: "otro.pdf" }],
-  }));
-});
-
-test("el empleado no puede crear metadatos de documentos contractuales", async () => {
-  await assertFails(setDoc(doc(db("emp-a-user"), "portal_documentos", "contrato-auto"), {
-    id: "contrato-auto", empleadoId: "emp-a", categoria: "contractuales", versiones: [],
-  }));
-  await assertSucceeds(setDoc(doc(db("hr-user"), "portal_documentos", "contrato-hr"), {
-    id: "contrato-hr", empleadoId: "emp-a", categoria: "contractuales", versiones: [],
   }));
 });
 

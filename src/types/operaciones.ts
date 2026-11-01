@@ -116,17 +116,36 @@ export interface IncapacidadOperativa {
 
 /* --------------------------- Control de asistencia -------------------------- */
 
-/** Horas diarias de llegada y salida registradas por el supervisor. */
+/** Punto de marcación GPS con hora emitida por Firestore. */
+export interface PuntoMarcacionAsistencia {
+  latitud: number;
+  longitud: number;
+  precisionMetros: number;
+  marcadoEn?: unknown;
+  origen?: "empleado" | "supervisor";
+  registradoPorUid?: string;
+  registradoPor?: string;
+}
+
+/** Registro diario: las marcas originales no se editan; solo se añade la validación. */
 export interface RegistroAsistencia {
   id: string;
   empleadoId: string;
   fecha: string;
+  ingreso?: PuntoMarcacionAsistencia;
+  salida?: PuntoMarcacionAsistencia;
+  validacion?: {
+    estado: "pendiente" | "validada" | "observada";
+    usuarioUid?: string;
+    fecha?: unknown;
+    observacion?: string;
+  };
+  /** Campos de solo lectura para conservar asistencia histórica anterior al GPS. */
   horaIngreso?: string;
   horaSalida?: string;
-  /** Ausencia registrada explícitamente por el supervisor. */
-  ausente: boolean;
+  ausente?: boolean;
   justificacion?: string;
-  registradoPor: string;
+  registradoPor?: string;
 }
 
 export interface CalculoAsistencia {

@@ -3,7 +3,7 @@
  * Ruta: /reportes
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart3, FileDown, FileText, Users, Timer, HardHat } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { useRrhh } from "@/store/rrhh";
 import { useOperaciones } from "@/store/operaciones";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/lib/auth";
+import type { RegistroAsistencia } from "@/types/operaciones";
 import { useSst } from "@/store/sst";
 import {
   accidentalidadMensual,
@@ -69,7 +73,10 @@ export const Route = createFileRoute("/reportes")({
 
 function ReportesPage() {
   const { empleados } = useRrhh();
-  const { solicitudes, incapacidades, asistencia, horasExtras } = useOperaciones();
+  const { solicitudes, incapacidades, horasExtras } = useOperaciones();
+  const { perfil } = useAuth();
+  const esRrhh = (perfil?.roles ?? []).some((rol) => rol === "administrador" || rol === "talento_humano");
+  const [asistencia, setAsistencia] = useState<RegistroAsistencia[]>([]);
   const { accidentes, capacitaciones } = useSst();
   // Saldos de vacaciones: aún no se calculan automáticamente.
   const vacacionesPendientes: Record<string, number> = {};
@@ -84,6 +91,29 @@ function ReportesPage() {
     areaId: "todas",
     centroCostoId: "todos",
   });
+
+  useEffect(() => {
+    if (!esRrhh) {
+      setAsistencia([]);
+      return;
+    }
+    const inicio = `${filtro.anio}-01-01`;
+    const fin = `${filtro.anio + 1}-01-01`;
+    const consulta = query(
+      collection(db, "op_asistencia"),
+      where("fecha", ">=", inicio),
+      where("fecha", "<", fin),
+    );
+    return onSnapshot(
+      consulta,
+      (snap) => setAsistencia(snap.docs.map((d) => ({ ...d.data(), id: d.id }) as RegistroAsistencia)),
+      (error) => {
+        console.error("[reportes] No se pudo consultar asistencia", error);
+        setAsistencia([]);
+        toast.error("No fue posible cargar la asistencia del periodo.");
+      },
+    );
+  }, [filtro.anio, esRrhh]);
 
   const filtrados = useMemo(
     () =>
