@@ -357,6 +357,11 @@ service cloud.firestore {
         && request.resource.data.get('precisionMetros', 999999) >= 0
         && request.resource.data.get('registradoPorUid', '') == request.auth.uid;
       }
+      function sinDatosDeValidacionIniciales() {
+        return !request.resource.data.keys().hasAny([
+          'validadoPorUid', 'validadoPor', 'validadoEn', 'motivoRechazo'
+        ]);
+      }
       allow read: if activo() && (
         esRrhh()
         || esMiEmpleado(resource.data.get('empleadoId', ''))
@@ -364,6 +369,7 @@ service cloud.firestore {
       );
       allow create: if activo()
         && datosValidos()
+        && sinDatosDeValidacionIniciales()
         && (
           (request.resource.data.get('origen', '') == 'empleado'
             && esMiEmpleado(request.resource.data.get('empleadoId', ''))
