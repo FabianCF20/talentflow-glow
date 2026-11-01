@@ -4,7 +4,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, onSnapshot, query, serverTimestamp, where, writeBatch } from "firebase/firestore";
+import { collection, doc, getDoc, onSnapshot, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { AlertTriangle, CheckCircle2, Clock, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -24,6 +24,9 @@ type PuntoMarcacion = {
   longitud: number;
   precisionMetros: number;
   marcadoEn?: { toDate: () => Date };
+  origen?: "empleado" | "supervisor";
+  registradoPorUid?: string;
+  registradoPor?: string;
 };
 
 type PersonaAsistencia = { id: string; nombre: string };
@@ -35,7 +38,7 @@ type RegistroDia = {
   ingreso?: PuntoMarcacion;
   salida?: PuntoMarcacion;
   validacion?: {
-    estado: "pendiente" | "validada" | "observada";
+    estado: "pendiente" | "pendiente_rrhh" | "validada" | "observada";
     usuarioUid?: string;
     fecha?: { toDate: () => Date };
     observacion?: string;
@@ -72,6 +75,32 @@ const gps = (punto?: PuntoMarcacion) =>
   punto
     ? `https://www.google.com/maps?q=${punto.latitud},${punto.longitud}`
     : undefined;
+
+const obtenerGps = (): Promise<{ latitud: number; longitud: number; precisionMetros: number }> =>
+  new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Este dispositivo o navegador no permite obtener ubicación GPS."));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) =>
+        resolve({
+          latitud: coords.latitude,
+          longitud: coords.longitude,
+          precisionMetros: coords.accuracy,
+        }),
+      (error) => {
+        const mensaje =
+          error.code === error.PERMISSION_DENIED
+            ? "Debes permitir el acceso a la ubicación para registrar asistencia."
+            : error.code === error.TIMEOUT
+              ? "No fue posible obtener GPS a tiempo. Intenta nuevamente en un lugar abierto."
+              : "No se pudo obtener la ubicación GPS.";
+        reject(new Error(mensaje));
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+    );
+  });
 
 const gruposDe = (ids: string[], maximo = 30) => {
   const grupos: string[][] = [];
@@ -110,6 +139,8 @@ function AsistenciaPage() {
   const [cargando, setCargando] = useState(true);
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [observaciones, setObservaciones] = useState<Record<string, string>>({});
+  const [empleadoManualId, setEmpleadoManualId] = useState("");
+  const [marcandoManual, setMarcandoManual] = useState(false);
 
   useEffect(() => {
     setCargando(true);
@@ -186,7 +217,7 @@ function AsistenciaPage() {
     [personal, registrosPorEmpleado, busqueda],
   );
 
-  const pendientes = registros.filter((r) => (r.validacion?.estado ?? "pendiente") === "pendiente");
+  const pendientes = registros.filter((r) => ["pendiente", "pendiente_rrhh"].includes(r.validacion?.estado ?? "pendiente"));
   const validadas = registros.filter((r) => r.validacion?.estado === "validada");
   const observadas = registros.filter((r) => r.validacion?.estado === "observada");
 
@@ -223,7 +254,11 @@ function AsistenciaPage() {
         seleccionados.includes(r.id) &&
         r.ingreso &&
         r.salida &&
-        (r.validacion?.estado ?? "pendiente") === "pendiente",
+        (esRrhh
+          ? ["pendiente", "pendiente_rrhh"].includes(r.validacion?.estado ?? "pendiente")
+          : (r.validacion?.estado ?? "pendiente") === "pendiente"
+            && r.ingreso?.origen === "empleado"
+            && r.salida?.origen === "empleado"),
     );
     if (!elegibles.length) {
       toast.error("Selecciona registros completos que estén pendientes de validación.");
@@ -271,6 +306,64 @@ function AsistenciaPage() {
   const alternarSeleccion = (id: string, activo: boolean) =>
     setSeleccionados((prev) => activo ? [...new Set([...prev, id])] : prev.filter((x) => x !== id));
 
+  const registrarManual = async (tipo: "ingreso" | "salida") => {
+    const empleadoId = empleadoManualId || personal[0]?.id || "";
+    const uid = perfil?.id;
+    if (!uid || !empleadoId || !esMando || marcandoManual) return;
+
+    setMarcandoManual(true);
+    try {
+      const ubicacion = await obtenerGps();
+      const actor = `${perfil?.nombres ?? ""} ${perfil?.apellidos ?? ""}`.trim() || "Supervisor";
+      const punto = {
+        ...ubicacion,
+        marcadoEn: serverTimestamp(),
+        origen: "supervisor" as const,
+        registradoPorUid: uid,
+        registradoPor: actor,
+      };
+      const id = `${empleadoId}_${fecha}`;
+      const referencia = doc(db, "op_asistencia", id);
+      const actual = await getDoc(referencia);
+
+      if (!actual.exists()) {
+        if (tipo === "salida") {
+          throw new Error("Primero debe existir un ingreso. Registra el ingreso antes de la salida.");
+        }
+        await setDoc(referencia, {
+          id,
+          empleadoId,
+          fecha,
+          ingreso: punto,
+          validacion: { estado: "pendiente_rrhh" },
+        });
+      } else {
+        const datos = actual.data() as RegistroDia;
+        if (datos[tipo]) {
+          throw new Error(`El ${tipo} ya está registrado para este empleado y fecha.`);
+        }
+        if (!datos.ingreso) {
+          throw new Error("El registro existente es histórico o no tiene ingreso GPS. Solicita revisión a Talento Humano.");
+        }
+        if (datos.validacion?.estado === "validada" || datos.validacion?.estado === "observada") {
+          throw new Error("La asistencia ya fue cerrada por validación. Solicita una corrección a Talento Humano.");
+        }
+        await updateDoc(referencia, {
+          [tipo]: punto,
+          validacion: { estado: "pendiente_rrhh" },
+        });
+      }
+
+      toast.success(
+        `${tipo === "ingreso" ? "Ingreso" : "Salida"} registrada por supervisor. Quedó pendiente de Talento Humano.`,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No fue posible registrar la marcación.");
+    } finally {
+      setMarcandoManual(false);
+    }
+  };
+
   return (
     <AppShell>
       <PageHeader
@@ -296,6 +389,41 @@ function AsistenciaPage() {
         <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
           Tu rol no tiene acceso al panel de validación. Puedes registrar tu asistencia desde la pestaña «Mi asistencia» del Portal del Empleado.
         </div>
+      )}
+
+      {esMando && (
+        <section className="space-y-3 rounded-lg border border-border bg-card p-4">
+          <div>
+            <h2 className="font-semibold text-foreground">Registrar ingreso o salida por un empleado</h2>
+            <p className="text-sm text-muted-foreground">
+              Usa esta opción cuando el empleado no pueda marcar desde su cuenta. Se guardará el GPS del dispositivo del supervisor, quién realizó el registro y la hora oficial del servidor. Estas marcas solo las puede validar Talento Humano.
+            </p>
+          </div>
+          {personal.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No hay subordinados asignados a tu perfil.</p>
+          ) : (
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="min-w-56 flex-1 text-sm">
+                Empleado
+                <select
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3"
+                  value={empleadoManualId || personal[0]?.id || ""}
+                  onChange={(e) => setEmpleadoManualId(e.target.value)}
+                >
+                  {personal.map((persona) => (
+                    <option key={persona.id} value={persona.id}>{persona.nombre}</option>
+                  ))}
+                </select>
+              </label>
+              <Button disabled={marcandoManual} onClick={() => void registrarManual("ingreso")}>
+                Registrar ingreso
+              </Button>
+              <Button variant="outline" disabled={marcandoManual} onClick={() => void registrarManual("salida")}>
+                Registrar salida
+              </Button>
+            </div>
+          )}
+        </section>
       )}
 
       {puedeConsultar && (
@@ -334,7 +462,13 @@ function AsistenciaPage() {
                     const estado = registro?.validacion?.estado ?? (registro ? "pendiente" : "sin_marcacion");
                     const completo = !!registro?.ingreso && !!registro?.salida;
                     const legacy = !!registro && !registro.ingreso;
-                    const puedeSeleccionar = !!registro?.ingreso && !!registro.salida && estado === "pendiente";
+                    const puedeSeleccionar = !!registro?.ingreso && !!registro.salida && (
+                      esRrhh
+                        ? estado === "pendiente" || estado === "pendiente_rrhh"
+                        : estado === "pendiente"
+                          && registro.ingreso.origen === "empleado"
+                          && registro.salida.origen === "empleado"
+                    );
                     return (
                       <tr key={empleado.id} className="border-t border-border align-top">
                         <td className="p-3">
@@ -357,6 +491,9 @@ function AsistenciaPage() {
                               Ver GPS · ±{Math.round(registro.ingreso.precisionMetros)} m
                             </a>
                           )}
+                          {registro?.ingreso?.origen === "supervisor" && (
+                            <p className="text-xs text-muted-foreground">Registró supervisor: {registro.ingreso.registradoPor ?? "No identificado"}</p>
+                          )}
                         </td>
                         <td className="p-3">
                           <p>{hora(registro?.salida, registro?.horaSalida)}</p>
@@ -365,12 +502,16 @@ function AsistenciaPage() {
                               Ver GPS · ±{Math.round(registro.salida.precisionMetros)} m
                             </a>
                           )}
+                          {registro?.salida?.origen === "supervisor" && (
+                            <p className="text-xs text-muted-foreground">Registró supervisor: {registro.salida.registradoPor ?? "No identificado"}</p>
+                          )}
                         </td>
                         <td className="p-3">
                           <span className="rounded-full border border-border px-2 py-1 text-xs">
                             {legacy ? "Histórico sin GPS" :
                               estado === "validada" ? "Validada" :
                               estado === "observada" ? "Observada" :
+                              estado === "pendiente_rrhh" ? "Pendiente Talento Humano" :
                               estado === "sin_marcacion" ? "Sin marcación" :
                               completo ? "Pendiente" : "Incompleta"}
                           </span>
