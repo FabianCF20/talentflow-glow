@@ -22,10 +22,10 @@ function fechaHora(now) {
   const o=Object.fromEntries(p.map(x=>[x.type,x.value]));
   return {fecha:o.year+"-"+o.month+"-"+o.day,hora:new Intl.DateTimeFormat("en-GB",{timeZone:"America/Bogota",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).format(now)};
 }
-async function asignado(a, empleadoId) {
+async function asignado(tx, a, empleadoId) {
   if(a.tipo==="empresa") return true;
   if(a.tipo==="empleado") return a.valores.includes(empleadoId);
-  const docs=await Promise.all(["empleados_rrhh","org_empleados"].map(c=>db.doc(c+"/"+empleadoId).get()));
+  const docs=await Promise.all(["empleados_rrhh","org_empleados"].map(c=>tx.get(db.doc(c+"/"+empleadoId))));
   const data=docs.filter(d=>d.exists).map(d=>d.data());
   const ids=a.tipo==="cargo"?data.flatMap(x=>[x.cargoId,x.laboral?.cargoId]):data.flatMap(x=>[x.areaId,x.laboral?.areaId]);
   return ids.some(id=>id && a.valores.includes(id));
@@ -86,7 +86,7 @@ exports.responderEvaluacion=onCall(async req=>{
     if(!es.exists||!ks.exists) throw new HttpsError("not-found","Evaluación no encontrada.");
     const e=es.data();
     if(e.estado!=="activo"||(e.abreEn&&now<new Date(e.abreEn))||(e.cierraEn&&now>new Date(e.cierraEn))) throw new HttpsError("failed-precondition","Evaluación fuera de su periodo.");
-    if(!(await asignado(e.asignacion,empleadoId))) throw new HttpsError("permission-denied","No estás asignado.");
+    if(!(await asignado(tx,e.asignacion,empleadoId))) throw new HttpsError("permission-denied","No estás asignado.");
     if(!valores||typeof valores!=="object"||Array.isArray(valores)) throw new HttpsError("invalid-argument","Respuestas inválidas.");
     const fields=new Map(e.campos.map(c=>[c.id,c]));
     if(Object.keys(valores).some(k=>!fields.has(k))) throw new HttpsError("invalid-argument","Pregunta desconocida.");
