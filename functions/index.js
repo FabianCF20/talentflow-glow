@@ -68,7 +68,7 @@ exports.crearEvaluacion=onCall(async req=>{
   if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
   const p=await perfil(req.auth.uid), d=req.data||{};
   if(!Array.isArray(p.roles)||!p.roles.some(r=>rolesPermitidos.includes(r))) throw new HttpsError("permission-denied","Sin permiso para crear evaluaciones.");
-  if(typeof d.titulo!=="string"||d.titulo.trim().length<5||!Array.isArray(d.campos)||d.campos.length<1||d.campos.length>100) throw new HttpsError("invalid-argument","Título o preguntas no válidas.");
+  if(typeof d.titulo!=="string"||d.titulo.trim().length<5||!Array.isArray(d.campos)||d.campos.length<1||d.campos.length>100||!["encuesta","evaluacion","cuestionario","prueba_sst"].includes(d.tipo)) throw new HttpsError("invalid-argument","Título, tipo o preguntas no válidas.");
   if(!d.asignacion||!["empleado","cargo","area","empresa"].includes(d.asignacion.tipo)) throw new HttpsError("invalid-argument","Asignación inválida.");
   const vals=Array.isArray(d.asignacion.valores)?[...new Set(d.asignacion.valores.filter(x=>typeof x==="string"))]:[];
   if(d.asignacion.tipo==="empresa"?vals.length!==0:vals.length===0) throw new HttpsError("invalid-argument","Faltan destinatarios.");
@@ -80,7 +80,22 @@ exports.crearEvaluacion=onCall(async req=>{
   for(const c of d.campos){
     if(!c||typeof c.id!=="string"||!c.id||ids.has(c.id)||typeof c.etiqueta!=="string"||!c.etiqueta.trim()||!["texto","seleccion_unica","seleccion_multiple","booleano","escala"].includes(c.tipo)) throw new HttpsError("invalid-argument","Pregunta inválida.");
     ids.add(c.id);
-    if(["seleccion_unica","seleccion_multiple"].includes(c.tipo)&&(!Array.isArray(c.opciones)||c.opciones.length<2||c.opciones.length>50)) throw new HttpsError("invalid-argument","Opciones inválidas.");
+    if(["seleccion_unica","seleccion_multiple"].includes(c.tipo)){
+      if(!Array.isArray(c.opciones)||c.opciones.length<2||c.opciones.length>50||c.opciones.some(x=>typeof x!=="string"||!x.trim())||new Set(c.opciones).size!==c.opciones.length) throw new HttpsError("invalid-argument","Opciones inválidas.");
+    }
+    if(c.tipo==="escala"){
+      const min=c.escalaMin??1, maximo=c.escalaMax??5;
+      if(!Number.isInteger(min)||!Number.isInteger(maximo)||min<0||maximo>10||min>=maximo) throw new HttpsError("invalid-argument","Rango de escala inválido.");
+    }
+    if(c.peso!==undefined&&(!Number.isFinite(c.peso)||c.peso<=0||c.peso>100)) throw new HttpsError("invalid-argument","Peso de pregunta inválido.");
+    if(c.correcta!==undefined){
+      const correctaValida=
+        (c.tipo==="seleccion_unica"&&typeof c.correcta==="string"&&c.opciones.includes(c.correcta))
+        ||(c.tipo==="seleccion_multiple"&&Array.isArray(c.correcta)&&c.correcta.length>0&&c.correcta.every(x=>c.opciones.includes(x))&&new Set(c.correcta).size===c.correcta.length)
+        ||(c.tipo==="booleano"&&typeof c.correcta==="boolean")
+        ||(c.tipo==="escala"&&Number.isInteger(c.correcta)&&c.correcta>=(c.escalaMin??1)&&c.correcta<=(c.escalaMax??5));
+      if(!correctaValida) throw new HttpsError("invalid-argument","La respuesta correcta no corresponde al tipo de pregunta.");
+    }
   }
   const now=new Date(), id="ev-"+db.collection("disc_evaluaciones").doc().id, fh=fechaHora(now);
   const publicFields=d.campos.map(({correcta,...c})=>c);
