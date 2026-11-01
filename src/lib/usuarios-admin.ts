@@ -124,7 +124,8 @@ export async function actualizarCuentaUsuario(
   // Una cuenta que cambia de empleado o deja de ser mando no debe conservar
   // la proyección de subordinados de su vinculación/rol anterior.
   const rolesDeMando: RoleKey[] = ["gerente_general", "director", "jefe", "supervisor"];
-  const cambioVinculacion = (cambios.empleadoId ?? "") !== (cuenta.empleadoId ?? "");
+  const empleadoIdNuevo = "empleadoId" in cambios ? (cambios.empleadoId ?? "") : (cuenta.empleadoId ?? "");
+  const cambioVinculacion = empleadoIdNuevo !== (cuenta.empleadoId ?? "");
   const dejaDeSerMando = !actualizada.roles?.some((rol) => rolesDeMando.includes(rol as RoleKey));
   if (cambioVinculacion || dejaDeSerMando) {
     (actualizada as CuentaUsuario & { subordinadosIds?: string[] }).subordinadosIds = [];
