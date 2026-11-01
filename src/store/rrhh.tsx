@@ -37,8 +37,9 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
   const puedeVerEventosGlobales = rolesUsuario.some((rol) =>
     ["administrador", "talento_humano"].includes(rol),
   );
-  const filtroEmpleadoPropio = empleadoPropioId
-    ? { filtros: [{ campo: "__name__", valor: empleadoPropioId }] }
+  const idsVisibles = [...new Set([empleadoPropioId, ...(perfil?.subordinadosIds ?? [])].filter(Boolean))];
+  const filtroEmpleadoPropio = idsVisibles.length
+    ? { filtros: [{ campo: "__name__", valor: idsVisibles }] }
     : { enabled: false };
   const filtroEventosPropios = empleadoPropioId
     ? { filtros: [{ campo: "empleadoId", valor: empleadoPropioId }] }
