@@ -67,6 +67,7 @@ function AsistenciaPage() {
   const [ocupado, setOcupado] = useState(false);
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [motivoRechazo, setMotivoRechazo] = useState("");
+  const [limiteHistorial, setLimiteHistorial] = useState(100);
 
   const roles = perfil?.roles ?? [];
   const empleadoId = perfil?.empleadoId ?? "";
@@ -163,7 +164,7 @@ function AsistenciaPage() {
             {marcacionesPropias.filter((m) => m.fecha === fecha).map((m) => (
               <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3 text-sm">
                 <span className="font-medium">{m.tipo === "ingreso" ? "Ingreso" : "Salida"} · {m.hora}</span>
-                <span className="text-muted-foreground">{estadoLabel[m.estado]}</span>
+                <span className="text-muted-foreground">{estadoLabel[m.estado]}</span>{m.motivoRechazo && <span className="text-destructive">Motivo: {m.motivoRechazo}</span>}
                 <a className="text-primary underline" href={`https://www.google.com/maps?q=${m.latitud},${m.longitud}`} target="_blank" rel="noreferrer">Ver ubicación</a>
               </div>
             ))}
@@ -253,7 +254,7 @@ function AsistenciaPage() {
           <h2 className="text-base font-semibold text-foreground">Consulta global de Talento Humano</h2>
           <p className="text-sm text-muted-foreground">Historial completo de marcaciones, origen, responsable, estado y ubicación.</p>
           <div className="space-y-2">
-            {op.marcaciones.slice(0, 100).map((m) => {
+            {op.marcaciones.slice(0, limiteHistorial).map((m) => {
               const emp = empleados.find((e) => e.id === m.empleadoId);
               return <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-2 text-sm">
                 <span>{emp ? nombreEmpleado(emp) : m.empleadoId} · {m.fecha} {m.hora} · {m.tipo}</span>
@@ -262,6 +263,7 @@ function AsistenciaPage() {
               </div>;
             })}
           </div>
+          {op.marcaciones.length > limiteHistorial && <Button variant="outline" size="sm" onClick={() => setLimiteHistorial((n) => n + 100)}>Mostrar más marcaciones</Button>}
         </section>
       )}
 
