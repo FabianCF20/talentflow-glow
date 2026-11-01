@@ -96,6 +96,19 @@ function EvaluacionesPage() {
   const activas = disc.evaluaciones.filter((e) => e.estado === "activo");
   const [activoId, setActivoId] = useState<string>(disc.evaluaciones[0]?.id ?? "");
   const evaluacion = disc.evaluaciones.find((e) => e.id === activoId) ?? disc.evaluaciones[0] ?? null;
+  const empleadoEvaluacion = empleados.find((e) => e.id === empleadoActuandoId);
+  const estaAsignado = Boolean(
+    evaluacion &&
+      (evaluacion.asignacion.tipo === "empresa" ||
+        (evaluacion.asignacion.tipo === "empleado" &&
+          evaluacion.asignacion.valores.includes(empleadoActuandoId)) ||
+        (evaluacion.asignacion.tipo === "cargo" &&
+          Boolean(empleadoEvaluacion?.laboral?.cargoId) &&
+          evaluacion.asignacion.valores.includes(empleadoEvaluacion?.laboral?.cargoId ?? "")) ||
+        (evaluacion.asignacion.tipo === "area" &&
+          Boolean(empleadoEvaluacion?.laboral?.areaId) &&
+          evaluacion.asignacion.valores.includes(empleadoEvaluacion?.laboral?.areaId ?? ""))),
+  );
 
   const indicadoresGlobales = useMemo(() => {
     const calificadas = disc.respuestas.filter((r) => typeof r.puntaje === "number");
@@ -172,6 +185,10 @@ function EvaluacionesPage() {
 
   const responder = () => {
     if (!evaluacion) return;
+    if (!estaAsignado) {
+      toast.error("Esta evaluación no está asignada a este empleado.");
+      return;
+    }
     const faltantes = evaluacion.campos.filter(
       (c) =>
         c.requerido &&
@@ -440,7 +457,11 @@ function EvaluacionesPage() {
                 </p>
               </div>
 
-              {evaluacion.campos.map((c) => (
+              {!estaAsignado ? (
+                <p className="rounded-md border border-border p-3 text-sm text-muted-foreground">
+                  Esta evaluación no está asignada al empleado seleccionado.
+                </p>
+              ) : evaluacion.campos.map((c) => (
                 <div key={c.id} className="space-y-2">
                   <Label>
                     {c.etiqueta}
@@ -527,11 +548,11 @@ function EvaluacionesPage() {
                 </div>
               ))}
 
-              <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              {estaAsignado && <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
                 Intentos utilizados: {disc.respuestas.filter((x) => x.evaluacionId === evaluacion.id && x.empleadoId === empleadoActuandoId).length} de {evaluacion.maxIntentos ?? 1}
                 {evaluacion.cierraEn ? ` · Cierra: ${new Date(evaluacion.cierraEn).toLocaleString("es-CO")}` : ""}
-              </div>
-              <Button onClick={responder}>Enviar respuestas</Button>
+              </div>}
+              <Button onClick={responder} disabled={!estaAsignado}>Enviar respuestas</Button>
             </section>
           )}
         </TabsContent>
