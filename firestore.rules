@@ -375,7 +375,8 @@ service cloud.firestore {
             && esMiEmpleado(request.resource.data.get('empleadoId', ''))
             && request.resource.data.get('estado', '') == 'pendiente_supervisor')
           || (request.resource.data.get('origen', '') == 'supervisor'
-            && (esRrhh() || esMandoAutorizado(request.resource.data.get('empleadoId', '')))
+            && (esRrhh() || (tieneAlguno(['supervisor', 'jefe'])
+              && esMandoAutorizado(request.resource.data.get('empleadoId', ''))))
             && request.resource.data.get('estado', '') == 'pendiente_rrhh')
         );
       allow update: if activo()
