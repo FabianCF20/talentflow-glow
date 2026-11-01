@@ -87,7 +87,7 @@ interface DisciplinarioContextValue {
     maxIntentos?: number;
     responsable: string;
   }) => Promise<void>;
-  archivarEvaluacion: (id: string) => void;
+  archivarEvaluacion: (id: string) => Promise<void>;
   responderEvaluacion: (
     evaluacionId: string,
     empleadoId: string,
@@ -328,13 +328,9 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     }, [funciones],
   );
 
-  const archivarEvaluacion = useCallback((id: string) => {
-    setEvaluaciones((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, estado: e.estado === "activo" ? "archivado" : "activo" } : e,
-      ),
-    );
-  }, []);
+  const archivarEvaluacion = useCallback(async (id: string) => {
+    await httpsCallable(funciones, "archivarEvaluacion")({ evaluacionId: id });
+  }, [funciones]);
 
   const responderEvaluacion = useCallback<DisciplinarioContextValue["responderEvaluacion"]>(
     async (evaluacionId, _empleadoId, valores) => {

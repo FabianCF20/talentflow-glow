@@ -58,6 +58,20 @@ exports.crearEvaluacion=onCall(async req=>{
   await batch.commit();
   return {id,codigo:pub.codigo};
 });
+exports.archivarEvaluacion=onCall(async req=>{
+  if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
+  const p=await perfil(req.auth.uid);
+  if(!Array.isArray(p.roles)||!p.roles.some(r=>rolesPermitidos.includes(r))) throw new HttpsError("permission-denied","Sin permiso para archivar evaluaciones.");
+  const id=req.data?.evaluacionId;
+  if(typeof id!=="string"||!/^ev-[A-Za-z0-9_-]+$/.test(id)) throw new HttpsError("invalid-argument","Evaluación inválida.");
+  const ref=db.doc("disc_evaluaciones/"+id);
+  await db.runTransaction(async tx=>{
+    const snap=await tx.get(ref);
+    if(!snap.exists) throw new HttpsError("not-found","Evaluación no encontrada.");
+    tx.update(ref,{estado:snap.data().estado==="activo"?"archivado":"activo",actualizadoEn:FieldValue.serverTimestamp()});
+  });
+  return {success:true};
+});
 exports.responderEvaluacion=onCall(async req=>{
   if(!req.auth) throw new HttpsError("unauthenticated","Inicia sesión.");
   const p=await perfil(req.auth.uid), empleadoId=p.empleadoId;

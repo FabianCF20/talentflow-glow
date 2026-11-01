@@ -285,6 +285,16 @@ test("las observaciones internas no son visibles para el empleado titular", asyn
 });
 
 
+test("las claves privadas y la publicación no se pueden consultar ni modificar desde el cliente", async () => {
+  const store = db("hr-user");
+  await assertFails(getDoc(doc(store, "disc_claves_evaluacion", "ev-secret")));
+  await assertFails(getDoc(doc(store, "disc_intentos_evaluacion", "ev-secret_emp-a")));
+  await assertFails(setDoc(doc(store, "disc_claves_evaluacion", "ev-forged"), { claves: { q1: { correcta: "A" } } }));
+  await assertFails(setDoc(doc(store, "disc_evaluaciones", "ev-forged"), {
+    id: "ev-forged", titulo: "Evaluación manipulada", campos: [], estado: "activo",
+  }));
+});
+
 test("las respuestas disciplinarias no aceptan puntajes enviados por el navegador", async () => {
   const store = db("emp-a-user");
   await assertFails(
