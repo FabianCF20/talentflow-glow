@@ -42,7 +42,15 @@ before(async () => {
     await setDoc(doc(store, "nomina_liquidaciones", "liq-b"), { empleadoId: "emp-b", neto: 2100000 });
     await setDoc(doc(store, "nomina_periodos", "periodo-1"), { periodo: "2026-10" });
     const horaPrueba = Timestamp.fromDate(new Date("2026-10-01T12:00:00.000Z"));
-    const gpsPrueba = { latitud: 7.1193, longitud: -73.1227, precisionMetros: 12, marcadoEn: horaPrueba };
+    const gpsPrueba = {
+      latitud: 7.1193,
+      longitud: -73.1227,
+      precisionMetros: 12,
+      marcadoEn: horaPrueba,
+      origen: "empleado",
+      registradoPorUid: "emp-b-user",
+      registradoPor: "Empleado B",
+    };
     await setDoc(doc(store, "op_asistencia", "asis-b"), {
       id: "asis-b", empleadoId: "emp-b", fecha: "2026-10-01",
       ingreso: gpsPrueba, salida: gpsPrueba, validacion: { estado: "pendiente" },
@@ -118,6 +126,9 @@ test("el empleado registra ingreso y salida con GPS y hora del servidor; no pued
     longitud: -73.1227,
     precisionMetros: 12,
     marcadoEn: serverTimestamp(),
+    origen: "empleado",
+    registradoPorUid: "emp-a-user",
+    registradoPor: "Empleado A",
   };
   await assertSucceeds(setDoc(own, {
     id: "emp-a_2026-10-31",
@@ -173,6 +184,79 @@ test("los mandos solo consultan subordinados y validan sin alterar las marcacion
     collection(supervisor, "op_asistencia"),
     where("fecha", "==", "2026-10-01"),
   )));
+  const ingresoManual = {
+    latitud: 7.1193,
+    longitud: -73.1227,
+    precisionMetros: 12,
+    marcadoEn: serverTimestamp(),
+    origen: "supervisor",
+    registradoPorUid: "sup-user",
+    registradoPor: "Supervisor",
+  };
+  const manual = doc(supervisor, "op_asistencia", "emp-b_2026-11-01");
+  await assertSucceeds(setDoc(manual, {
+    id: "emp-b_2026-11-01",
+    empleadoId: "emp-b",
+    fecha: "2026-11-01",
+    ingreso: ingresoManual,
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertFails(setDoc(doc(supervisor, "op_asistencia", "emp-c_2026-11-01"), {
+    id: "emp-c_2026-11-01",
+    empleadoId: "emp-c",
+    fecha: "2026-11-01",
+    ingreso: ingresoManual,
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertFails(updateDoc(manual, {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertSucceeds(updateDoc(manual, {
+    salida: { ...ingresoManual, marcadoEn: serverTimestamp() },
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertFails(updateDoc(manual, {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "sup-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+  await assertSucceeds(updateDoc(doc(db("hr-user"), "op_asistencia", "emp-b_2026-11-01"), {
+    validacion: {
+      estado: "validada",
+      usuarioUid: "hr-user",
+      fecha: serverTimestamp(),
+      observacion: "",
+    },
+  }));
+
+  const manualIngresoParaEmpleado = doc(supervisor, "op_asistencia", "emp-b_2026-11-02");
+  await assertSucceeds(setDoc(manualIngresoParaEmpleado, {
+    id: "emp-b_2026-11-02",
+    empleadoId: "emp-b",
+    fecha: "2026-11-02",
+    ingreso: { ...ingresoManual, marcadoEn: serverTimestamp() },
+    validacion: { estado: "pendiente_rrhh" },
+  }));
+  await assertSucceeds(updateDoc(doc(db("emp-b-user"), "op_asistencia", "emp-b_2026-11-02"), {
+    salida: {
+      latitud: 7.1193,
+      longitud: -73.1227,
+      precisionMetros: 12,
+      marcadoEn: serverTimestamp(),
+      origen: "empleado",
+      registradoPorUid: "emp-b-user",
+      registradoPor: "Empleado B",
+    },
+  }));
+
   await assertFails(getDoc(doc(db("pay-user"), "op_asistencia", "asis-b")));
   await assertSucceeds(getDocs(query(
     collection(db("hr-user"), "op_asistencia"),
