@@ -141,9 +141,11 @@ exports.responderEvaluacion=onCall(async req=>{
     const clavesAntiguas=Object.fromEntries((Array.isArray(e.campos)?e.campos:[])
       .filter(c=>c.correcta!==undefined)
       .map(c=>[c.id,{correcta:c.correcta,peso:Number.isFinite(c.peso)&&c.peso>0?c.peso:1}]));
-    const claves=ks.exists?(ks.data().claves||{}):clavesAntiguas;
+    const clavesPrivadas=ks.exists?(ks.data().claves||{}):{};
+    const claves={...clavesAntiguas,...clavesPrivadas};
     // Migración segura y automática de evaluaciones antiguas al primer envío.
     if(!ks.exists) tx.create(kr,{evaluacionId,claves});
+    else if(Object.keys(claves).length!==Object.keys(clavesPrivadas).length) tx.update(kr,{claves});
     if((Array.isArray(e.campos)?e.campos:[]).some(c=>c.correcta!==undefined)){
       tx.update(er,{campos:camposPublicos,actualizadoEn:FieldValue.serverTimestamp()});
     }
