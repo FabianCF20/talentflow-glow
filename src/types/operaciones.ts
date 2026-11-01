@@ -122,6 +122,9 @@ export interface PuntoMarcacionAsistencia {
   longitud: number;
   precisionMetros: number;
   marcadoEn?: unknown;
+  origen?: "empleado" | "supervisor";
+  registradoPorUid?: string;
+  registradoPor?: string;
 }
 
 /** Registro diario: las marcas originales no se editan; solo se añade la validación. */
