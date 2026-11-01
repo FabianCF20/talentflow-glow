@@ -613,7 +613,7 @@ function PortalEmpleadoPage() {
         <TabsContent value="documentos" className="mt-4 space-y-4">
           <SeccionExpediente
             titulo="Cargar documento"
-            descripcion="Categorías: personales, académicos, contractuales, SST, disciplinarios e incapacidades."
+            descripcion="Puedes cargar documentos personales, académicos, SST, disciplinarios e incapacidades. Los contratos los gestiona Talento Humano."
           >
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
@@ -648,7 +648,7 @@ function PortalEmpleadoPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIAS_DOC.map((c) => (
+                    {CATEGORIAS_DOC.filter((c) => c !== "contractuales").map((c) => (
                       <SelectItem key={c} value={c}>
                         {CATEGORIA_DOC_LABEL[c]}
                       </SelectItem>
