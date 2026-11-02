@@ -47,7 +47,6 @@ import {
   nombreJefe,
   ordenarEventos,
 } from "@/lib/rrhh";
-import { descargarCertificado } from "@/lib/certificados";
 import { useAuth } from "@/lib/auth";
 import { formatCOP } from "@/types/organizacion";
 import {
@@ -118,7 +117,6 @@ function PortalEmpleadoPage() {
     solicitarCambio,
     cargarDocumento,
     nuevaVersion,
-    emitirCertificado,
   } = usePortal();
 
   const empleadoSesionId = perfil?.empleadoId ?? empleadoActuandoId;
@@ -284,12 +282,7 @@ function PortalEmpleadoPage() {
     }
   };
 
-  /* ------------------------------- Certificados ------------------------------- */
-  const generar = (tipo: TipoCertificado) => {
-    const cert = emitirCertificado(tipo, id, nombreEmpleado(empleado), tipo !== "cargo");
-    void descargarCertificado(cert, empleado, perfilUsuario);
-    toast.success(`${TIPO_CERTIFICADO_LABEL[tipo]} generado con código ${cert.codigo}.`);
-  };
+  /* Certificados: emisión y descarga deshabilitadas hasta contar con backend confiable. */
 
   const colVac: Column<PeriodoVacaciones>[] = [
     { key: "p", header: "Periodo", render: (r) => r.periodo },
@@ -726,8 +719,8 @@ function PortalEmpleadoPage() {
         {/* ------------------------------- Certificados ------------------------------- */}
         <TabsContent value="certificados" className="mt-4 space-y-4">
           <SeccionExpediente
-            titulo="Generación automática de certificados"
-            descripcion="Cada PDF incluye código único, fecha de emisión y firma institucional. La descarga es directa."
+            titulo="Certificados laborales"
+            descripcion="La emisión y descarga están temporalmente deshabilitadas mientras se implementa la expedición segura desde el servidor. Solicita el documento a Talento Humano."
           >
             <div className="grid gap-3 sm:grid-cols-3">
               {(
@@ -745,15 +738,15 @@ function PortalEmpleadoPage() {
                     {TIPO_CERTIFICADO_LABEL[c.tipo]}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">{c.detalle}</p>
-                  <Button size="sm" className="mt-3 w-full" onClick={() => generar(c.tipo)}>
-                    <Download className="size-4" /> Generar y descargar
+                  <Button size="sm" className="mt-3 w-full" variant="outline" disabled>
+                    <Download className="size-4" /> Emisión pendiente de habilitación
                   </Button>
                 </div>
               ))}
             </div>
           </SeccionExpediente>
 
-          <SeccionExpediente titulo="Certificados emitidos" descripcion="Historial verificable por código único.">
+          <SeccionExpediente titulo="Certificados emitidos" descripcion="Historial de documentos previamente registrados. Las descargas se habilitarán cuando exista validación segura desde el servidor.">
             <div className="space-y-3">
               {misCertificados.length === 0 && (
                 <p className="text-sm text-muted-foreground">Aún no has generado certificados.</p>
@@ -772,12 +765,8 @@ function PortalEmpleadoPage() {
                       {c.incluyeSalario ? " · Incluye salario" : ""}
                     </p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void descargarCertificado(c, empleado, perfilUsuario)}
-                  >
-                    <Download className="size-4" /> Descargar PDF
+                  <Button size="sm" variant="outline" disabled>
+                    <Download className="size-4" /> Descarga temporalmente deshabilitada
                   </Button>
                 </div>
               ))}
