@@ -40,6 +40,7 @@ jobs:
           cd functions
           npm install --no-package-lock --no-audit --no-fund
           npm run lint
+          npm test
 
   firestore-rules:
     runs-on: ubuntu-latest
