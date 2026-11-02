@@ -1,0 +1,64 @@
+name: Update patched TanStack lockfile
+
+on:
+  push:
+    branches:
+      - fix/tanstack-start-cve-2026-102989
+
+permissions:
+  contents: write
+
+jobs:
+  update-lockfile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Resolve patched dependency tree
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Verify patched package versions
+        run: |
+          node <<'NODE'
+          const lock = require('./package-lock.json');
+          const versions = {
+            reactStart: lock.packages['node_modules/@tanstack/react-start']?.version,
+            serverCore: lock.packages['node_modules/@tanstack/start-server-core']?.version,
+          };
+          console.log(versions);
+          const ge = (version, minimum) => {
+            if (!version) return false;
+            const a = version.split('.').map(Number);
+            const b = minimum.split('.').map(Number);
+            for (let i = 0; i < 3; i++) {
+              if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+            }
+            return true;
+          };
+          if (!ge(versions.reactStart, '1.168.60') || !ge(versions.serverCore, '1.169.39')) {
+            throw new Error('TanStack Start lockfile still contains a vulnerable version');
+          }
+          NODE
+
+      - name: Commit updated lockfile
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "Lockfile already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore: lock patched TanStack Start versions [skip ci]"
+          git push
