@@ -144,8 +144,14 @@ exports.responderEvaluacion=onCall(async req=>{
     const clavesPrivadas=ks.exists?(ks.data().claves||{}):{};
     const claves={...clavesAntiguas,...clavesPrivadas};
     // Migración segura y automática de evaluaciones antiguas al primer envío.
-    if(!ks.exists) tx.create(kr,{evaluacionId,claves});
-    else if(Object.keys(claves).length!==Object.keys(clavesPrivadas).length) tx.update(kr,{claves});
+    if(!ks.exists) {
+      tx.create(kr,{evaluacionId,claves});
+    } else {
+      // Completa únicamente IDs ausentes; comparar solo cantidades pierde claves
+      // cuando el mapa privado y el legacy tienen igual longitud pero IDs distintos.
+      const idsFaltantes=Object.keys(clavesAntiguas).filter(id=>!Object.prototype.hasOwnProperty.call(clavesPrivadas,id));
+      if(idsFaltantes.length) tx.update(kr,{claves});
+    }
     if((Array.isArray(e.campos)?e.campos:[]).some(c=>c.correcta!==undefined)){
       tx.update(er,{campos:camposPublicos,actualizadoEn:FieldValue.serverTimestamp()});
     }
