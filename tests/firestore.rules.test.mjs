@@ -411,3 +411,11 @@ test("las aprobaciones de jefe y nómina respetan las etapas del flujo", async (
     flujo: [{ etapa: "nomina", accion: "aprobada", responsable: "Nómina", fecha: "2026-10-31" }],
   }));
 });
+
+test("los respaldos administrativos de migración no son accesibles desde clientes", async () => {
+  const store = db("hr-user");
+  await assertFails(getDoc(doc(store, "disc_evaluaciones_migration_backup", "ev-legacy")));
+  await assertFails(setDoc(doc(store, "disc_evaluaciones_migration_backup", "ev-forged"), {
+    originalData: { campos: [{ id: "q1", correcta: "A" }] },
+  }));
+});
