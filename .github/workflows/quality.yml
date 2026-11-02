@@ -34,7 +34,7 @@ jobs:
 
       - name: Verify patched TanStack Start versions
         run: |
-          node -e "const l=require('./package-lock.json'); const r=l.packages['node_modules/@tanstack/react-start']?.version; const c=l.packages['node_modules/@tanstack/start-server-core']?.version; console.log({reactStart:r,startServerCore:c}); if (!r || !c || require('semver').lt(r,'1.168.60') || require('semver').lt(c,'1.169.39')) process.exit(1)"
+          node -e "const l=require('./package-lock.json'); const r=l.packages['node_modules/@tanstack/react-start']?.version; const c=l.packages['node_modules/@tanstack/start-server-core']?.version; const ge=(v,m)=>!!v&&v.split('.').map(Number).join('.')!==''&&v.split('.').map(Number).reduce((a,n,i)=>a||(n-Number(m.split('.')[i])),0)>=0; console.log({reactStart:r,startServerCore:c}); if (!ge(r,'1.168.60') || !ge(c,'1.169.39')) process.exit(1)"
 
       - name: Production build
         run: npm run build
