@@ -508,6 +508,8 @@ service cloud.firestore {
     match /disc_evaluaciones/{id} { allow read: if activo() && (esRrhh() || esSst()); allow create, update, delete: if false; }
     match /disc_claves_evaluacion/{id} { allow read, write: if false; }
     match /disc_intentos_evaluacion/{id} { allow read, write: if false; }
+    // Respaldo administrativo con claves históricas: nunca accesible desde clientes.
+    match /disc_evaluaciones_migration_backup/{id} { allow read, write: if false; }
     match /disc_respuestas/{id} {
       allow read: if activo() && (esRrhh() || esSst() || esMiEmpleado(resource.data.get('empleadoId', '')) || esMandoAutorizado(resource.data.get('empleadoId', '')));
       allow create, update, delete: if false;
