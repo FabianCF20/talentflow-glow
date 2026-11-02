@@ -58,7 +58,9 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
       ? "administrador"
       : rolesUsuario.includes("talento_humano")
         ? "talento_humano"
-        : rolesUsuario.includes("jefe")
+        : rolesUsuario.includes("sst")
+          ? "sst"
+          : rolesUsuario.includes("jefe")
           ? "jefe"
           : rolesUsuario.includes("supervisor")
             ? "supervisor"
@@ -87,7 +89,9 @@ export function RrhhProvider({ children }: { children: ReactNode }) {
         ? "administrador"
         : perfil.roles.includes("talento_humano")
           ? "talento_humano"
-          : perfil.roles.includes("jefe")
+          : perfil.roles.includes("sst")
+            ? "sst"
+            : perfil.roles.includes("jefe")
             ? "jefe"
             : perfil.roles.includes("director")
               ? "director"

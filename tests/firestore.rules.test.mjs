@@ -63,6 +63,7 @@ before(async () => {
     await setDoc(doc(store, "op_horas_extras", "he-b"), { empleadoId: "emp-b", estado: "pendiente_jefe", flujo: [] });
     await setDoc(doc(store, "disc_incidencias", "dis-b"), { empleadoId: "emp-b", estado: "registrada", traza: [], actuaciones: [] });
     await setDoc(doc(store, "disc_observaciones", "obs-b"), { empleadoId: "emp-b", texto: "interno" });
+    await setDoc(doc(store, "disc_evaluaciones", "ev-public"), { id: "ev-public", titulo: "Evaluación asignada", estado: "activo", campos: [] });
     await setDoc(doc(store, "portal_documentos", "doc-a"), { empleadoId: "emp-a", categoria: "personales", versiones: [] });
     await setDoc(doc(store, "sst_entregas", "dot-a"), { empleadoId: "emp-a", aceptacion: { aceptado: false } });
     await setDoc(doc(store, "sst_entregas", "dot-b"), { empleadoId: "emp-b", aceptacion: { aceptado: false } });
@@ -285,9 +286,27 @@ test("las observaciones internas no son visibles para el empleado titular", asyn
 });
 
 
+test("solo Talento Humano y SST pueden leer evaluaciones directamente; empleados y mandos usan el listado filtrado del servidor", async () => {
+  await assertFails(getDoc(doc(db("emp-a-user"), "disc_evaluaciones", "ev-public")));
+  await assertFails(getDocs(collection(db("emp-a-user"), "disc_evaluaciones")));
+  await assertFails(getDoc(doc(db("sup-user"), "disc_evaluaciones", "ev-public")));
+  await assertSucceeds(getDoc(doc(db("hr-user"), "disc_evaluaciones", "ev-public")));
+  await assertSucceeds(getDocs(collection(db("hr-user"), "disc_evaluaciones")));
+});
+
+test("las claves privadas y la publicación no se pueden consultar ni modificar desde el cliente", async () => {
+  const store = db("hr-user");
+  await assertFails(getDoc(doc(store, "disc_claves_evaluacion", "ev-secret")));
+  await assertFails(getDoc(doc(store, "disc_intentos_evaluacion", "ev-secret_emp-a")));
+  await assertFails(setDoc(doc(store, "disc_claves_evaluacion", "ev-forged"), { claves: { q1: { correcta: "A" } } }));
+  await assertFails(setDoc(doc(store, "disc_evaluaciones", "ev-forged"), {
+    id: "ev-forged", titulo: "Evaluación manipulada", campos: [], estado: "activo",
+  }));
+});
+
 test("las respuestas disciplinarias no aceptan puntajes enviados por el navegador", async () => {
   const store = db("emp-a-user");
-  await assertSucceeds(
+  await assertFails(
     setDoc(doc(store, "disc_respuestas", "resp-own"), {
       id: "resp-own",
       evaluacionId: "eval-1",

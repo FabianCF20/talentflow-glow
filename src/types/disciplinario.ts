@@ -220,6 +220,11 @@ export interface Evaluacion {
   estado: RecordStatus;
   creadoPor: string;
   creadoEn: string;
+  /** Ventana de disponibilidad en hora local del navegador. */
+  abreEn?: string;
+  cierraEn?: string;
+  /** Cantidad máxima de envíos por empleado. */
+  maxIntentos?: number;
 }
 
 export interface RespuestaEvaluacion {

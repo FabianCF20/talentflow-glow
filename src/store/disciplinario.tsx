@@ -1,8 +1,10 @@
 /**
  * Estado compartido del módulo disciplinario sincronizado con Firestore.
  */
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFirestoreState } from "@/lib/firestore";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/lib/firebase";
 import { useAuth } from "@/lib/auth";
 import { alcancePorEmpleado } from "@/lib/acceso-operativo";
 import {
@@ -80,14 +82,17 @@ interface DisciplinarioContextValue {
     campos: CampoEvaluacion[];
     asignacion: AsignacionFormulario;
     puntajeAprobacion?: number;
+    abreEn?: string;
+    cierraEn?: string;
+    maxIntentos?: number;
     responsable: string;
-  }) => void;
-  archivarEvaluacion: (id: string) => void;
+  }) => Promise<void>;
+  archivarEvaluacion: (id: string) => Promise<void>;
   responderEvaluacion: (
     evaluacionId: string,
     empleadoId: string,
     valores: Record<string, ValorRespuesta>,
-  ) => void;
+  ) => Promise<void>;
 }
 
 const DisciplinarioContext = createContext<DisciplinarioContextValue | null>(null);
@@ -112,15 +117,9 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
     "id",
     alcancePorEmpleado(roles, empleadoId, subordinadosIds, rrhh, { incluirPropio: false }),
   );
-  const [evaluaciones, setEvaluaciones] = useFirestoreState<Evaluacion>(
-    "disc_evaluaciones",
-    "id",
-    alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst, {
-      incluirPropio: false,
-      incluirSubordinados: false,
-    }),
-  );
-  const [respuestas, setRespuestas] = useFirestoreState<RespuestaEvaluacion>(
+  // Las evaluaciones publicadas no contienen claves correctas.
+  const [evaluaciones, setEvaluaciones] = useState<Evaluacion[]>([]);
+  const [respuestas] = useFirestoreState<RespuestaEvaluacion>(
     "disc_respuestas",
     "id",
     alcancePorEmpleado(roles, empleadoId, subordinadosIds, sst),
@@ -317,59 +316,46 @@ export function DisciplinarioProvider({ children }: { children: ReactNode }) {
 
   /* ----------------------------- Evaluaciones ----------------------------- */
 
+  const funciones = getFunctions(app);
+  const cargarEvaluaciones = useCallback(async () => {
+    const resultado = await httpsCallable<void, Evaluacion[]>(funciones, "listarEvaluaciones")();
+    setEvaluaciones(Array.isArray(resultado.data) ? resultado.data : []);
+  }, [funciones]);
+
+  useEffect(() => {
+    if (!perfil?.id) {
+      setEvaluaciones([]);
+      return;
+    }
+    let vigente = true;
+    httpsCallable<void, Evaluacion[]>(funciones, "listarEvaluaciones")()
+      .then((resultado) => {
+        if (vigente) setEvaluaciones(Array.isArray(resultado.data) ? resultado.data : []);
+      })
+      .catch((error) => console.error("[evaluaciones] carga", error));
+    return () => { vigente = false; };
+  }, [funciones, perfil?.id, perfil?.empleadoId, perfil?.roles?.join(",")]);
   const crearEvaluacion = useCallback<DisciplinarioContextValue["crearEvaluacion"]>(
-    ({ titulo, descripcion, tipo, campos, asignacion, puntajeAprobacion, responsable }) => {
-      setEvaluaciones((prev) => [
-        {
-          id: nextId("ev"),
-          codigo: `EVA-${String(prev.length + 1).padStart(3, "0")}`,
-          titulo,
-          descripcion,
-          tipo,
-          campos,
-          asignacion,
-          puntajeAprobacion,
-          estado: "activo",
-          creadoPor: responsable,
-          creadoEn: hoyISO(),
-        },
-        ...prev,
-      ]);
-    },
-    [],
+    async (input) => {
+      await httpsCallable(funciones, "crearEvaluacion")({
+        titulo: input.titulo, descripcion: input.descripcion, tipo: input.tipo,
+        campos: input.campos, asignacion: input.asignacion,
+        puntajeAprobacion: input.puntajeAprobacion, abreEn: input.abreEn,
+        cierraEn: input.cierraEn, maxIntentos: input.maxIntentos,
+      });
+      await cargarEvaluaciones();
+    }, [funciones, cargarEvaluaciones],
   );
 
-  const archivarEvaluacion = useCallback((id: string) => {
-    setEvaluaciones((prev) =>
-      prev.map((e) =>
-        e.id === id ? { ...e, estado: e.estado === "activo" ? "archivado" : "activo" } : e,
-      ),
-    );
-  }, []);
+  const archivarEvaluacion = useCallback(async (id: string) => {
+    await httpsCallable(funciones, "archivarEvaluacion")({ evaluacionId: id });
+    await cargarEvaluaciones();
+  }, [funciones, cargarEvaluaciones]);
 
   const responderEvaluacion = useCallback<DisciplinarioContextValue["responderEvaluacion"]>(
-    (evaluacionId, empleadoId, valores) => {
-      setEvaluaciones((evs) => {
-        const evaluacion = evs.find((e) => e.id === evaluacionId);
-        if (evaluacion) {
-          // El empleado solo envía sus respuestas. La puntuación y aprobación
-          // deben calcularse en backend confiable, nunca aceptarse del navegador.
-          setRespuestas((prev) => [
-            {
-              id: nextId("rev"),
-              evaluacionId,
-              empleadoId,
-              fecha: hoyISO(),
-              hora: horaActual(),
-              valores,
-            },
-            ...prev,
-          ]);
-        }
-        return evs;
-      });
-    },
-    [],
+    async (evaluacionId, _empleadoId, valores) => {
+      await httpsCallable(funciones, "responderEvaluacion")({ evaluacionId, valores });
+    }, [funciones],
   );
 
   const value = useMemo<DisciplinarioContextValue>(

@@ -3,7 +3,9 @@
  * Ruta: /evaluaciones
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/lib/firebase";
+import { useEffect, useMemo, useState } from "react";
 import { ClipboardCheck, Users, BarChart3, Plus, Trash2, Award } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/layout/AppShell";
@@ -31,7 +33,7 @@ import {
 import { estadisticasFormulario } from "@/lib/sst";
 import { downloadCsv } from "@/lib/export";
 import { AREAS, CARGOS } from "@/data/organizacion";
-import { nombreEmpleado, ESTADOS_VINCULADOS } from "@/types/rrhh";
+import { nombreEmpleado, ESTADOS_VINCULADOS, type EmpleadoRRHH } from "@/types/rrhh";
 import {
   TIPO_ASIGNACION_LABEL,
   TIPO_CAMPO_LABEL,
@@ -69,6 +71,10 @@ export const Route = createFileRoute("/evaluaciones")({
   component: EvaluacionesPage,
 });
 
+type EmpleadoEvaluacion = Pick<EmpleadoRRHH, "id" | "nombres" | "apellidos" | "estado" | "estadoLaboral"> & {
+  laboral: Pick<EmpleadoRRHH["laboral"], "cargoId" | "areaId">;
+};
+
 const TIPOS: TipoInstrumento[] = ["encuesta", "evaluacion", "cuestionario", "prueba_sst"];
 
 const nuevoCampo = (n: number): CampoEvaluacion => ({
@@ -83,19 +89,50 @@ function EvaluacionesPage() {
   const { empleados, rolActivo, empleadoActuandoId } = useRrhh();
   const disc = useDisciplinario();
   const gestiona = puedeGestionarEvaluaciones(rolActivo);
+  const funciones = getFunctions(app);
+  const [empleadosSst, setEmpleadosSst] = useState<EmpleadoEvaluacion[]>([]);
 
+  useEffect(() => {
+    if (rolActivo !== "sst") {
+      setEmpleadosSst([]);
+      return;
+    }
+    let vigente = true;
+    httpsCallable<void, EmpleadoEvaluacion[]>(funciones, "listarEmpleadosEvaluacion")()
+      .then(({ data }) => {
+        if (vigente) setEmpleadosSst(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => console.error("[evaluaciones] destinatarios SST", error));
+    return () => { vigente = false; };
+  }, [funciones, rolActivo]);
+
+  const empleadosParaEvaluaciones: EmpleadoEvaluacion[] =
+    rolActivo === "sst" ? empleadosSst : empleados;
   const vinculados = useMemo(
-    () => empleados.filter((e) => ESTADOS_VINCULADOS.includes(e.estadoLaboral)),
-    [empleados],
+    () => empleadosParaEvaluaciones.filter((e) => e.estado === "activo" && ESTADOS_VINCULADOS.includes(e.estadoLaboral)),
+    [empleadosParaEvaluaciones],
   );
   const nombrePor = useMemo(
-    () => Object.fromEntries(empleados.map((e) => [e.id, nombreEmpleado(e)])) as Record<string, string>,
-    [empleados],
+    () => Object.fromEntries(empleadosParaEvaluaciones.map((e) => [e.id, nombreEmpleado(e)])) as Record<string, string>,
+    [empleadosParaEvaluaciones],
   );
 
   const activas = disc.evaluaciones.filter((e) => e.estado === "activo");
   const [activoId, setActivoId] = useState<string>(disc.evaluaciones[0]?.id ?? "");
   const evaluacion = disc.evaluaciones.find((e) => e.id === activoId) ?? disc.evaluaciones[0] ?? null;
+  const empleadoEvaluacion = empleadosParaEvaluaciones.find((e) => e.id === empleadoActuandoId);
+  const estaAsignado = Boolean(
+    evaluacion &&
+      (evaluacion.asignacion.tipo === "empresa" ||
+        (evaluacion.asignacion.tipo === "empleado" &&
+          evaluacion.asignacion.valores.includes(empleadoActuandoId)) ||
+        (evaluacion.asignacion.tipo === "cargo" &&
+          Boolean(empleadoEvaluacion?.laboral?.cargoId) &&
+          evaluacion.asignacion.valores.includes(empleadoEvaluacion?.laboral?.cargoId ?? "")) ||
+        (evaluacion.asignacion.tipo === "area" &&
+          Boolean(empleadoEvaluacion?.laboral?.areaId) &&
+          evaluacion.asignacion.valores.includes(empleadoEvaluacion?.laboral?.areaId ?? ""))),
+  );
 
   const indicadoresGlobales = useMemo(() => {
     const calificadas = disc.respuestas.filter((r) => typeof r.puntaje === "number");
@@ -118,6 +155,9 @@ function EvaluacionesPage() {
   const [descripcion, setDescripcion] = useState("");
   const [tipo, setTipo] = useState<TipoInstrumento>("evaluacion");
   const [puntajeAprobacion, setPuntajeAprobacion] = useState(70);
+  const [abreEn, setAbreEn] = useState("");
+  const [cierraEn, setCierraEn] = useState("");
+  const [maxIntentos, setMaxIntentos] = useState(1);
   const [campos, setCampos] = useState<CampoEvaluacion[]>([nuevoCampo(1)]);
   const [tipoAsignacion, setTipoAsignacion] = useState<TipoAsignacion>("empresa");
   const [valores, setValores] = useState<string[]>([]);
@@ -125,36 +165,70 @@ function EvaluacionesPage() {
   const actualizarCampo = (id: string, cambios: Partial<CampoEvaluacion>) =>
     setCampos((prev) => prev.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
 
-  const crear = () => {
+  const crear = async () => {
     if (titulo.trim().length < 5 || campos.some((c) => !c.etiqueta.trim())) {
       toast.error("Complete el título y las preguntas del instrumento.");
+      return;
+    }
+    if (abreEn && cierraEn && new Date(cierraEn) <= new Date(abreEn)) {
+      toast.error("La fecha de cierre debe ser posterior a la apertura.");
+      return;
+    }
+    if (!Number.isInteger(maxIntentos) || maxIntentos < 1 || maxIntentos > 20) {
+      toast.error("El límite debe estar entre 1 y 20 intentos.");
       return;
     }
     if (tipoAsignacion !== "empresa" && valores.length === 0) {
       toast.error("Seleccione al menos un destinatario para la asignación.");
       return;
     }
-    disc.crearEvaluacion({
+    try {
+      await disc.crearEvaluacion({
       titulo,
       descripcion,
       tipo,
       campos,
       asignacion: { tipo: tipoAsignacion, valores: tipoAsignacion === "empresa" ? [] : valores },
       puntajeAprobacion: campos.some((c) => c.correcta !== undefined) ? puntajeAprobacion : undefined,
+      abreEn: abreEn ? new Date(abreEn).toISOString() : undefined,
+      cierraEn: cierraEn ? new Date(cierraEn).toISOString() : undefined,
+      maxIntentos,
       responsable: "Talento Humano",
-    });
+      });
+    } catch (error) {
+      console.error("[evaluaciones] creación", error);
+      toast.error("No fue posible crear el instrumento.");
+      return;
+    }
     setTitulo("");
     setDescripcion("");
+    setAbreEn("");
+    setCierraEn("");
+    setMaxIntentos(1);
     setCampos([nuevoCampo(1)]);
     setValores([]);
     toast.success("Instrumento creado y asignado.");
   };
 
+  const archivar = async (id: string) => {
+    try {
+      await disc.archivarEvaluacion(id);
+      toast.success("Estado de la evaluación actualizado.");
+    } catch (error) {
+      console.error("[evaluaciones] cambio de estado", error);
+      toast.error("No fue posible cambiar el estado de la evaluación.");
+    }
+  };
+
   /* ---------------------------- Diligenciamiento ---------------------------- */
   const [respuestasForm, setRespuestasForm] = useState<Record<string, ValorRespuesta>>({});
 
-  const responder = () => {
+  const responder = async () => {
     if (!evaluacion) return;
+    if (!estaAsignado) {
+      toast.error("Esta evaluación no está asignada a este empleado.");
+      return;
+    }
     const faltantes = evaluacion.campos.filter(
       (c) =>
         c.requerido &&
@@ -166,9 +240,26 @@ function EvaluacionesPage() {
       toast.error("Responda todas las preguntas obligatorias.");
       return;
     }
-    disc.responderEvaluacion(evaluacion.id, empleadoActuandoId, respuestasForm);
-    setRespuestasForm({});
-    toast.success("Respuestas registradas. Los resultados se actualizaron.");
+    const ahora = Date.now();
+    const abre = evaluacion.abreEn ? new Date(evaluacion.abreEn).getTime() : undefined;
+    const cierra = evaluacion.cierraEn ? new Date(evaluacion.cierraEn).getTime() : undefined;
+    const intentos = disc.respuestas.filter((r) => r.evaluacionId === evaluacion.id && r.empleadoId === empleadoActuandoId).length;
+    if (evaluacion.estado !== "activo" || (abre !== undefined && ahora < abre) || (cierra !== undefined && ahora > cierra)) {
+      toast.error("Esta evaluación no está dentro de su periodo habilitado.");
+      return;
+    }
+    if (intentos >= (evaluacion.maxIntentos ?? 1)) {
+      toast.error("Ya alcanzaste el máximo de intentos permitidos.");
+      return;
+    }
+    try {
+      await disc.responderEvaluacion(evaluacion.id, empleadoActuandoId, respuestasForm);
+      setRespuestasForm({});
+      toast.success("Respuestas enviadas y calificadas.");
+    } catch (error) {
+      console.error("[evaluaciones] envío", error);
+      toast.error("No fue posible enviar la evaluación. Verifica asignación, periodo e intentos.");
+    }
   };
 
   /* ------------------------------ Resultados ------------------------------ */
@@ -411,7 +502,11 @@ function EvaluacionesPage() {
                 </p>
               </div>
 
-              {evaluacion.campos.map((c) => (
+              {!estaAsignado ? (
+                <p className="rounded-md border border-border p-3 text-sm text-muted-foreground">
+                  Esta evaluación no está asignada al empleado seleccionado.
+                </p>
+              ) : evaluacion.campos.map((c) => (
                 <div key={c.id} className="space-y-2">
                   <Label>
                     {c.etiqueta}
@@ -498,7 +593,11 @@ function EvaluacionesPage() {
                 </div>
               ))}
 
-              <Button onClick={responder}>Enviar respuestas</Button>
+              {estaAsignado && <div className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                Intentos utilizados: {disc.respuestas.filter((x) => x.evaluacionId === evaluacion.id && x.empleadoId === empleadoActuandoId).length} de {evaluacion.maxIntentos ?? 1}
+                {evaluacion.cierraEn ? ` · Cierra: ${new Date(evaluacion.cierraEn).toLocaleString("es-CO")}` : ""}
+              </div>}
+              <Button onClick={responder} disabled={!estaAsignado}>Enviar respuestas</Button>
             </section>
           )}
         </TabsContent>
@@ -522,6 +621,11 @@ function EvaluacionesPage() {
                   </div>
                   <p className="text-sm text-muted-foreground">{e.descripcion}</p>
                   <p className="text-xs text-muted-foreground">
+                    {e.abreEn ? `Apertura: ${new Date(e.abreEn).toLocaleString("es-CO")}` : "Disponible inmediatamente"}
+                    {e.cierraEn ? ` · Cierre: ${new Date(e.cierraEn).toLocaleString("es-CO")}` : " · Sin fecha de cierre"}
+                    {` · Máximo ${e.maxIntentos ?? 1} intento(s)`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
                     {TIPO_ASIGNACION_LABEL[e.asignacion.tipo]} · {ind.destinatarios} destinatarios ·{" "}
                     {ind.respuestas} respuestas ({ind.cobertura}%)
                   </p>
@@ -531,7 +635,7 @@ function EvaluacionesPage() {
                     Seleccionar
                   </Button>
                   {gestiona && (
-                    <Button size="sm" variant="ghost" onClick={() => disc.archivarEvaluacion(e.id)}>
+                    <Button size="sm" variant="ghost" onClick={() => void archivar(e.id)}>
                       {e.estado === "activo" ? "Archivar" : "Reactivar"}
                     </Button>
                   )}
@@ -582,6 +686,18 @@ function EvaluacionesPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Apertura (opcional)</Label>
+                  <Input type="datetime-local" value={abreEn} onChange={(e) => setAbreEn(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Cierre (opcional)</Label>
+                  <Input type="datetime-local" value={cierraEn} onChange={(e) => setCierraEn(e.target.value)} min={abreEn || undefined} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Máximo de intentos (1–20)</Label>
+                  <Input type="number" min={1} max={20} value={maxIntentos} onChange={(e) => setMaxIntentos(Number(e.target.value) || 1)} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Puntaje mínimo aprobatorio (%)</Label>
