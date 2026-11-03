@@ -113,7 +113,7 @@ export async function crearCuentaUsuario(datos: {
 /** Actualiza roles, estado o empleado vinculado de una cuenta existente. */
 export async function actualizarCuentaUsuario(
   cuenta: CuentaUsuario,
-  cambios: Partial<Pick<CuentaUsuario, "roles" | "estadoUsuario" | "empleadoId" | "nombres" | "apellidos">>,
+  cambios: Partial<Pick<CuentaUsuario, "roles" | "estadoUsuario" | "empleadoId" | "nombres" | "apellidos" | "nivelJerarquico">>,
 ) {
   const actualizada: CuentaUsuario = {
     ...cuenta,
