@@ -44,7 +44,6 @@ import {
 import { descargarReportePdf } from "@/lib/reporte-pdf";
 import { puedeVerSalario } from "@/lib/visibilidad";
 import { cargoById, nivelById } from "@/data/organizacion";
-import { rolJerarquicoPorNivel } from "@/config/roles";
 import { formatCOP } from "@/types/organizacion";
 import {
   ESTADO_LABORAL_LABEL,
@@ -196,11 +195,9 @@ function ExpedienteEmpleadoPage() {
     }
     const n = actualizarInformacionLaboral(id, form);
     if (cuenta && form.cargoId !== empleado.laboral?.cargoId) {
-      const rolAnterior = rolJerarquicoPorNivel(nivelById(cargoById(empleado.laboral?.cargoId)?.nivelId)?.nivel);
       const nivelNuevo = nivelById(cargoById(form.cargoId)?.nivelId)?.nivel ?? 9;
-      const rolNuevo = rolJerarquicoPorNivel(nivelNuevo);
+      // RR. HH. puede actualizar el nivel del cargo; la asignación de roles sigue protegida.
       void actualizarCuentaUsuario(cuenta, {
-        roles: [...new Set([...cuenta.roles.filter((rol) => rol !== rolAnterior), rolNuevo])],
         nivelJerarquico: nivelNuevo,
       }).catch((error) => {
         console.error("[empleados] no se pudo sincronizar el rol base", error);
