@@ -800,8 +800,9 @@ function Usuarios() {
             <div className="space-y-2">
               <Label>Roles y permisos predeterminados</Label>
               <p className="text-xs text-muted-foreground">
-                El rol inicial se calcula por el nivel jerárquico del cargo. Puede agregar permisos
-                funcionales adicionales sin retirar el rol jerárquico base.
+                {esAdmin
+                  ? "El rol jerárquico se calcula por el cargo. Puede agregar roles funcionales adicionales."
+                  : "Solo Administrador puede modificar los roles. El rol jerárquico se deriva del cargo vigente."}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {ROLES.map((r) => (
