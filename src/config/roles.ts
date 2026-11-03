@@ -60,8 +60,8 @@ const ROLES_JERARQUICOS = new Set<RoleKey>([
  * reemplaza cualquier rol jerárquico anterior por el que corresponde al cargo.
  * Si la cuenta aún no tiene nivel asociado, conserva sus roles actuales.
  */
-export function rolesEfectivosPorCargo(roles: RoleKey[], nivel?: number): RoleKey[] {
-  if (nivel === undefined || !Number.isFinite(nivel)) return roles;
+export function rolesEfectivosPorCargo(roles: RoleKey[], nivel?: number | null): RoleKey[] {
+  if (nivel == null || !Number.isFinite(nivel)) return roles;
   const rolDelCargo = rolJerarquicoPorNivel(nivel);
   return [...new Set([...roles.filter((rol) => !ROLES_JERARQUICOS.has(rol)), rolDelCargo])];
 }
