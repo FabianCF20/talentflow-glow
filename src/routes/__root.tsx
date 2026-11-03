@@ -26,8 +26,8 @@ import { SstProvider } from "../store/sst";
 import { DisciplinarioProvider } from "../store/disciplinario";
 import { AuthProvider, useAuth } from "../lib/auth";
 import { DatosMaestrosProvider } from "../lib/datos-live";
-import { NAV_GROUPS } from "../config/navigation";
-import { can } from "../config/roles";
+import { itemNavegacionPorRuta } from "../config/navigation";
+import { can, rolesEfectivosPorCargo } from "../config/roles";
 
 
 function NotFoundComponent() {
@@ -170,11 +170,10 @@ function SesionRequerida({ children }: { children: ReactNode }) {
     return <div className="grid min-h-screen place-items-center bg-background"><p className="text-sm text-muted-foreground">Cuenta sin acceso autorizado. Contacte a administración.</p></div>;
   }
 
-  // Bloquea la entrada directa por dirección a módulos que el rol no puede ver.
-  const item = NAV_GROUPS.flatMap((g) => g.items)
-    .filter((i) => i.to && (i.to === "/" ? pathname === "/" : pathname.startsWith(i.to)))
-    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))[0];
-  if (perfil && item && item.to !== "/" && !can(perfil.roles ?? [], item.modulo, "ver")) {
+  // La protección de rutas utiliza exactamente los mismos roles efectivos que el menú.
+  const rolesEfectivos = rolesEfectivosPorCargo(perfil.roles ?? [], perfil.nivelJerarquico);
+  const item = itemNavegacionPorRuta(pathname);
+  if (item && !can(rolesEfectivos, item.modulo, "ver")) {
     return (
       <div className="grid min-h-screen place-items-center bg-background px-4 text-center">
         <div>

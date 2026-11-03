@@ -23,7 +23,7 @@ export const COLECCION_USUARIOS = "usuarios";
 /** Cuenta almacenada en Firestore, ligada 1:1 con un usuario de Firebase Auth. */
 export interface CuentaUsuario extends PerfilUsuario {
   empleadoId?: string;
-  nivelJerarquico?: number;
+  nivelJerarquico?: number | null;
   estadoUsuario?: EstadoUsuario;
   ultimoAcceso?: string;
   intentosFallidos?: number;
@@ -55,7 +55,7 @@ export async function crearCuentaUsuario(datos: {
   apellidos: string;
   roles?: RoleKey[];
   empleadoId?: string;
-  nivelJerarquico?: number;
+  nivelJerarquico?: number | null;
 }) {
   const email = datos.email.trim().toLowerCase();
   const nombres = datos.nombres.trim();
@@ -68,7 +68,7 @@ export async function crearCuentaUsuario(datos: {
   }
   const roles = datos.roles?.length
     ? [...new Set(datos.roles)]
-    : rolesPredeterminadosPorNivel(datos.nivelJerarquico);
+    : rolesPredeterminadosPorNivel(datos.nivelJerarquico ?? undefined);
   const secundaria = initializeApp(firebaseConfig, `admin-${Date.now()}`);
   const authSecundaria = getAuth(secundaria);
   let uid: string | undefined;
@@ -87,7 +87,7 @@ export async function crearCuentaUsuario(datos: {
       apellidos,
       roles,
       empleadoId: datos.empleadoId,
-      nivelJerarquico: datos.nivelJerarquico,
+      nivelJerarquico: datos.nivelJerarquico ?? null,
       estado: "activo",
       estadoUsuario: "activo",
       intentosFallidos: 0,
@@ -113,7 +113,7 @@ export async function crearCuentaUsuario(datos: {
 /** Actualiza roles, estado o empleado vinculado de una cuenta existente. */
 export async function actualizarCuentaUsuario(
   cuenta: CuentaUsuario,
-  cambios: Partial<Pick<CuentaUsuario, "roles" | "estadoUsuario" | "empleadoId" | "nombres" | "apellidos">>,
+  cambios: Partial<Pick<CuentaUsuario, "roles" | "estadoUsuario" | "empleadoId" | "nombres" | "apellidos" | "nivelJerarquico">>,
 ) {
   const actualizada: CuentaUsuario = {
     ...cuenta,

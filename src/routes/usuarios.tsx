@@ -205,12 +205,16 @@ function Usuarios() {
       const rolBase = rolBaseDeEmpleado(form.empleadoId);
       const roles = rolBase ? [...new Set([...form.roles, rolBase])] : form.roles;
       if (editando) {
+        const nivelJerarquico = form.empleadoId
+          ? (nivelById(cargoById(empleadoById(form.empleadoId)?.cargoId)?.nivelId)?.nivel ?? 9)
+          : null;
         await actualizarCuentaUsuario(editando, {
           nombres: form.nombres,
           apellidos: form.apellidos,
-          roles: roles.length ? roles : ["empleado"],
+          ...(esAdmin ? { roles: roles.length ? roles : ["empleado"] } : {}),
           empleadoId: form.empleadoId || undefined,
           estadoUsuario: form.estadoUsuario,
+          nivelJerarquico,
         });
         toast.success("Usuario actualizado.");
       } else {
@@ -796,8 +800,9 @@ function Usuarios() {
             <div className="space-y-2">
               <Label>Roles y permisos predeterminados</Label>
               <p className="text-xs text-muted-foreground">
-                El rol inicial se calcula por el nivel jerárquico del cargo. Puede agregar permisos
-                funcionales adicionales sin retirar el rol jerárquico base.
+                {esAdmin
+                  ? "El rol jerárquico se calcula por el cargo. Puede agregar roles funcionales adicionales."
+                  : "Solo Administrador puede modificar los roles. El rol jerárquico se deriva del cargo vigente."}
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {ROLES.map((r) => (
@@ -805,6 +810,7 @@ function Usuarios() {
                     <Checkbox
                       checked={form.roles.includes(r.key)}
                       onCheckedChange={() => alternarRol(r.key)}
+                      disabled={!esAdmin}
                     />
                     {r.nombre}
                   </label>

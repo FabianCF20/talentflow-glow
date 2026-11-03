@@ -44,6 +44,28 @@ export function rolJerarquicoPorNivel(nivel?: number): RoleKey {
   return ROL_JERARQUICO_POR_NIVEL[nivel ?? 9] ?? "empleado";
 }
 
+/** Roles que representan la posición jerárquica del cargo, no funciones adicionales. */
+const ROLES_JERARQUICOS = new Set<RoleKey>([
+  "administrador",
+  "gerente_general",
+  "director",
+  "jefe",
+  "supervisor",
+  "empleado",
+]);
+
+/**
+ * Calcula los roles efectivos de una cuenta usando el nivel vigente de su cargo.
+ * Conserva los roles funcionales (RR. HH., Nómina, Contabilidad y SST), pero
+ * reemplaza cualquier rol jerárquico anterior por el que corresponde al cargo.
+ * Si la cuenta aún no tiene nivel asociado, conserva sus roles actuales.
+ */
+export function rolesEfectivosPorCargo(roles: RoleKey[], nivel?: number | null): RoleKey[] {
+  if (nivel == null || !Number.isFinite(nivel)) return roles;
+  const rolDelCargo = rolJerarquicoPorNivel(nivel);
+  return [...new Set([...roles.filter((rol) => !ROLES_JERARQUICOS.has(rol)), rolDelCargo])];
+}
+
 /** Catálogo único de niveles jerárquicos que pueden usarse en cargos. */
 export const NIVELES_JERARQUICOS = Object.entries(ROL_JERARQUICO_POR_NIVEL).map(
   ([nivel, rol]) => ({
