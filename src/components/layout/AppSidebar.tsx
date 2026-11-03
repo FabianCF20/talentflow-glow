@@ -3,9 +3,9 @@
  */
 import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronsLeft, Lock } from "lucide-react";
-import { NAV_GROUPS } from "@/config/navigation";
+import { gruposNavegacionVisibles } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-import { can } from "@/config/roles";
+import { rolesEfectivosPorCargo } from "@/config/roles";
 import { useAuth } from "@/lib/auth";
 
 export function AppSidebar({
@@ -19,12 +19,9 @@ export function AppSidebar({
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { perfil } = useAuth();
-  const roles = perfil?.roles ?? [];
-  // Solo se muestran los módulos que el rol del usuario puede ver.
-  const grupos = NAV_GROUPS.map((g) => ({
-    ...g,
-    items: g.items.filter((i) => i.proximamente || can(roles, i.modulo, "ver")),
-  })).filter((g) => g.items.length > 0);
+  // El rol jerárquico se deriva del cargo vigente; se conservan los roles funcionales.
+  const roles = rolesEfectivosPorCargo(perfil?.roles ?? [], perfil?.nivelJerarquico);
+  const grupos = gruposNavegacionVisibles(roles);
 
   return (
     <aside
