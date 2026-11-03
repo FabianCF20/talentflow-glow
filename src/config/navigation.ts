@@ -1,6 +1,8 @@
 /**
  * Definición del menú lateral. Para agregar un módulo al menú, añada un elemento aquí (y cree su ruta).
  */
+import { can } from "./roles";
+import type { RoleKey } from "@/types/entities";
 import {
   LayoutDashboard,
   Users,
@@ -93,3 +95,18 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
 ];
+
+/** Devuelve únicamente grupos con módulos autorizados para los roles efectivos. */
+export function gruposNavegacionVisibles(roles: RoleKey[]): NavGroup[] {
+  return NAV_GROUPS.map((grupo) => ({
+    ...grupo,
+    items: grupo.items.filter((item) => can(roles, item.modulo, "ver")),
+  })).filter((grupo) => grupo.items.length > 0);
+}
+
+/** Encuentra la opción de navegación que corresponde a una ruta, priorizando la ruta más específica. */
+export function itemNavegacionPorRuta(pathname: string): NavItem | undefined {
+  return NAV_GROUPS.flatMap((grupo) => grupo.items)
+    .filter((item) => item.to && (item.to === "/" ? pathname === "/" : pathname.startsWith(item.to)))
+    .sort((a, b) => (b.to?.length ?? 0) - (a.to?.length ?? 0))[0];
+}
