@@ -68,7 +68,7 @@ export async function crearCuentaUsuario(datos: {
   }
   const roles = datos.roles?.length
     ? [...new Set(datos.roles)]
-    : rolesPredeterminadosPorNivel(datos.nivelJerarquico);
+    : rolesPredeterminadosPorNivel(datos.nivelJerarquico ?? undefined);
   const secundaria = initializeApp(firebaseConfig, `admin-${Date.now()}`);
   const authSecundaria = getAuth(secundaria);
   let uid: string | undefined;
