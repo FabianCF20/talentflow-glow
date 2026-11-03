@@ -205,12 +205,16 @@ function Usuarios() {
       const rolBase = rolBaseDeEmpleado(form.empleadoId);
       const roles = rolBase ? [...new Set([...form.roles, rolBase])] : form.roles;
       if (editando) {
+        const nivelJerarquico = form.empleadoId
+          ? (nivelById(cargoById(empleadoById(form.empleadoId)?.cargoId)?.nivelId)?.nivel ?? 9)
+          : null;
         await actualizarCuentaUsuario(editando, {
           nombres: form.nombres,
           apellidos: form.apellidos,
-          roles: roles.length ? roles : ["empleado"],
+          ...(esAdmin ? { roles: roles.length ? roles : ["empleado"] } : {}),
           empleadoId: form.empleadoId || undefined,
           estadoUsuario: form.estadoUsuario,
+          nivelJerarquico,
         });
         toast.success("Usuario actualizado.");
       } else {
@@ -805,6 +809,7 @@ function Usuarios() {
                     <Checkbox
                       checked={form.roles.includes(r.key)}
                       onCheckedChange={() => alternarRol(r.key)}
+                      disabled={!esAdmin}
                     />
                     {r.nombre}
                   </label>
