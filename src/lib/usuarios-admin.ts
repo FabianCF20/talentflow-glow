@@ -23,7 +23,7 @@ export const COLECCION_USUARIOS = "usuarios";
 /** Cuenta almacenada en Firestore, ligada 1:1 con un usuario de Firebase Auth. */
 export interface CuentaUsuario extends PerfilUsuario {
   empleadoId?: string;
-  nivelJerarquico?: number;
+  nivelJerarquico?: number | null;
   estadoUsuario?: EstadoUsuario;
   ultimoAcceso?: string;
   intentosFallidos?: number;
@@ -55,7 +55,7 @@ export async function crearCuentaUsuario(datos: {
   apellidos: string;
   roles?: RoleKey[];
   empleadoId?: string;
-  nivelJerarquico?: number;
+  nivelJerarquico?: number | null;
 }) {
   const email = datos.email.trim().toLowerCase();
   const nombres = datos.nombres.trim();
@@ -87,7 +87,7 @@ export async function crearCuentaUsuario(datos: {
       apellidos,
       roles,
       empleadoId: datos.empleadoId,
-      nivelJerarquico: datos.nivelJerarquico,
+      nivelJerarquico: datos.nivelJerarquico ?? null,
       estado: "activo",
       estadoUsuario: "activo",
       intentosFallidos: 0,
