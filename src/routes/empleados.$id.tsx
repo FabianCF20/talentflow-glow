@@ -197,9 +197,11 @@ function ExpedienteEmpleadoPage() {
     const n = actualizarInformacionLaboral(id, form);
     if (cuenta && form.cargoId !== empleado.laboral?.cargoId) {
       const rolAnterior = rolJerarquicoPorNivel(nivelById(cargoById(empleado.laboral?.cargoId)?.nivelId)?.nivel);
-      const rolNuevo = rolJerarquicoPorNivel(nivelById(cargoById(form.cargoId)?.nivelId)?.nivel);
+      const nivelNuevo = nivelById(cargoById(form.cargoId)?.nivelId)?.nivel ?? 9;
+      const rolNuevo = rolJerarquicoPorNivel(nivelNuevo);
       void actualizarCuentaUsuario(cuenta, {
         roles: [...new Set([...cuenta.roles.filter((rol) => rol !== rolAnterior), rolNuevo])],
+        nivelJerarquico: nivelNuevo,
       }).catch((error) => {
         console.error("[empleados] no se pudo sincronizar el rol base", error);
         toast.error(mensajeAuth(error));
