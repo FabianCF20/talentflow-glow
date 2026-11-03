@@ -22,7 +22,7 @@ export interface PerfilUsuario {
   apellidos: string;
   roles: RoleKey[];
   /** Nivel jerárquico sincronizado con el cargo vigente del empleado. */
-  nivelJerarquico?: number;
+  nivelJerarquico?: number | null;
   empleadoId?: string;
   subordinadosIds?: string[];
   estado: "activo" | "inactivo";
