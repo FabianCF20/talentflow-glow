@@ -21,6 +21,8 @@ export interface PerfilUsuario {
   nombres: string;
   apellidos: string;
   roles: RoleKey[];
+  /** Nivel jerárquico sincronizado con el cargo vigente del empleado. */
+  nivelJerarquico?: number;
   empleadoId?: string;
   subordinadosIds?: string[];
   estado: "activo" | "inactivo";
